@@ -1,2 +1,18 @@
-FROM alpine:latest
-CMD ["echo", "This is a dummy container for testing purposes"]
+FROM node:18
+
+WORKDIR /app
+
+# Copy package.json and package-lock.json
+COPY package*.json ./
+
+# Install dependencies
+RUN npm install
+
+# Copy source files
+COPY . .
+
+# Build TypeScript
+RUN npm run build
+
+# Start the application
+CMD ["node", "dist/index.js"]

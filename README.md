@@ -7,12 +7,29 @@ This repository contains the code for the Vizualization Services of the NHMzh pr
 - Docker
 - Docker Compose
 
+## Environment Variables
+
+Create a `.env` file in the root directory of the repository with the following variables:
+
+```
+MINIO_ROOT_USER=ROOTUSER
+MINIO_ROOT_PASSWORD=CHANGEME123
+```
+
+Make sure to replace `ROOTUSER` and `CHANGEME123` with your own credentials.
+
 ## Running the services
 
 To run the services, navigate to the root directory of the repository and run the following command:
 
 ```bash
 docker-compose up
+```
+
+If you want to build the images before running the services, you can run the following command:
+
+```bash
+docker-compose up --build
 ```
 
 ## Stopping the services

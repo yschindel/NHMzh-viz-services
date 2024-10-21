@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  minio:
+    image: minio/minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-ROOTUSER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-CHANGEME123}
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+
+  ifc_consumer:
+    build: 
+      context: ./viz_ifc-consumer
+      dockerfile: Dockerfile
+    depends_on:
+      - minio
+
+  lca_consumer:
+    build:
+      context: ./viz_lca-consumer
+      dockerfile: Dockerfile
+    depends_on:
+      - nosql_db
+
+  cost_consumer:
+    build:
+      context: ./viz_cost-consumer
+      dockerfile: Dockerfile
+    depends_on:
+      - nosql_db
+
+  nosql_db:
+    image: mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - nosql_data:/data/db
+
+
+
+volumes:
+  minio_data:
+  nosql_data:
+
+networks:
+  default:
+    name: my_microservices_network

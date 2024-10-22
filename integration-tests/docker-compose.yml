@@ -1,7 +1,7 @@
 
 
 services:
-  minio:
+  minio-fragments:
     image: minio/minio
     ports:
       - "9000:9000"
@@ -9,7 +9,18 @@ services:
     env_file:
       - ../.env
     volumes:
-      - minio_data:/data
+      - minio_fragments_data:/data
+    command: server /data --console-address ":9001"
+
+  minio-ifc:
+    image: minio/minio
+    ports:
+      - "9010:9000"
+      - "9011:9001"
+    env_file:
+      - ../.env
+    volumes:
+      - minio_ifc_data:/data
     command: server /data --console-address ":9001"
 
   zookeeper:
@@ -52,7 +63,7 @@ services:
     env_file:
       - ../.env
     depends_on:
-      - minio
+      - minio-fragments
       - kafka
       - nosql_db
 

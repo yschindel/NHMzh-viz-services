@@ -36,6 +36,12 @@ nhmzh-viz-services\Scripts\activate
 pip install -r requirements.txt
 ```
 
+## Adding an IFC file to the test
+
+1. Create a new directory called `assets` in the `integration-tests` directory.
+2. Add an IFC file to the `assets` directory.
+3. Rename the file to `test.ifc`.
+
 ## Running the tests
 
 Open a new terminal window in the `integration-tests` directory:

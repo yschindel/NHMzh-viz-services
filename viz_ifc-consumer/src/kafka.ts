@@ -3,7 +3,7 @@ import { Kafka, Consumer } from "kafkajs";
 export async function setupKafkaConsumer(): Promise<Consumer> {
   const kafka = new Kafka({
     clientId: process.env.VIZ_KAFKA_IFC_CLIENT_ID || "viz-ifc-consumer",
-    brokers: [process.env.KAFKA_BROKER || "kafka:9092"],
+    brokers: [process.env.KAFKA_BROKER || "kafka:9093"],
   });
 
   const consumer = kafka.consumer({ groupId: process.env.VIZ_KAFKA_IFC_GROUP_ID || "viz-ifc-consumers" });
@@ -16,6 +16,7 @@ export async function setupKafkaConsumer(): Promise<Consumer> {
 export async function startKafkaConsumer(consumer: Consumer, messageHandler: (message: any) => Promise<void>): Promise<void> {
   await consumer.run({
     eachMessage: async ({ topic, partition, message }) => {
+      console.log(`Received message from topic ${topic}, partition ${partition}, offset ${message.offset}`);
       await messageHandler(message);
     },
   });

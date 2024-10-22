@@ -82,7 +82,7 @@ describe("Kafka Consumer", () => {
 
     expect(Kafka).toHaveBeenCalledWith({
       clientId: "viz-ifc-consumer",
-      brokers: ["kafka:9092"],
+      brokers: ["kafka:9093"],
     });
 
     expect(mockKafka.consumer).toHaveBeenCalledWith({ groupId: "viz-ifc-consumers" });

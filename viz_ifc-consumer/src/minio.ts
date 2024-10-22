@@ -2,11 +2,11 @@ import { Client as MinioClient } from "minio";
 
 export function createMinioClient(): MinioClient {
   return new MinioClient({
-    endPoint: process.env.VIZ_MINIO_ENDPOINT || "minio",
-    port: parseInt(process.env.VIZ_MINIO_PORT || "9000"),
-    useSSL: process.env.VIZ_MINIO_USE_SSL === "true",
-    accessKey: process.env.VIZ_MINIO_ACCESS_KEY || "",
-    secretKey: process.env.VIZ_MINIO_SECRET_KEY || "",
+    endPoint: process.env.MINIO_ENDPOINT || "minio",
+    port: parseInt(process.env.MINIO_PORT || "9000"),
+    useSSL: process.env.MINIO_USE_SSL === "true",
+    accessKey: process.env.MINIO_ACCESS_KEY || "",
+    secretKey: process.env.MINIO_SECRET_KEY || "",
   });
 }
 

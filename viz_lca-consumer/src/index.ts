@@ -1,5 +1,5 @@
 function test(): void {
-  console.log("lca-consumer: ", process.env.TEST_VALUE);
+  console.log("lca-consumer: ", process.env.VIZ_TEST_VALUE);
 }
 
 test();

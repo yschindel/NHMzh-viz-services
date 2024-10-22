@@ -1,3 +1,4 @@
+import parseIfc from "./ifc/ifcParser";
 import { setupKafkaConsumer, startKafkaConsumer, IFCKafkaMessage } from "./kafka";
 import { initializeMinio, saveToMinIO } from "./minio";
 
@@ -15,7 +16,10 @@ async function main() {
     if (message.value) {
       try {
         const ifcMessage: IFCKafkaMessage = JSON.parse(message.value.toString());
-        await saveToMinIO(ifcMessage.project, ifcMessage.filename, Buffer.from(ifcMessage.content), BUCKET_NAME, ifcMessage.timestamp);
+        const fragments = await parseIfc(ifcMessage);
+        if (fragments) {
+          await saveToMinIO(ifcMessage.project, ifcMessage.filename, fragments, BUCKET_NAME, ifcMessage.timestamp);
+        }
       } catch (error) {
         console.error("Error processing Kafka message:", error);
       }

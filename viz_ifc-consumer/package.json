@@ -28,6 +28,7 @@
   "dependencies": {
     "@thatopen/components": "^2.3.11",
     "kafkajs": "^2.2.4",
-    "minio": "^8.0.1"
+    "minio": "^8.0.1",
+    "pako": "^2.1.0"
   }
 }

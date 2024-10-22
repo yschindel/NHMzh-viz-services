@@ -4,11 +4,10 @@ services:
     ports:
       - "9000:9000"
       - "9001:9001"
-    environment:
-      - MINIO_ROOT_USER=ROOTUSER
-      - MINIO_ROOT_PASSWORD=CHANGEME123
+    env_file:
+      - .env
     volumes:
-      - minio_data:/data
+      - minio_fragments_data:/data
     command: server /data --console-address ":9001"
 
   viz_ifc-consumer:

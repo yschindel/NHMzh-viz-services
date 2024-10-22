@@ -15,8 +15,13 @@
   "license": "ISC",
   "description": "",
   "devDependencies": {
+    "@types/minio": "^7.1.0",
     "@types/node": "^22.7.7",
     "ts-node": "^10.9.2",
     "typescript": "^5.6.3"
+  },
+  "dependencies": {
+    "kafkajs": "^2.2.4",
+    "minio": "^8.0.1"
   }
 }

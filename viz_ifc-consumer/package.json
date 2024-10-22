@@ -26,6 +26,7 @@
     "typescript": "^5.6.3"
   },
   "dependencies": {
+    "@thatopen/components": "^2.3.11",
     "kafkajs": "^2.2.4",
     "minio": "^8.0.1"
   }

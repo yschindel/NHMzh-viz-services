@@ -1,5 +1,6 @@
 import { Client } from "minio";
-import { initializeMinio, saveToMinIO, createFileName } from "../minio";
+import { Readable } from "stream";
+import { initializeMinio, saveToMinIO, createFileName, getFile } from "../minio";
 import { describe, it, expect, jest, beforeEach } from "@jest/globals";
 import * as path from "path";
 
@@ -30,6 +31,7 @@ describe("MinIO Writer", () => {
       bucketExists: jest.fn(),
       makeBucket: jest.fn(),
       putObject: jest.fn(),
+      getObject: jest.fn(),
     } as unknown as jest.Mocked<Client>;
     (Client as jest.MockedClass<typeof Client>).mockImplementation(() => mockMinioClient);
   });
@@ -99,6 +101,34 @@ describe("MinIO Writer", () => {
 
         expect(mockMinioClient.putObject).toHaveBeenCalledWith(BUCKET_NAME, uniqueFilename, expect.any(Buffer));
       }
+    });
+  });
+
+  describe("getFile", () => {
+    it("should retrieve a file from Minio", async () => {
+      const fileContent = Buffer.from(FILE_CONTENT);
+      const dataStream = new Readable();
+      dataStream.push(fileContent);
+      dataStream.push(null); // End of stream
+
+      mockMinioClient.getObject.mockImplementation((bucketName: string, location: string) => {
+        return Promise.resolve(dataStream);
+      });
+
+      const result = await getFile(uniqueFilename, BUCKET_NAME, mockMinioClient);
+
+      expect(result).toEqual(fileContent);
+      expect(mockMinioClient.getObject).toHaveBeenCalledWith(BUCKET_NAME, uniqueFilename);
+    });
+
+    it("should throw an error if file retrieval fails", async () => {
+      mockMinioClient.getObject.mockImplementation((bucketName: string, location: string) => {
+        return Promise.reject(new Error("File retrieval failed"));
+      });
+
+      await expect(getFile(uniqueFilename, BUCKET_NAME, mockMinioClient)).rejects.toThrow("File retrieval failed");
+
+      expect(mockMinioClient.getObject).toHaveBeenCalledWith(BUCKET_NAME, uniqueFilename);
     });
   });
 });

@@ -35,9 +35,9 @@ async function downloadWasmFile(
  * @param file The IFC file
  * @returns The result of the worker
  */
-async function ifcToFragments(file: Buffer): Promise<WorkerResult> {
+async function ifcToFragments(file: Buffer, fileName: string): Promise<WorkerResult> {
   if (!fs.existsSync(wasmPath)) {
-    console.log("Downloading WASM file");
+    console.log("IFC Worker: Downloading WASM file");
     await downloadWasmFile();
   }
   const dataArray = new Uint8Array(file);
@@ -50,15 +50,19 @@ async function ifcToFragments(file: Buffer): Promise<WorkerResult> {
     absolute: true,
   };
 
-  console.log("Starting to load IFC file");
+  const startTime = Date.now();
+
+  const originalConsoleLog = console.log;
+  console.log = () => {};
+
   await loader.load(dataArray);
-  console.log("IFC file loaded successfully");
+
+  console.log = originalConsoleLog;
+  log(fileName, "IfcLoader loaded in: " + (Date.now() - startTime) + "ms");
 
   const group = Array.from(fragments.groups.values())[0];
   const fragmentData = fragments.export(group);
   const compressedFrags = Buffer.from(pako.deflate(fragmentData));
-
-  console.log("compressedFrags is buffer", Buffer.isBuffer(compressedFrags));
 
   let result: WorkerResult = { success: false };
   if (compressedFrags.length > 0) {
@@ -66,14 +70,25 @@ async function ifcToFragments(file: Buffer): Promise<WorkerResult> {
   }
   return result;
 }
+
 // Main worker execution
 if (parentPort) {
-  ifcToFragments(workerData.file).then((result) => {
-    console.log("Worker finished");
+  log(workerData.fileName, "Starting worker");
+  ifcToFragments(workerData.file, workerData.fileName).then((result) => {
+    log(workerData.fileName, "Worker finished");
     if (result.fragments) {
-      // change the file extension to .gz
+      // We have to save to minio in this worker thread,
+      // because the errors that @thanOpen loader.load is throwing
+      // would emit messages to the parent port too earch
       workerData.fileName = workerData.fileName.replace(".ifc", ".gz");
+      log(workerData.fileName, "Saving fragments to MinIO");
       saveToMinIO(minioClient, FRAGMENTS_BUCKET_NAME, workerData.fileName, result.fragments);
+    } else {
+      log(workerData.fileName, "No fragments to save");
     }
   });
+}
+
+function log(fileName: string, message: string) {
+  console.log(`[${fileName}] ${message}`);
 }

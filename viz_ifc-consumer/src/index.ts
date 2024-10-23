@@ -1,6 +1,6 @@
-import parseIfcToFragments from "./ifc/ifcParser";
+import { runIfcToGzWorker } from "./ifc/ifcParser";
 import { setupKafkaConsumer, startKafkaConsumer, IFCKafkaMessage } from "./kafka";
-import { initializeMinio, saveToMinIO, getFile, minioClient } from "./minio";
+import { initializeMinio, getFile, minioClient } from "./minio";
 
 const FRAGMENTS_BUCKET_NAME = process.env.MINIO_IFC_FRAGMENTS_BUCKET || "ifc-fragment-files";
 const IFC_BUCKET_NAME = process.env.MINIO_IFC_BUCKET || "ifc-files";
@@ -25,12 +25,9 @@ async function main() {
         };
 
         const file = await getFile(ifcMessage.location, IFC_BUCKET_NAME, minioClient);
-        const fragments = await parseIfcToFragments(file, ifcMessage.location);
-        if (fragments) {
-          console.log("fragments is buffer:", Buffer.isBuffer(fragments));
 
-          // await saveToMinIO(minioClient, FRAGMENTS_BUCKET_NAME, ifcMessage.project, ifcMessage.filename, ifcMessage.timestamp, fragments);
-        }
+        // Parse the IFC file to fragments and save to minio in a worker thread - no need to await
+        runIfcToGzWorker(file, ifcMessage.location);
       } catch (error) {
         console.error("Error processing Kafka message:", error);
       }

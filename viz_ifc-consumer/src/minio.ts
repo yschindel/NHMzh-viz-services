@@ -46,7 +46,6 @@ export async function saveToMinIO(client: MinioClient, bucketName: string, fileN
     await client.makeBucket(bucketName);
   }
 
-  console.log("data is buffer", Buffer.isBuffer(data));
   await client.putObject(bucketName, fileName, data);
   console.log(`File ${fileName} saved to MinIO bucket ${bucketName}`);
 

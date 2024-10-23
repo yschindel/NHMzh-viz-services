@@ -1,4 +1,5 @@
 import { Client as MinioClient } from "minio";
+import * as path from "path";
 
 /**
  * Create a Minio client
@@ -19,7 +20,7 @@ export function createMinioClient(): MinioClient {
  * @param bucketName - The bucket name
  * @param client - MinioClient
  */
-export async function initializeMinio(bucketName: string, client: MinioClient = createMinioClient()) {
+export async function initializeMinio(bucketName: string, client: MinioClient) {
   // The client input argument is optional, but it allows us to pass in a mocked client for testing
   const bucketExists = await client.bucketExists(bucketName);
   if (!bucketExists) {
@@ -40,12 +41,12 @@ export async function initializeMinio(bucketName: string, client: MinioClient = 
  * @returns The full filename of the saved object
  */
 export async function saveToMinIO(
+  client: MinioClient,
+  bucketName: string,
   project: string,
   filename: string,
-  data: Buffer,
-  bucketName: string,
-  timestamp: number,
-  client: MinioClient = createMinioClient()
+  timestamp: string,
+  data: Buffer
 ): Promise<string> {
   // Use provided timestamp or generate a new one if nullish
   const uniqueFilename = createFileName(project, filename, timestamp);
@@ -56,6 +57,7 @@ export async function saveToMinIO(
     await client.makeBucket(bucketName);
   }
 
+  console.log("data is buffer", Buffer.isBuffer(data));
   await client.putObject(bucketName, uniqueFilename, data);
   console.log(`File ${uniqueFilename} saved to MinIO bucket ${bucketName}`);
 
@@ -65,11 +67,41 @@ export async function saveToMinIO(
 /**
  * Create a unique filename for a file
  * @param project - The project name
- * @param filename - The base filename
- * @param timestamp - Timestamp for the filename (number of milliseconds since Unix epoch)
+ * @param filename - The name of the file, including extension (e.g. "file.ifc")
+ * @param timestamp - Timestamp for the filename (in ISO 8601 format)
  * @returns The full filename of the saved object
  */
-export function createFileName(project: string, filename: string, timestamp: number): string {
-  const fileTimestamp = timestamp || Date.now();
-  return `${project}/${filename}_${fileTimestamp}`;
+export function createFileName(project: string, filename: string, timestamp: string): string {
+  const { name, ext } = path.parse(filename);
+  const fileTimestamp = timestamp || new Date().toISOString();
+  return `${project}/${name}_${fileTimestamp}${ext}`;
+}
+
+/**
+ * Get a file from MinIO
+ * @param location - The location of the file in the bucket
+ * @param bucketName - The bucket name
+ * @param client - MinioClient
+ * @returns The file as a Buffer
+ * @throws Error if the file cannot be retrieved
+ */
+export async function getFile(location: string, bucketName: string, client: MinioClient): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    let file: Buffer = Buffer.alloc(0);
+    //@ts-ignore
+    client.getObject(bucketName, location, (err, dataStream) => {
+      if (err) {
+        return reject(err);
+      }
+      dataStream.on("data", (chunk: Buffer) => {
+        file = Buffer.concat([file, chunk]);
+      });
+      dataStream.on("end", () => {
+        resolve(file);
+      });
+      dataStream.on("error", (err: Error) => {
+        reject(err);
+      });
+    });
+  });
 }

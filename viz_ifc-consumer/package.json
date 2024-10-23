@@ -21,6 +21,7 @@
     "@types/minio": "^7.1.0",
     "@types/node": "^22.7.7",
     "@types/pako": "^2.0.3",
+    "@types/three": "^0.169.0",
     "jest": "^29.7.0",
     "ts-jest": "^29.2.5",
     "ts-node": "^10.9.2",

@@ -6,12 +6,14 @@ import { Kafka, Consumer } from "kafkajs";
  * This has to be in sync with the producer
  * It's important to have the timestamp in the message payload to keep track of the file version
  * The project is also relevant, because file names can be the same across multiple projects.
+ * The location is the path inside the MinIO bucket, consisting of project/filename_timestamp.extension
+ * The locaion is used to retrieve the IFC file from the IFC MinIO Instance
  */
 export interface IFCKafkaMessage {
   project: string;
   filename: string;
-  timestamp: number;
-  content: Buffer;
+  timestamp: string; // Timestamp for the filename (in ISO 8601 format)
+  location: string; // The file path inside the MinIO bucket, consisting of project/filename_timestamp
 }
 
 /**

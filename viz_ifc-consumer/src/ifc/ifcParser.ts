@@ -1,10 +1,15 @@
 import { Worker } from "worker_threads";
 import path from "path";
-import { IFCKafkaMessage } from "../kafka";
 import { WorkerResult } from "./ifcWorker";
 
-const __dirname = path.dirname(__filename);
-
+/**
+ * Runs a worker thread to process the given file buffer.
+ *
+ * @param file - The file buffer to be processed by the worker.
+ * @returns  A promise that resolves with the result from the worker or rejects with an error.
+ *
+ * @throws If the worker stops with a non-zero exit code.
+ */
 function runWorker(file: Buffer): Promise<WorkerResult> {
   return new Promise((resolve, reject) => {
     const workerPath = path.resolve(__dirname, "ifcWorker.js");
@@ -21,12 +26,24 @@ function runWorker(file: Buffer): Promise<WorkerResult> {
   });
 }
 
-export default async function parseIfc(kafkaMessage: IFCKafkaMessage): Promise<Buffer | undefined> {
-  const result = await runWorker(kafkaMessage.content);
+/**
+ * Parses an IFC file and converts it to fragments.
+ *
+ * @param file - The IFC file to be parsed.
+ * @param fileName - The name of the IFC file.
+ * @returns A promise that resolves to the parsed fragments as a Buffer, or undefined if an error occurs.
+ */
+export default async function parseIfcToFragments(file: Buffer, fileName: string): Promise<Buffer> {
+  const result = await runWorker(file);
   if (result.success) {
-    console.log(`File ${kafkaMessage.filename} processed successfully`);
+    if (!result.fragments) {
+      console.error(`Error processing file ${fileName}: No fragments returned`);
+      return new Buffer(0);
+    }
+    console.log(`File ${fileName} processed successfully`);
+    console.log(`Fragments size: ${result.fragments?.length} bytes`);
     return result.fragments;
   } else {
-    console.error(`Error processing file ${kafkaMessage.filename}: ${result.error}`);
+    console.error(`Error processing file ${fileName}: ${result.error}`);
   }
 }

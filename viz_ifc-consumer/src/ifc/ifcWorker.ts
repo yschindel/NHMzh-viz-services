@@ -15,8 +15,8 @@ const wasmPath = wasmDir + wasmFile;
 
 /**
  * Download the wasm file
- * @param {string} url The url to download the wasm file
- * @param {string} outputPath The path to save the wasm file
+ * @param url The url to download the wasm file
+ * @param outputPath The path to save the wasm file
  */
 async function downloadWasmFile(
   url: string = "https://unpkg.com/web-ifc@0.0.59/web-ifc-node.wasm",
@@ -29,8 +29,8 @@ async function downloadWasmFile(
 
 /**
  * Converts IFC file to fragments and returns compressed data.
- * @param {Buffer} file The IFC file
- * @returns {WorkerResult} The result of the worker
+ * @param file The IFC file
+ * @returns The result of the worker
  */
 async function ifcToFragments(file: Buffer): Promise<WorkerResult> {
   try {
@@ -53,6 +53,8 @@ async function ifcToFragments(file: Buffer): Promise<WorkerResult> {
     const group = Array.from(fragments.groups.values())[0];
     const fragmentData = fragments.export(group);
     const compressedFrags = Buffer.from(pako.deflate(fragmentData));
+
+    console.log("compressedFrags is buffer", Buffer.isBuffer(compressedFrags));
 
     return { success: true, fragments: compressedFrags };
   } catch (error: any) {

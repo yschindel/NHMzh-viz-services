@@ -67,6 +67,11 @@ if (parentPort) {
   });
 }
 
+/**
+ * Utility function to log messages with the filename nicely
+ * @param fileName The filename
+ * @param message The message to log
+ */
 function log(fileName: string, message: string) {
   console.log(`[${fileName}] ${message}`);
 }

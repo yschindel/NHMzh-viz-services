@@ -2,10 +2,42 @@
 
 This repository contains the code for the Vizualization Services of the NHMzh project.
 
+## The Services
+
+### Minio
+
+- Used for storing files.
+- Two buckets:
+  - ifc-files (the raw ifc files)
+  - ifc-fragment-files (compressed counterparts to the ifc files, converted to 'fragments')
+
+### viz_ifc-consumer
+
+Listens to a Kafka topic with links to IFC files
+
+- Loads the ifc file from Minio
+- Converts to fragments, compresses
+- Saves compressed fragments back to Minio
+
+Uses the @ThatOpen Companies library.
+
+### viz_cost-consumer
+
+Coming Soon.
+
+### viz_lca-consumer
+
+Coming Soon.
+
+### Database for Data History
+
+- MongoDB
+
 ## Prerequisites
 
 - Docker
 - Docker Compose
+- Node.js (for running the unit tests locally)
 
 ## Environment Variables
 
@@ -14,6 +46,19 @@ Create a `.env` file in the root directory of the repository with the following 
 ```
 MINIO_ROOT_USER=ROOTUSER
 MINIO_ROOT_PASSWORD=CHANGEME123
+
+MINIO_ENDPOINT=minio
+MINIO_PORT=9000
+MINIO_USE_SSL=false
+
+MINIO_ACCESS_KEY=ROOTUSER
+MINIO_SECRET_KEY=CHANGEME123
+
+VIZ_KAFKA_IFC_CLIENT_ID=viz-ifc-consumer
+VIZ_KAFKA_IFC_GROUP_ID=viz-ifc-consumers
+
+KAFKA_BROKER=kafka:9093
+KAFKA_IFC_TOPIC=ifc-files
 ```
 
 Make sure to replace `ROOTUSER` and `CHANGEME123` with your own credentials.
@@ -42,8 +87,20 @@ docker-compose down
 
 ## Access the MinIO Console
 
-To access the MinIO Console, navigate to http://localhost:9001. You will need to use the credentials `ROOTUSER` and `CHANGEME123` to log in.
+To access the MinIO Console, navigate to http://localhost:9001. You will need to use the credentials `ROOTUSER` and `CHANGEME123` to log in. Or whatever you have set in the `.env` file.
 
 ## Access MongoDB
 
 To access the MongoDB database, navigate to http://localhost:27017.
+
+## Tests
+
+### Unit Tests
+
+Unit tests are set up for every consumer service. They are running automatically when you make a pull request to main.
+
+To run the unit tests locally, navigate to the service directory and run `npm test`.
+
+### Integration Tests
+
+Follow the instructions in the [integration-tests/README.md](integration-tests/README.md) file.

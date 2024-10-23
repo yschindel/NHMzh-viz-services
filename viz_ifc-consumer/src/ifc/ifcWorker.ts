@@ -2,6 +2,9 @@ import { parentPort, workerData } from "worker_threads";
 import pako from "pako";
 import * as OBC from "@thatopen/components";
 import fs from "fs";
+import { minioClient, saveToMinIO } from "../minio";
+
+const FRAGMENTS_BUCKET_NAME = process.env.MINIO_IFC_FRAGMENTS_BUCKET || "ifc-fragment-files";
 
 export interface WorkerResult {
   success: boolean;
@@ -33,37 +36,44 @@ async function downloadWasmFile(
  * @returns The result of the worker
  */
 async function ifcToFragments(file: Buffer): Promise<WorkerResult> {
-  try {
-    if (!fs.existsSync(wasmPath)) {
-      console.log("Downloading WASM file");
-      await downloadWasmFile();
-    }
-    const dataArray = new Uint8Array(file);
-    const components = new OBC.Components();
-    const fragments = components.get(OBC.FragmentsManager);
-    const loader = components.get(OBC.IfcLoader);
-
-    loader.settings.wasm = {
-      path: wasmDir,
-      absolute: true,
-    };
-
-    await loader.load(dataArray);
-
-    const group = Array.from(fragments.groups.values())[0];
-    const fragmentData = fragments.export(group);
-    const compressedFrags = Buffer.from(pako.deflate(fragmentData));
-
-    console.log("compressedFrags is buffer", Buffer.isBuffer(compressedFrags));
-
-    return { success: true, fragments: compressedFrags };
-  } catch (error: any) {
-    return { success: false, error: error.message };
+  if (!fs.existsSync(wasmPath)) {
+    console.log("Downloading WASM file");
+    await downloadWasmFile();
   }
+  const dataArray = new Uint8Array(file);
+  const components = new OBC.Components();
+  const fragments = components.get(OBC.FragmentsManager);
+  const loader = components.get(OBC.IfcLoader);
+
+  loader.settings.wasm = {
+    path: wasmDir,
+    absolute: true,
+  };
+
+  console.log("Starting to load IFC file");
+  await loader.load(dataArray);
+  console.log("IFC file loaded successfully");
+
+  const group = Array.from(fragments.groups.values())[0];
+  const fragmentData = fragments.export(group);
+  const compressedFrags = Buffer.from(pako.deflate(fragmentData));
+
+  console.log("compressedFrags is buffer", Buffer.isBuffer(compressedFrags));
+
+  let result: WorkerResult = { success: false };
+  if (compressedFrags.length > 0) {
+    result = { success: true, fragments: compressedFrags };
+  }
+  return result;
 }
 // Main worker execution
 if (parentPort) {
   ifcToFragments(workerData.file).then((result) => {
-    parentPort!.postMessage(result);
+    console.log("Worker finished");
+    if (result.fragments) {
+      // change the file extension to .gz
+      workerData.fileName = workerData.fileName.replace(".ifc", ".gz");
+      saveToMinIO(minioClient, FRAGMENTS_BUCKET_NAME, workerData.fileName, result.fragments);
+    }
   });
 }

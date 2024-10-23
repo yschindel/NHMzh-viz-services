@@ -5,15 +5,13 @@ import * as path from "path";
  * Create a Minio client
  * @returns MinioClient
  */
-export function createMinioClient(): MinioClient {
-  return new MinioClient({
-    endPoint: process.env.MINIO_ENDPOINT || "minio",
-    port: parseInt(process.env.MINIO_PORT || "9000"),
-    useSSL: process.env.MINIO_USE_SSL === "true",
-    accessKey: process.env.MINIO_ACCESS_KEY || "",
-    secretKey: process.env.MINIO_SECRET_KEY || "",
-  });
-}
+export const minioClient = new MinioClient({
+  endPoint: process.env.MINIO_ENDPOINT || "minio",
+  port: parseInt(process.env.MINIO_PORT || "9000"),
+  useSSL: process.env.MINIO_USE_SSL === "true",
+  accessKey: process.env.MINIO_ACCESS_KEY || "",
+  secretKey: process.env.MINIO_SECRET_KEY || "",
+});
 
 /**
  * Initialize the Minio bucket if it doesn't exist
@@ -33,23 +31,14 @@ export async function initializeMinio(bucketName: string, client: MinioClient) {
 
 /**
  * Save a file to MinIO as a new object
- * @param filename - The base filename
- * @param data - The file data
- * @param bucketName - The bucket name
- * @param timestamp - Timestamp for the filename (number of milliseconds since Unix epoch)
  * @param client - MinioClient
+ * @param bucketName - The bucket name
+ * @param fileName - The name of the file (project/filename_timestamp.extension)
+ * @param data - The file data
  * @returns The full filename of the saved object
  */
-export async function saveToMinIO(
-  client: MinioClient,
-  bucketName: string,
-  project: string,
-  filename: string,
-  timestamp: string,
-  data: Buffer
-): Promise<string> {
+export async function saveToMinIO(client: MinioClient, bucketName: string, fileName: string, data: Buffer): Promise<string> {
   // Use provided timestamp or generate a new one if nullish
-  const uniqueFilename = createFileName(project, filename, timestamp);
 
   // The client input argument is optional, but it allows us to pass in a mocked client for testing
   const bucketExists = await client.bucketExists(bucketName);
@@ -58,10 +47,10 @@ export async function saveToMinIO(
   }
 
   console.log("data is buffer", Buffer.isBuffer(data));
-  await client.putObject(bucketName, uniqueFilename, data);
-  console.log(`File ${uniqueFilename} saved to MinIO bucket ${bucketName}`);
+  await client.putObject(bucketName, fileName, data);
+  console.log(`File ${fileName} saved to MinIO bucket ${bucketName}`);
 
-  return uniqueFilename;
+  return fileName;
 }
 
 /**

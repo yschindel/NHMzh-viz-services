@@ -1,4 +1,5 @@
 import { runIfcToGzWorker } from "./ifc/ifcParser";
+import { ensureWasmFile } from "./ifc/wasm";
 import { setupKafkaConsumer, startKafkaConsumer, IFCKafkaMessage } from "./kafka";
 import { initializeMinio, getFile, minioClient } from "./minio";
 
@@ -10,6 +11,7 @@ const IFC_BUCKET_NAME = process.env.MINIO_IFC_BUCKET || "ifc-files";
  * Initialize the Minio bucket and start the Kafka consumer
  */
 async function main() {
+  ensureWasmFile();
   await initializeMinio(FRAGMENTS_BUCKET_NAME, minioClient);
   const consumer = await setupKafkaConsumer();
 

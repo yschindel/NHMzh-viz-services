@@ -74,22 +74,11 @@ export function createFileName(project: string, filename: string, timestamp: str
  * @throws Error if the file cannot be retrieved
  */
 export async function getFile(location: string, bucketName: string, client: MinioClient): Promise<Buffer> {
+  const stream = await client.getObject(bucketName, location);
+  const chunks: Buffer[] = [];
   return new Promise((resolve, reject) => {
-    let file: Buffer = Buffer.alloc(0);
-    //@ts-ignore
-    client.getObject(bucketName, location, (err, dataStream) => {
-      if (err) {
-        return reject(err);
-      }
-      dataStream.on("data", (chunk: Buffer) => {
-        file = Buffer.concat([file, chunk]);
-      });
-      dataStream.on("end", () => {
-        resolve(file);
-      });
-      dataStream.on("error", (err: Error) => {
-        reject(err);
-      });
-    });
+    stream.on("data", (chunk) => chunks.push(chunk));
+    stream.on("end", () => resolve(Buffer.concat(chunks)));
+    stream.on("error", reject);
   });
 }

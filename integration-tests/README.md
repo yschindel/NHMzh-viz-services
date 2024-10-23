@@ -4,36 +4,22 @@
 
 - Docker
 - Docker Compose
-- Python 3.11
+- ts-node
 
-### Setting up the Python environment
+### Install dependencies
 
 Open a terminal in the `integration-tests` directory.
 
-1. Create a virtual environment:
+Install ts-node:
 
 ```bash
-python -m venv nhmzh-viz-services
+npm install -g ts-node
 ```
 
-2. Activate the virtual environment:
-
-On Unix or MacOS:
+Install dependencies:
 
 ```bash
-source nhmzh-viz-services/bin/activate
-```
-
-On Windows:
-
-```bash
-nhmzh-viz-services\Scripts\activate
-```
-
-3. Install the dependencies:
-
-```bash
-pip install -r requirements.txt
+npm install
 ```
 
 ## Adding an IFC file to the test
@@ -67,10 +53,10 @@ In your browser, go to `localhost:9001` to see the MinIO console.
 
 ### Add content to the Kafka topic
 
-Run the following command to add content to the Kafka topic, use the terminal window with the virtual python environment activated:
+Open a terminal in the `integration-tests` directory.
 
 ```bash
-python test.py
+ts-node test.ts
 ```
 
 ### Verify the content was added correctly

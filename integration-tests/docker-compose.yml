@@ -1,7 +1,5 @@
-
-
 services:
-  minio-fragments:
+  minio:
     image: minio/minio
     ports:
       - "9000:9000"
@@ -9,25 +7,13 @@ services:
     env_file:
       - ../.env
     volumes:
-      - minio_fragments_data:/data
-    command: server /data --console-address ":9001"
-
-  minio-ifc:
-    image: minio/minio
-    ports:
-      - "9010:9000"
-      - "9011:9001"
-    env_file:
-      - ../.env
-    volumes:
-      - minio_ifc_data:/data
+      - minio_data:/data
     command: server /data --console-address ":9001"
 
   zookeeper:
     image: wurstmeister/zookeeper:latest
     ports:
       - "2181:2181"
-
 
   kafka:
     container_name: viz-test-kafka-container
@@ -48,7 +34,6 @@ services:
     depends_on:
       - zookeeper
 
-
   nosql_db:
     image: mongo
     ports:
@@ -63,7 +48,7 @@ services:
     env_file:
       - ../.env
     depends_on:
-      - minio-fragments
+      - minio
       - kafka
       - nosql_db
 

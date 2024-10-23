@@ -61,27 +61,16 @@ describe("MinIO Writer", () => {
 
   describe("saveToMinIO", () => {
     it("should save a file to Minio", async () => {
-      await saveToMinIO(mockMinioClient, BUCKET_NAME, PROJECT, FILENAME, timestamp, Buffer.from(FILE_CONTENT));
+      await saveToMinIO(mockMinioClient, BUCKET_NAME, uniqueFilename, Buffer.from(FILE_CONTENT));
 
       expect(mockMinioClient.putObject).toHaveBeenCalledWith(BUCKET_NAME, uniqueFilename, expect.any(Buffer));
-    });
-
-    it("should use the current timestamp if no timestamp is provided", async () => {
-      await saveToMinIO(mockMinioClient, BUCKET_NAME, PROJECT, FILENAME, "", Buffer.from(FILE_CONTENT));
-
-      const { name, ext } = path.parse(FILENAME);
-      expect(mockMinioClient.putObject).toHaveBeenCalledWith(
-        BUCKET_NAME,
-        expect.stringMatching(new RegExp(`^${PROJECT}/${name}_\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z${ext}$`)),
-        expect.any(Buffer)
-      );
     });
 
     it("should throw an error if file upload fails", async () => {
       mockMinioClient.bucketExists.mockResolvedValue(true);
       mockMinioClient.putObject.mockRejectedValue(new Error("File upload failed"));
 
-      await expect(saveToMinIO(mockMinioClient, BUCKET_NAME, PROJECT, FILENAME, timestamp, Buffer.from(FILE_CONTENT))).rejects.toThrow(
+      await expect(saveToMinIO(mockMinioClient, BUCKET_NAME, uniqueFilename, Buffer.from(FILE_CONTENT))).rejects.toThrow(
         "File upload failed"
       );
 
@@ -103,7 +92,8 @@ describe("MinIO Writer", () => {
       ];
 
       for (const testCase of testCases) {
-        await saveToMinIO(mockMinioClient, BUCKET_NAME, PROJECT, testCase.filename, timestamp, Buffer.from(testCase.content));
+        const fileName = createFileName(PROJECT, testCase.filename, timestamp);
+        await saveToMinIO(mockMinioClient, BUCKET_NAME, fileName, Buffer.from(testCase.content));
 
         const uniqueFilename = createFileName(PROJECT, testCase.filename, timestamp);
 

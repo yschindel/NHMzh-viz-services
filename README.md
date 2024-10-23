@@ -2,6 +2,37 @@
 
 This repository contains the code for the Vizualization Services of the NHMzh project.
 
+## The Services
+
+### Minio
+
+- Used for storing files.
+- Two buckets:
+  - ifc-files (the raw ifc files)
+  - ifc-fragment-files (compressed counterparts to the ifc files, converted to 'fragments')
+
+### viz_ifc-consumer
+
+Listens to a Kafka topic with links to IFC files
+
+- Loads the ifc file from Minio
+- Converts to fragments, compresses
+- Saves compressed fragments back to Minio
+
+Uses the @ThatOpen Companies library.
+
+### viz_cost-consumer
+
+Coming Soon.
+
+### viz_lca-consumer
+
+Coming Soon.
+
+### Database for Data History
+
+- MongoDB
+
 ## Prerequisites
 
 - Docker

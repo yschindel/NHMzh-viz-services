@@ -14,11 +14,11 @@ import (
 var minioClient *minio.Client
 
 func init() {
-	endpoint := os.Getenv("MINIO_ENDPOINT")
-	port := os.Getenv("MINIO_PORT")
-	accessKeyID := os.Getenv("MINIO_ACCESS_KEY")
-	secretAccessKey := os.Getenv("MINIO_SECRET_KEY")
-	useSSL := os.Getenv("MINIO_USE_SSL") == "true"
+	endpoint := getEnv("MINIO_ENDPOINT", "localhost")
+	port := getEnv("MINIO_PORT", "9000")
+	accessKeyID := getEnv("MINIO_ACCESS_KEY", "ROOTUSER")
+	secretAccessKey := getEnv("MINIO_SECRET_KEY", "CHANGEME123")
+	useSSL := getEnv("MINIO_USE_SSL", "false") == "true"
 
 	var err error
 	minioUrl := fmt.Sprintf("%s:%s", endpoint, port)
@@ -30,6 +30,14 @@ func init() {
 		fmt.Println(err)
 		os.Exit(1)
 	}
+}
+
+func getEnv(key, defaultValue string) string {
+	value := os.Getenv(key)
+	if value == "" {
+		return defaultValue
+	}
+	return value
 }
 
 func GetFile(bucketName string, objectName string) ([]byte, error) {

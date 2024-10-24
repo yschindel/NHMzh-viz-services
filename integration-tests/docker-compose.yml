@@ -28,7 +28,7 @@ services:
       KAFKA_LISTENERS: INSIDE://0.0.0.0:9093,OUTSIDE://0.0.0.0:9092
       KAFKA_INTER_BROKER_LISTENER_NAME: INSIDE
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_CREATE_TOPICS: "ifc-files:1:1"
+      KAFKA_CREATE_TOPICS: "ifc-files:1:1, lca-data:1:1"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     depends_on:
@@ -49,6 +49,15 @@ services:
       - ../.env
     depends_on:
       - minio
+      - kafka
+
+  viz_lca-consumer:
+    build: 
+      context: ../viz_ifc-consumer
+      dockerfile: Dockerfile
+    env_file:
+      - ../.env
+    depends_on:
       - kafka
       - nosql_db
 

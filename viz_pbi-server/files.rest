@@ -1,13 +1,10 @@
-### List shopping items
-GET http://localhost:8080/files
+GET http://localhost:3000/files
 
-### Add a shopping item
-POST http://localhost:8080/files
+POST http://localhost:3000/files
 Content-Type: application/json
 
 {
   "name": "project1/file1_timestamp.gz"
 }
 
-### Delete a shopping item
-Get http://localhost:8080/files/getFirst?name=project2/file2_2024-10-23T14:06:27.494Z.gz
+Get http://localhost:3000/files/getFirst?name=project2/file2_2024-10-23T14:06:27.494Z.gz

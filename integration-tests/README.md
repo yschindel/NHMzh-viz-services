@@ -72,4 +72,6 @@ Verify that the bucket was created and that the content was added correctly:
 3. Open the buckets. If no folders show up, try refreshing the bucket.
 4. Open the folders and check that the files are present.
 
-If you see the files, the integration tests passed.
+### Verify the viz_pbi-server is working
+
+Check the output of the test.ts in the terminal. It should say: "Pass: Fragments file is a Buffer".

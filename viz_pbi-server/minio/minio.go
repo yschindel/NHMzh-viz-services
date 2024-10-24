@@ -26,7 +26,7 @@ func init() {
 }
 
 func GetFile(bucketName string, objectName string) ([]byte, error) {
-	log.Printf("Fetching file: %s from bucket: %s", objectName, bucketName)
+	log.Printf("Fetching file: '%s' from bucket: '%s'", objectName, bucketName)
 	obj, err := minioClient.GetObject(context.Background(), bucketName, objectName, minio.GetObjectOptions{})
 	if err != nil {
 		return nil, err

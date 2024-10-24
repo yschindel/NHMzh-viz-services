@@ -14,10 +14,17 @@ import (
 var minioClient *minio.Client
 
 func init() {
+	endpoint := getEnv("MINIO_ENDPOINT", "localhost")
+	port := getEnv("MINIO_PORT", "9000")
+	accessKeyID := getEnv("MINIO_ACCESS_KEY", "ROOTUSER")
+	secretAccessKey := getEnv("MINIO_SECRET_KEY", "CHANGEME123")
+	useSSL := getEnv("MINIO_USE_SSL", "false") == "true"
+
 	var err error
-	minioClient, err = minio.New("localhost:9000", &minio.Options{
-		Creds:  credentials.NewStaticV4("ROOTUSER", "CHANGEME123", ""),
-		Secure: false,
+	minioUrl := fmt.Sprintf("%s:%s", endpoint, port)
+	minioClient, err = minio.New(minioUrl, &minio.Options{
+		Creds:  credentials.NewStaticV4(accessKeyID, secretAccessKey, ""),
+		Secure: useSSL,
 	})
 	if err != nil {
 		fmt.Println(err)
@@ -25,10 +32,21 @@ func init() {
 	}
 }
 
+func getEnv(key, defaultValue string) string {
+	value := os.Getenv(key)
+	if value == "" {
+		return defaultValue
+	}
+	return value
+}
+
 func GetFile(bucketName string, objectName string) ([]byte, error) {
-	log.Printf("Fetching file: %s from bucket: %s", objectName, bucketName)
+	log.Printf("Fetching file: '%s' from bucket: '%s'", objectName, bucketName)
 	obj, err := minioClient.GetObject(context.Background(), bucketName, objectName, minio.GetObjectOptions{})
 	if err != nil {
+		if minioErr, ok := err.(minio.ErrorResponse); ok && minioErr.Code == "NoSuchKey" {
+			return nil, fmt.Errorf("file '%s' not found in bucket '%s'", objectName, bucketName)
+		}
 		return nil, err
 	}
 	defer obj.Close()

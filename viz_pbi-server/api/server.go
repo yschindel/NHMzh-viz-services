@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"github.com/rs/cors"
 
 	"viz_pbi-server/minio"
 )
@@ -16,7 +17,17 @@ func NewServer() *Server {
 	s := &Server{
 		Router: mux.NewRouter(),
 	}
+
 	s.routes()
+
+	// Enable CORS
+	c := cors.New(cors.Options{
+		AllowedOrigins:   []string{"*"}, // Allow all origins
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE"},
+		AllowedHeaders:   []string{"*"},
+		AllowCredentials: true,
+	})
+	s.Router.Use(c.Handler)
 	return s
 }
 

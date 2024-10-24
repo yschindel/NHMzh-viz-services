@@ -3,6 +3,7 @@ import { Client as MinioClient } from "minio";
 import * as fs from "fs";
 import * as path from "path";
 import * as dotenv from "dotenv";
+import axios from 'axios';
 
 dotenv.config({ path: path.resolve(__dirname, "../.env") });
 
@@ -14,6 +15,7 @@ const MINIO_PORT = parseInt(process.env.MINIO_PORT || "9000");
 const MINIO_USE_SSL = process.env.MINIO_USE_SSL === "true";
 const MINIO_ACCESS_KEY = process.env.MINIO_ACCESS_KEY || "";
 const MINIO_SECRET_KEY = process.env.MINIO_SECRET_KEY || "";
+const PBI_SERVER_PORT = parseInt(process.env.PBI_SERVER_PORT || "3000");
 
 const MESSAGES = [createMessage("project1", "file1.ifc"), createMessage("project2", "file2.ifc"), createMessage("project1", "file3.ifc")];
 
@@ -120,6 +122,47 @@ async function consumeMessages(): Promise<void> {
   });
 }
 
+async function getFragmentsFiles(): Promise<Buffer | undefined> {
+  const fragments: Buffer[] = [];
+
+  for (const msg of MESSAGES) {
+    // Copy the message to a new variable
+    const message = { ...msg };
+    message.location = message.location.replace('.ifc', '.gz');
+    console.log(`Getting fragments for ${message.location}`);
+    try {
+      const response = await axios.get(`http://localhost:${PBI_SERVER_PORT}/files/getFirst`, {
+        params: {
+          name: `${message.location}`,
+        },
+        responseType: 'arraybuffer',
+      });
+
+      fragments.push(Buffer.from(response.data));
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response) {
+        const errorMessage = error.response.data;
+        console.error(`Failed to get fragments for ${message.location}: ${errorMessage}`);
+        return undefined;
+      } else {
+        console.error(`Unexpected error for ${message.location}:`, error);
+        return undefined
+      }
+    }
+  }
+
+  return Buffer.concat(fragments);
+}
+
+function verifyFragmentsFile(fragments: any) {
+  // check if fragments is a Buffer
+  if (!Buffer.isBuffer(fragments)) {
+    throw new Error("Fragments is not a Buffer");
+  } else {
+    console.log("Pass: Fragments file is a Buffer");
+  }
+}
+
 (async () => {
   console.log("Adding IFC files to MinIO...");
   await addIfcFilesToMinio();
@@ -129,4 +172,9 @@ async function consumeMessages(): Promise<void> {
   await produceMessages();
   console.log("\nConsuming IFC messages...");
   await consumeMessages();
+  console.log("Waiting for the Messages to be processed...");
+  await new Promise((resolve) => setTimeout(resolve, 5000));
+  console.log("Getting fragments files...");
+  const fragments = await getFragmentsFiles();
+  verifyFragmentsFile(fragments);
 })();

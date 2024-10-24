@@ -75,3 +75,7 @@ Verify that the bucket was created and that the content was added correctly:
 ### Verify the viz_pbi-server is working
 
 Check the output of the test.ts in the terminal. It should say: "Pass: Fragments file is a Buffer".
+
+## MongoDB Compass
+
+TODO: add description

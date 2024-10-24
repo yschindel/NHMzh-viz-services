@@ -14,10 +14,17 @@ import (
 var minioClient *minio.Client
 
 func init() {
+	endpoint := os.Getenv("MINIO_ENDPOINT")
+	port := os.Getenv("MINIO_PORT")
+	accessKeyID := os.Getenv("MINIO_ACCESS_KEY")
+	secretAccessKey := os.Getenv("MINIO_SECRET_KEY")
+	useSSL := os.Getenv("MINIO_USE_SSL") == "true"
+
 	var err error
-	minioClient, err = minio.New("localhost:9000", &minio.Options{
-		Creds:  credentials.NewStaticV4("ROOTUSER", "CHANGEME123", ""),
-		Secure: false,
+	minioUrl := fmt.Sprintf("%s:%s", endpoint, port)
+	minioClient, err = minio.New(minioUrl, &minio.Options{
+		Creds:  credentials.NewStaticV4(accessKeyID, secretAccessKey, ""),
+		Secure: useSSL,
 	})
 	if err != nil {
 		fmt.Println(err)

@@ -34,13 +34,7 @@ function createMessage(project: string, filename: string): Message {
   };
 }
 
-/**
- * Create a unique filename for a file
- * @param project - The project name
- * @param filename - The name of the file, including extension (e.g. "file.ifc")
- * @param timestamp - Timestamp for the filename (in ISO 8601 format)
- * @returns The full filename of the saved object
- */
+
 export function createFileName(project: string, filename: string, timestamp: string): string {
   const { name, ext } = path.parse(filename);
   const fileTimestamp = timestamp || new Date().toISOString();
@@ -100,6 +94,9 @@ async function produceMessages(): Promise<void> {
   await producer.disconnect();
 }
 
+// consuming messages from Kafka
+// just for validating that the messages are being sent
+// actual consumption of messages is done in the viz_ifc-consumer
 async function consumeMessages(): Promise<void> {
   const kafka = new Kafka({
     clientId: "my-app",
@@ -128,8 +125,8 @@ async function consumeMessages(): Promise<void> {
   await addIfcFilesToMinio();
   console.log("Waiting for the files to be processed...");
   await new Promise((resolve) => setTimeout(resolve, 3000));
-  console.log("Producing messages...");
+  console.log("Producing IFC messages...");
   await produceMessages();
-  console.log("\nConsuming messages...");
+  console.log("\nConsuming IFC messages...");
   await consumeMessages();
 })();

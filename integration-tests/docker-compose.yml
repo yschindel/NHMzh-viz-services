@@ -50,7 +50,28 @@ services:
     depends_on:
       - minio
       - kafka
+
+  viz_lca-consumer:
+    build: 
+      context: ../viz_ifc-consumer
+      dockerfile: Dockerfile
+    env_file:
+      - ../.env
+    depends_on:
+      - kafka
       - nosql_db
+
+  viz_pbi-server:
+    build: 
+      context: ../viz_pbi-server
+      dockerfile: Dockerfile
+    env_file:
+      - ../.env
+    depends_on:
+      - nosql_db
+      - minio
+    ports:
+      - "3000:3000"
 
 volumes:
   minio_data:

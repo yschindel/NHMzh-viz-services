@@ -12,10 +12,8 @@ func main() {
 	groupID := getEnv("VIZ_KAFKA_LCA_GROUP_ID", "your-group-id")
 
 	mongoURI := getEnv("MONGO_URI", "mongodb://localhost:27017")
-	dbName := getEnv("MONGO_DB_NAME", "testdb")
-	collectionName := getEnv("MONGO_COLLECTION_NAME", "testcollection")
 
-	writer := server.NewWriter(mongoURI, dbName, collectionName)
+	writer := server.NewWriter(mongoURI)
 	consumer := server.NewConsumer(broker, topic, groupID, writer)
 
 	ctx := context.Background()

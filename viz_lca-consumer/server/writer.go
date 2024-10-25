@@ -2,21 +2,25 @@ package server
 
 import (
 	"context"
+	"fmt"
 	"log"
-	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-type Writer struct {
-	client     *mongo.Client
-	collection *mongo.Collection
+type Element struct {
+	DataItem
+	Timestamp string `bson:"timestamp"`
 }
 
-func NewWriter(uri, dbName, collectionName string) *Writer {
-	log.Printf("connecting to MongoDB: %s, db: %s, collection: %s", uri, dbName, collectionName)
+type Writer struct {
+	client *mongo.Client
+}
+
+func NewWriter(uri string) *Writer {
+	log.Printf("connecting to MongoDB: %s", uri)
 
 	clientOptions := options.Client().ApplyURI(uri)
 	client, err := mongo.Connect(context.TODO(), clientOptions)
@@ -34,31 +38,53 @@ func NewWriter(uri, dbName, collectionName string) *Writer {
 		log.Printf("Ping to MongoDB successful")
 	}
 
-	collection := client.Database(dbName).Collection(collectionName)
-
 	return &Writer{
-		client:     client,
-		collection: collection,
+		client: client,
 	}
 }
 
-func (w *Writer) InsertDoc(message LcaMessage) (*mongo.InsertOneResult, error) {
-	document, err := bson.Marshal(message)
-	if err != nil {
-		log.Printf("could not marshal document: %v", err)
-		return nil, err
+func (w *Writer) UpsertElements(db, col string, els []Element) error {
+	collection := w.client.Database(db).Collection(col)
+
+	// Prepare the bulk operations
+	var operations []mongo.WriteModel
+	for _, el := range els {
+		filter := bson.M{"_id": el.Id}
+		update := bson.M{
+			"$set": bson.M{
+				"timestamp":  el.Timestamp,
+				"category":   el.Category,
+				"co2e":       el.CO2e,
+				"greyEnergy": el.GreyEnergy,
+				"UBP":        el.UBP,
+			},
+		}
+		upsert := true
+		// Create an upsert operation for each element
+		operation := mongo.NewUpdateOneModel().SetFilter(filter).SetUpdate(update).SetUpsert(upsert)
+		operations = append(operations, operation)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	log.Printf("inserting document...")
-	result, err := w.collection.InsertOne(ctx, document)
+	// Execute the bulk write operation
+	bulkOpts := options.BulkWrite().SetOrdered(false)
+	result, err := collection.BulkWrite(context.TODO(), operations, bulkOpts)
 	if err != nil {
-		return nil, err
-	} else {
-		log.Printf("document inserted: %s", result.InsertedID)
+		log.Fatal("Failed to execute bulkWrite: ", err)
+		return err
 	}
 
-	return result, nil
+	fmt.Printf("BulkWrite completed with %d upserts and %d updates\n", result.UpsertedCount, result.ModifiedCount)
+
+	return nil
+}
+
+func UnpackMessage(message LcaMessage) []Element {
+	elements := make([]Element, len(message.Data))
+	for i, dataItem := range message.Data {
+		elements[i] = Element{
+			DataItem:  dataItem,
+			Timestamp: message.Timestamp,
+		}
+	}
+	return elements
 }

@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"encoding/json"
 	"log"
 
 	"github.com/segmentio/kafka-go"
@@ -10,6 +11,20 @@ import (
 type Consumer struct {
 	reader *kafka.Reader
 	writer *Writer
+}
+
+type LcaMessage struct {
+	Project   string    `json:"project"`
+	Filename  string    `json:"filename"`
+	Timestamp string    `json:"timestamp"`
+	Data      []Element `json:"data"`
+}
+
+type Element struct {
+	Category   string  `json:"category"`
+	CO2e       float64 `json:"co2e"`
+	GreyEnergy float64 `json:"greyEnergy"`
+	UBP        float64 `json:"UBP"`
 }
 
 func NewConsumer(broker, topic, groupID string, writer *Writer) *Consumer {
@@ -39,16 +54,21 @@ func (c *Consumer) StartConsuming(ctx context.Context) {
 }
 
 func (c *Consumer) handleMessage(m kafka.Message) {
-	log.Printf("received message: %s", string(m.Value))
+	log.Printf("received message: %s", string(m.Key))
 
-	document := map[string]interface{}{
-		"message":   string(m.Value),
-		"topic":     m.Topic,
-		"partition": m.Partition,
-		"offset":    m.Offset,
+	var message LcaMessage
+	err := json.Unmarshal(m.Value, &message)
+	if err != nil {
+		log.Printf("could not unmarshal message: %v", err)
+		return
 	}
 
-	_, err := c.writer.InsertDocument(document)
+	log.Printf("Project: %v \n", message.Project)
+	log.Printf("Filename: %v \n", message.Filename)
+	log.Printf("Timestamp: %v \n", message.Timestamp)
+	log.Printf("Data Count: %v \n", len(message.Data))
+
+	_, err = c.writer.InsertDoc(message)
 	if err != nil {
 		log.Printf("could not insert document: %v", err)
 	}

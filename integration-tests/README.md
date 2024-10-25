@@ -4,32 +4,29 @@
 
 - Docker
 - Docker Compose
-- ts-node
+- Go 1.23.2 (or higher)
 - You have followed the instructions to set up the .env file in the [main README](../README.md)
+- MongoDB Compass (Desktop viewer for MongoDB, optional)
 
 ### Install dependencies
 
-Open a terminal in the `integration-tests` directory.
-
-Install ts-node:
-
-```bash
-npm install -g ts-node
-```
+Open a terminal in the `integration-tests/lca` directory.
 
 Install dependencies:
 
 ```bash
-npm install
+go mod tidy
 ```
 
-## Adding an IFC file to the test
+Do the same in the `integration-tests/ifc` directory.
+
+## Add an IFC File to the Test
 
 1. Create a new directory called `assets` in the `integration-tests` directory.
 2. Add an IFC file to the `assets` directory.
 3. Rename the file to `test.ifc`.
 
-## Running the tests
+## Running the Tests
 
 Open a new terminal window in the `integration-tests` directory:
 
@@ -45,7 +42,7 @@ Run the following command to start the services:
 docker compose up --build -d
 ```
 
-### Open the MinIO console
+### Open the MinIO Console
 
 In your browser, go to `localhost:9001` to see the MinIO console.
 
@@ -55,15 +52,15 @@ In your browser, go to `localhost:9001` to see the MinIO console.
 - Delete all items in the `ifc-fragment-files` bucket.
 - Delete the `ifc-fragment-files` bucket.
 
-### Add content to the Kafka topic
+### Add Content to the IFC Kafka Topic
 
-Open a terminal in the `integration-tests` directory and run:
+Open a terminal in the `integration-tests/ifc` directory and run:
 
 ```bash
-ts-node test.ts
+go run ifc-test.go
 ```
 
-### Verify the content was added correctly
+**Verify the content was added correctly:**
 
 Verify that the bucket was created and that the content was added correctly:
 
@@ -72,6 +69,22 @@ Verify that the bucket was created and that the content was added correctly:
 3. Open the buckets. If no folders show up, try refreshing the bucket.
 4. Open the folders and check that the files are present.
 
-### Verify the viz_pbi-server is working
+### Add content to the LCA Kafka topic
+
+Open a terminal in the `integration-tests/lca` directory and run:
+
+```bash
+go run lca-test.go
+```
+
+**Verify the content was added correctly:**
+
+1. Open MongoDB Compass
+2. Check the 'testdb' Database
+3. Check the 'testcollection' in testdb
+4. You should see 3 documents
+
+### Verify the viz_pbi-server is Working
 
 Check the output of the test.ts in the terminal. It should say: "Pass: Fragments file is a Buffer".
+

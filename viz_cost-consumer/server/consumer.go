@@ -13,7 +13,7 @@ type Consumer struct {
 	writer *Writer
 }
 
-type LcaMessage struct {
+type CostMessage struct {
 	Project   string     `json:"project"`
 	Filename  string     `json:"filename"`
 	Timestamp string     `json:"timestamp"`
@@ -21,11 +21,9 @@ type LcaMessage struct {
 }
 
 type DataItem struct {
-	Id         string  `json:"id"`
-	Category   string  `json:"category"`
-	CO2e       float32 `json:"co2e"`
-	GreyEnergy float32 `json:"greyEnergy"`
-	UBP        float32 `json:"UBP"`
+	Id       string  `json:"id"`
+	Category string  `json:"category"`
+	Cost     float32 `json:"cost"`
 }
 
 func NewConsumer(broker, topic, groupID string, writer *Writer) *Consumer {
@@ -57,7 +55,7 @@ func (c *Consumer) StartConsuming(ctx context.Context) {
 func (c *Consumer) handleMessage(m kafka.Message) {
 	log.Printf("received message: %s", string(m.Key))
 
-	var message LcaMessage
+	var message CostMessage
 	err := json.Unmarshal(m.Value, &message)
 	if err != nil {
 		log.Printf("could not unmarshal message: %v", err)

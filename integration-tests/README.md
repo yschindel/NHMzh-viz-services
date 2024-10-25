@@ -57,7 +57,7 @@ In your browser, go to `localhost:9001` to see the MinIO console.
 Open a terminal in the `integration-tests/ifc` directory and run:
 
 ```bash
-go run ifc-test.go
+go run main.go
 ```
 
 **Verify the content was added correctly:**
@@ -71,10 +71,10 @@ Verify that the bucket was created and that the content was added correctly:
 
 ### Add content to the LCA Kafka topic
 
-Open a terminal in the `integration-tests/lca` directory and run:
+Open a terminal in the `integration-tests/lca_cost` directory and run:
 
 ```bash
-go run lca-test.go
+go run main.go
 ```
 
 **Verify the content was added correctly:**

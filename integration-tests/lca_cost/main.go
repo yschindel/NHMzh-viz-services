@@ -42,7 +42,7 @@ func init() {
 	pbiServerURL = "http://localhost:" + pbiServerPort
 }
 
-func getFromPbiServer(url string, db string, collection string) ([]mongo.Element, error) {
+func getDataFromPbiServer(url string, db string, collection string) ([]mongo.Element, error) {
 	// Make HTTP request to /data endpoint
 	resp, err := http.Get(url + "/data?db=" + db + "&collection=" + collection)
 	if err != nil {
@@ -108,7 +108,7 @@ func main() {
 
 	for msgIndex, msg := range data.LcaMessages {
 		log.Printf("checking data for %s/%s at %s", msg.Project, msg.Filename, msg.Timestamp)
-		dbEls, err := getFromPbiServer(pbiServerURL, msg.Project, msg.Filename)
+		dbEls, err := getDataFromPbiServer(pbiServerURL, msg.Project, msg.Filename)
 		if err != nil {
 			log.Fatalf("Error getting LCA data from PBI server: %v", err)
 		}

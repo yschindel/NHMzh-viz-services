@@ -69,7 +69,7 @@ Verify that the bucket was created and that the content was added correctly:
 3. Open the buckets. If no folders show up, try refreshing the bucket.
 4. Open the folders and check that the files are present.
 
-### Add content to the LCA Kafka topic
+### Add content to the LCA and Cost Kafka topic
 
 Open a terminal in the `integration-tests/lca_cost` directory and run:
 
@@ -78,6 +78,15 @@ go run main.go
 ```
 
 **Verify the content was added correctly:**
+
+Check the console output for something like this:
+
+```
+2024/10/25 15:19:34 LCA data for project1/file1.ifc at 2024-10-25T15:19:14+02:00 match
+2024/10/25 15:19:34 Cost data for project1/file1.ifc at 2024-10-25T15:19:14+02:00 match
+```
+
+(Optional) Additionally you can do this:
 
 1. Open MongoDB Compass
 2. Check the 'testdb' Database

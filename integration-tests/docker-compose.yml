@@ -53,7 +53,7 @@ services:
 
   viz_lca-consumer:
     build: 
-      context: ../viz_ifc-consumer
+      context: ../viz_lca-consumer
       dockerfile: Dockerfile
     env_file:
       - ../.env

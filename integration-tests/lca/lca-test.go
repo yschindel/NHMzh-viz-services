@@ -2,13 +2,12 @@ package main
 
 import (
 	"context"
+	cryptrand "crypto/rand"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"log"
 	"math/rand"
-
-	cryptrand "crypto/rand"
 	"os"
 	"path/filepath"
 	"time"
@@ -16,8 +15,6 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/segmentio/kafka-go"
 )
-
-const base64Chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_$"
 
 // LcaMessage represents the structure of an LCA message
 type LcaMessage struct {

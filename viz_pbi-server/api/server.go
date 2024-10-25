@@ -1,21 +1,27 @@
 package api
 
 import (
+	"encoding/json"
 	"net/http"
+	"os"
 
 	"github.com/gorilla/mux"
 	"github.com/rs/cors"
 
 	"viz_pbi-server/minio"
+	"viz_pbi-server/mongo"
 )
 
 type Server struct {
 	*mux.Router
+	mongoReader *mongo.Reader
 }
 
 func NewServer() *Server {
+	mongoUri := getEnv("MONGO_URI", "mongodb://localhost:27017")
 	s := &Server{
-		Router: mux.NewRouter(),
+		Router:      mux.NewRouter(),
+		mongoReader: mongo.NewReader(mongoUri),
 	}
 
 	s.routes()
@@ -32,7 +38,8 @@ func NewServer() *Server {
 }
 
 func (s *Server) routes() {
-	s.HandleFunc("/files/getFirst", s.getFile()).Methods("GET")
+	s.HandleFunc("/file", s.getFile()).Methods("GET")
+	s.HandleFunc("/data", s.getData()).Methods("GET")
 }
 
 func (s *Server) getFile() http.HandlerFunc {
@@ -55,4 +62,35 @@ func (s *Server) getFile() http.HandlerFunc {
 		w.Header().Set("Content-Type", "application/octet-stream")
 		w.Write(fileContent)
 	}
+}
+
+// gets all data in a mongodb collection, expect two parameters: db and collection
+func (s *Server) getData() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		db := r.URL.Query().Get("db")
+		collection := r.URL.Query().Get("collection")
+		if db == "" || collection == "" {
+			http.Error(w, "Missing 'db' or 'collection' query parameter", http.StatusBadRequest)
+			return
+		}
+
+		// Fetch the data from MongoDB
+		data, err := s.mongoReader.ReadAllElements(db, collection)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		// Set the appropriate headers and return the data
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(data)
+	}
+}
+
+func getEnv(key, fallback string) string {
+	value, exists := os.LookupEnv(key)
+	if !exists {
+		return fallback
+	}
+	return value
 }

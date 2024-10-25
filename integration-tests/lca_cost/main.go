@@ -1,9 +1,12 @@
 package main
 
 import (
+	"encoding/json"
+	"fmt"
 	"lca_cost/data"
 	"lca_cost/mongo"
 	"log"
+	"net/http"
 	"os"
 	"path/filepath"
 	"time"
@@ -14,7 +17,7 @@ import (
 var kafkaBroker = "localhost:9092"
 var lcaTopic string
 var costTopic string
-var mongoReader mongo.Reader
+var pbiServerURL string
 
 func init() {
 	// Load environment variables from .env file
@@ -31,7 +34,34 @@ func init() {
 	if costTopic == "" {
 		costTopic = "cost-data"
 	}
-	mongoReader = *mongo.NewReader("mongodb://localhost:27017")
+
+	pbiServerPort := os.Getenv("PBI_SERVER_PORT")
+	if pbiServerPort == "" {
+		pbiServerPort = "8080"
+	}
+	pbiServerURL = "http://localhost:" + pbiServerPort
+}
+
+func getFromPbiServer(url string, db string, collection string) ([]mongo.Element, error) {
+	// Make HTTP request to /data endpoint
+	resp, err := http.Get(url + "/data?db=" + db + "&collection=" + collection)
+	if err != nil {
+		return nil, fmt.Errorf("error making HTTP request to PBI server: %v", err)
+	}
+	defer resp.Body.Close()
+
+	// Check if the response status code is 200
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("unexpected status code from PBI server: got %v, want %v", resp.StatusCode, http.StatusOK)
+	}
+
+	// Decode the response body into a slice of Elements
+	var elements []mongo.Element
+	if err := json.NewDecoder(resp.Body).Decode(&elements); err != nil {
+		return nil, fmt.Errorf("error decoding response body: %v", err)
+	}
+
+	return elements, nil
 }
 
 func main() {
@@ -74,67 +104,58 @@ func main() {
 		done <- true
 	}()
 
-	time.Sleep(20 * time.Second)
+	time.Sleep(5 * time.Second)
 
-	go func() {
-		for _, msg := range data.LcaMessages {
-			dbEls, err := mongoReader.ReadAllElements(msg.Project, msg.Filename, msg.Timestamp)
-			if err != nil {
-				log.Fatalf("Error reading all elements: %v", err)
-			}
-
-			dbElsMap := make(map[string]mongo.Element)
-			for _, dbEl := range dbEls {
-				dbElsMap[dbEl.Id] = dbEl
-			}
-
-			for _, el := range msg.Data {
-				dbEl, ok := dbElsMap[el.Id]
-				if !ok {
-					log.Printf("Element not found in DB: %v", el)
-					continue
-				}
-
-				if !data.IsLcaItemEqualTo(el, dbEl) {
-					log.Printf("Element Lca mismatch: %v != %v", el, dbEl)
-					continue
-				}
-			}
-			log.Printf("LCA data for %s/%s at %s match", msg.Project, msg.Filename, msg.Timestamp)
+	for msgIndex, msg := range data.LcaMessages {
+		log.Printf("checking data for %s/%s at %s", msg.Project, msg.Filename, msg.Timestamp)
+		dbEls, err := getFromPbiServer(pbiServerURL, msg.Project, msg.Filename)
+		if err != nil {
+			log.Fatalf("Error getting LCA data from PBI server: %v", err)
 		}
-	}()
 
-	go func() {
-		for _, msg := range data.CostMessages {
-			dbEls, err := mongoReader.ReadAllElements(msg.Project, msg.Filename, msg.Timestamp)
-			if err != nil {
-				log.Fatalf("Error reading all elements: %v", err)
-			}
-
-			dbElsMap := make(map[string]mongo.Element)
-			for _, dbEl := range dbEls {
-				dbElsMap[dbEl.Id] = dbEl
-			}
-
-			for _, el := range msg.Data {
-				dbEl, ok := dbElsMap[el.Id]
-				if !ok {
-					log.Printf("Element not found in DB: %v", el)
-					continue
-				}
-
-				if !data.IsCostItemEqualTo(el, dbEl) {
-					log.Printf("Element cost mismatch: %v != %v", el, dbEl)
-					continue
+		// filter data for the timestamp
+		dbEls = func() []mongo.Element {
+			var filteredEls []mongo.Element
+			for _, el := range dbEls {
+				if el.Timestamp == msg.Timestamp {
+					filteredEls = append(filteredEls, el)
 				}
 			}
-			log.Printf("Cost data for %s/%s at %s match", msg.Project, msg.Filename, msg.Timestamp)
+			return filteredEls
+		}()
+
+		if len(dbEls) != len(msg.Data) {
+			log.Fatalf("Number of elements mismatch: %d != %d", len(dbEls), len(msg.Data))
 		}
-	}()
+
+		dbElsMap := make(map[string]mongo.Element)
+		for _, dbEl := range dbEls {
+			dbElsMap[dbEl.Id] = dbEl
+		}
+
+		for dataIndex, msg := range msg.Data {
+			dbEl, ok := dbElsMap[msg.Id]
+			if !ok {
+				log.Printf("Element not found in DB: %v", msg)
+				continue
+			}
+
+			if !data.IsLcaItemEqualTo(msg, dbEl) {
+				log.Printf("Element Lca mismatch: %v != %v", msg, dbEl)
+				continue
+			}
+
+			if !data.IsCostItemEqualTo(data.CostMessages[msgIndex].Data[dataIndex], dbEl) {
+				log.Printf("Element cost mismatch: %v != %v", data.CostMessages[msgIndex].Data[dataIndex], dbEl)
+				continue
+			}
+		}
+
+		log.Printf("Data for %s/%s at %s match", msg.Project, msg.Filename, msg.Timestamp)
+		log.Println("viz_pbi-server: Test passed!")
+	}
 
 	// Wait for all goroutines to finish
-	<-done
-	<-done
 	<-done
 	<-done
 }

@@ -75,8 +75,6 @@ func (w *Writer) UpsertElements(db, col string, els []Element) error {
 
 	fmt.Printf("BulkWrite completed with %d upserts and %d updates\n", result.UpsertedCount, result.ModifiedCount)
 
-	w.ensureTimestampIndex(db, col)
-
 	return nil
 }
 
@@ -89,49 +87,4 @@ func UnpackMessage(message LcaMessage) []Element {
 		}
 	}
 	return elements
-}
-
-func (w *Writer) ensureTimestampIndex(dbName, collectionName string) error {
-	collection := w.client.Database(dbName).Collection(collectionName)
-
-	// List existing indexes
-	cursor, err := collection.Indexes().List(context.TODO())
-	if err != nil {
-		return fmt.Errorf("failed to list indexes: %v", err)
-	}
-	defer cursor.Close(context.TODO())
-
-	// Check if the timestamp index exists
-	var indexExists bool
-	for cursor.Next(context.TODO()) {
-		var index bson.M
-		if err := cursor.Decode(&index); err != nil {
-			return fmt.Errorf("failed to decode index: %v", err)
-		}
-		if keys, ok := index["key"].(bson.M); ok {
-			if _, exists := keys["timestamp"]; exists {
-				indexExists = true
-				break
-			}
-		}
-	}
-
-	if !indexExists {
-		// Create the timestamp index
-		indexModel := mongo.IndexModel{
-			Keys:    bson.M{"timestamp": 1}, // 1 for ascending order
-			Options: options.Index().SetUnique(false),
-		}
-
-		_, err := collection.Indexes().CreateOne(context.TODO(), indexModel)
-		if err != nil {
-			return fmt.Errorf("failed to create timestamp index: %v", err)
-		}
-
-		log.Printf("Timestamp index created on %s.%s", dbName, collectionName)
-	} else {
-		log.Printf("Timestamp index already exists on %s.%s", dbName, collectionName)
-	}
-
-	return nil
 }

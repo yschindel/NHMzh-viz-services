@@ -14,13 +14,14 @@ type Consumer struct {
 }
 
 type LcaMessage struct {
-	Project   string    `json:"project"`
-	Filename  string    `json:"filename"`
-	Timestamp string    `json:"timestamp"`
-	Data      []Element `json:"data"`
+	Project   string     `json:"project"`
+	Filename  string     `json:"filename"`
+	Timestamp string     `json:"timestamp"`
+	Data      []DataItem `json:"data"`
 }
 
-type Element struct {
+type DataItem struct {
+	Id         string  `json:"id"`
 	Category   string  `json:"category"`
 	CO2e       float64 `json:"co2e"`
 	GreyEnergy float64 `json:"greyEnergy"`
@@ -68,7 +69,9 @@ func (c *Consumer) handleMessage(m kafka.Message) {
 	log.Printf("Timestamp: %v \n", message.Timestamp)
 	log.Printf("Data Count: %v \n", len(message.Data))
 
-	_, err = c.writer.InsertDoc(message)
+	elements := UnpackMessage(message)
+
+	err = c.writer.UpsertElements(message.Project, message.Filename, elements)
 	if err != nil {
 		log.Printf("could not insert document: %v", err)
 	}

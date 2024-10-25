@@ -2,18 +2,22 @@ package main
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"log"
 	"math/rand"
+
+	cryptrand "crypto/rand"
 	"os"
 	"path/filepath"
-	"strconv"
 	"time"
 
 	"github.com/joho/godotenv"
 	"github.com/segmentio/kafka-go"
 )
+
+const base64Chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_$"
 
 // LcaMessage represents the structure of an LCA message
 type LcaMessage struct {
@@ -61,7 +65,7 @@ func newMessage(project, filename string) LcaMessage {
 
 // newData generates a random list of Elements
 func newData() []Element {
-	numElements := rand.Intn(9001) + 1000
+	numElements := 9000
 	elements := make([]Element, numElements)
 	for i := 0; i < numElements; i++ {
 		elements[i] = newElement()
@@ -71,8 +75,12 @@ func newData() []Element {
 
 // newElement creates a random Element
 func newElement() Element {
+	id, err := generate22CharGUID()
+	if err != nil {
+		log.Fatalf("Error generating GUID: %v", err)
+	}
 	return Element{
-		ID:         newID(),
+		ID:         id,
 		Category:   randCat(),
 		CO2e:       randFloat(),
 		GreyEnergy: randFloat(),
@@ -80,9 +88,23 @@ func newElement() Element {
 	}
 }
 
-// newID generates a random string ID
-func newID() string {
-	return strconv.FormatInt(rand.Int63(), 36)
+func generate22CharGUID() (string, error) {
+	uuid := make([]byte, 16) // UUID is 16 bytes (128 bits)
+
+	// Generate random bytes
+	_, err := cryptrand.Read(uuid)
+	if err != nil {
+		return "", err
+	}
+
+	// Set version and variant bits for the UUID
+	uuid[6] = (uuid[6] & 0x0f) | 0x40 // Version 4
+	uuid[8] = (uuid[8] & 0x3f) | 0x80 // Variant is RFC4122
+
+	// Encode to base64 URL-safe and remove the trailing '=='
+	encoded := base64.RawURLEncoding.EncodeToString(uuid)
+
+	return encoded, nil
 }
 
 // randFloat generates a random float number between min and max
@@ -92,7 +114,7 @@ func randFloat() float32 {
 
 // randCat picks a random category from a predefined list
 func randCat() string {
-	categories := []string{"Wall", "Door", "Floor"}
+	categories := []string{"IfcWalls", "IfcDoors", "IfcFloors"}
 	return categories[rand.Intn(len(categories))]
 }
 
@@ -153,13 +175,28 @@ func consumeMessages() error {
 }
 
 func main() {
-	fmt.Println("Producing LCA messages...")
-	if err := produceMessages(); err != nil {
-		log.Fatalf("Error producing messages: %v", err)
-	}
+	// Channel to signal when both produce and consume are done
+	done := make(chan bool)
 
-	fmt.Println("\nConsuming LCA messages...")
-	if err := consumeMessages(); err != nil {
-		log.Fatalf("Error consuming messages: %v", err)
-	}
+	// Run produceMessages in a goroutine
+	go func() {
+		fmt.Println("Producing LCA messages...")
+		if err := produceMessages(); err != nil {
+			log.Fatalf("Error producing messages: %v", err)
+		}
+		done <- true
+	}()
+
+	// Run consumeMessages in a goroutine
+	go func() {
+		fmt.Println("\nConsuming LCA messages...")
+		if err := consumeMessages(); err != nil {
+			log.Fatalf("Error consuming messages: %v", err)
+		}
+		done <- true
+	}()
+
+	// Wait for both goroutines to finish
+	<-done
+	<-done
 }

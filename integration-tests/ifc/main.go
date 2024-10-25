@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -31,6 +32,7 @@ var (
 	minioAccessKey  string
 	minioSecretKey  string
 	pbiServerPort   int
+	pbiServerUrl    string
 	messages        []Message
 	minioClient     *minio.Client
 )
@@ -53,6 +55,7 @@ func init() {
 	minioAccessKey = getEnv("MINIO_ACCESS_KEY", "")
 	minioSecretKey = getEnv("MINIO_SECRET_KEY", "")
 	pbiServerPort = getEnvAsInt("PBI_SERVER_PORT", 3000)
+	pbiServerUrl = "http://localhost:" + strconv.Itoa(pbiServerPort)
 	minioUrl = fmt.Sprintf("%s:%d", minioEndpoint, minioPort)
 
 	// log all environment variables
@@ -91,7 +94,8 @@ type Message struct {
 }
 
 func newMessage(project, filename string) Message {
-	timestamp := time.Now().Format(time.RFC3339)
+	timestamp := time.Now().UTC().Format(time.RFC3339Nano)
+	log.Println(timestamp)
 	return Message{
 		Project:   project,
 		Filename:  filename,
@@ -118,31 +122,6 @@ func newFilename(project, filename, timestamp string) string {
 	return fmt.Sprintf("%s/%s_%s%s", project, name, fileTimestamp, ext)
 }
 
-func getFileFromMinio(client *minio.Client, bucketName, objectName string) ([]byte, error) {
-	log.Printf("Fetching file: '%s' from bucket: '%s'", objectName, bucketName)
-	obj, err := client.GetObject(context.Background(), bucketName, objectName, minio.GetObjectOptions{})
-	if err != nil {
-		if minioErr, ok := err.(minio.ErrorResponse); ok && minioErr.Code == "NoSuchKey" {
-			return nil, fmt.Errorf("file '%s' not found in bucket '%s'", objectName, bucketName)
-		}
-		return nil, err
-	}
-	defer obj.Close()
-
-	stat, err := obj.Stat()
-	if err != nil {
-		return nil, err
-	}
-
-	buf := make([]byte, stat.Size)
-	_, err = obj.Read(buf)
-	if err != nil && err != io.EOF {
-		return nil, err
-	}
-
-	return buf, nil
-}
-
 func addIfcFileToMinio(client *minio.Client, location string, content []byte) error {
 	_, err := client.PutObject(context.Background(), ifcBucket, location, bytes.NewReader(content), int64(len(content)), minio.PutObjectOptions{})
 	return err
@@ -162,7 +141,7 @@ func addIfcFilesToMinio() error {
 		if err := addIfcFileToMinio(minioClient, msg.Location, content); err != nil {
 			return fmt.Errorf("failed to add file to MinIO: %w", err)
 		}
-		fmt.Printf("Added file to MinIO: %s\n", msg.Location)
+		log.Printf("Added file to MinIO: %s\n", msg.Location)
 	}
 
 	return nil
@@ -199,7 +178,7 @@ func produceMessages() error {
 		if err != nil {
 			return fmt.Errorf("failed to send message: %w", err)
 		}
-		fmt.Printf("Sent message: %s/%s\n", msg.Project, msg.Filename)
+		log.Printf("Sent message: %s/%s\n", msg.Project, msg.Filename)
 	}
 
 	return nil
@@ -225,35 +204,35 @@ func consumeMessages() error {
 		if err := json.Unmarshal(msg.Value, &value); err != nil {
 			return fmt.Errorf("failed to unmarshal message: %w", err)
 		}
-		fmt.Printf("Received message: %s/%s\n", value.Project, value.Filename)
+		log.Printf("Received message: %s/%s\n", value.Project, value.Filename)
 	}
 
 }
 
-func getFragmentsFiles() error {
-	for _, msg := range messages {
-		location := strings.Replace(msg.Location, ".ifc", ".gz", 1)
-		fmt.Printf("Getting fragments for %s\n", location)
-
-		file, err := getFileFromMinio(minioClient, fragmentsBucket, location)
-		if err != nil {
-			return fmt.Errorf("failed to get file from MinIO: %w", err)
-		}
-
-		// check if the file is empty
-		if len(file) == 0 {
-			fmt.Println("File is empty")
-			return fmt.Errorf("file is empty")
-		} else {
-			fmt.Println("File received")
-			return nil
-		}
+func getFileFromPbiServer(url string, location string) ([]byte, error) {
+	// Make HTTP request to /file endpoint
+	resp, err := http.Get(url + "/file?name=" + location)
+	if err != nil {
+		return nil, fmt.Errorf("error making HTTP request to PBI server: %v", err)
 	}
-	return nil
+	defer resp.Body.Close()
+
+	// Check if the response status code is 200
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("unexpected status code from PBI server: got %v, want %v.\nError: %s", resp.StatusCode, http.StatusOK, err)
+	}
+
+	// Read the response body
+	fileContent, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("error reading response body: %v", err)
+	}
+
+	return fileContent, nil
 }
 
 func main() {
-	fmt.Println("Adding IFC files to MinIO...")
+	log.Println("Adding IFC files to MinIO...")
 	if err := addIfcFilesToMinio(); err != nil {
 		log.Fatalf("Error adding IFC files to MinIO: %v", err)
 	}
@@ -261,26 +240,33 @@ func main() {
 	log.Println("Waiting for MinIO to process IFC file...")
 	time.Sleep(2 * time.Second)
 
-	fmt.Println("Producing IFC messages...")
+	log.Println("Producing IFC messages...")
 	if err := produceMessages(); err != nil {
 		log.Fatalf("Error producing IFC messages: %v", err)
 	}
 
-	fmt.Println("Consuming IFC messages...")
+	log.Println("Consuming IFC messages...")
 	go func() {
 		if err := consumeMessages(); err != nil {
 			log.Fatalf("Error consuming IFC messages: %v", err)
 		}
 	}()
 
-	fmt.Println("Waiting for IFC consumer to convert ifc to gz and write back to MinIO...")
+	log.Println("Waiting for IFC consumer to convert ifc to gz and write back to MinIO...")
 	time.Sleep(30 * time.Second)
 
-	fmt.Println("Getting fragments files...")
-	err := getFragmentsFiles()
-	if err != nil {
-		log.Fatalf("Error getting fragments files: %v", err)
+	log.Println("Getting fragments files...")
+	for _, msg := range messages {
+		name := strings.Replace(msg.Location, ".ifc", ".gz", 1)
+		_, err := getFileFromPbiServer(pbiServerUrl, name)
+		if err != nil {
+			log.Fatalf("Error getting fragments files: %v", err)
+		}
+
+		log.Printf("Received fragments file: %s\n", msg.Location)
 	}
+
+	log.Println("IFC test completed successfully")
 }
 
 // Helper functions for environment variables

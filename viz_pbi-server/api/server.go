@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/gorilla/mux"
 	"github.com/rs/cors"
@@ -11,6 +12,15 @@ import (
 	"viz_pbi-server/minio"
 	"viz_pbi-server/mongo"
 )
+
+var fragmentsBucket string
+
+func init() {
+	fragmentsBucket = os.Getenv("MINIO_FRAGMENTS_BUCKET")
+	if fragmentsBucket == "" {
+		fragmentsBucket = "ifc-fragment-files"
+	}
+}
 
 type Server struct {
 	*mux.Router
@@ -50,9 +60,15 @@ func (s *Server) getFile() http.HandlerFunc {
 			return
 		}
 
+		// Check if the file name is valid
+		passed, msg := checkFileName(name)
+		if !passed {
+			http.Error(w, msg, http.StatusBadRequest)
+			return
+		}
+
 		// Fetch the file from MinIO
-		bucketName := "ifc-fragment-files" // Replace with your actual bucket name
-		fileContent, err := minio.GetFile(bucketName, name)
+		file, err := minio.GetFile(fragmentsBucket, name)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -60,7 +76,7 @@ func (s *Server) getFile() http.HandlerFunc {
 
 		// Set the appropriate headers and return the file content
 		w.Header().Set("Content-Type", "application/octet-stream")
-		w.Write(fileContent)
+		w.Write(file)
 	}
 }
 
@@ -93,4 +109,28 @@ func getEnv(key, fallback string) string {
 		return fallback
 	}
 	return value
+}
+
+func checkFileName(name string) (bool, string) {
+	// check if file ends with .gz
+	if !strings.HasSuffix(name, ".gz") {
+		return false, "file name does not end with .gz"
+	}
+
+	pattern := "project/filename_timestamp.gz"
+
+	// check if file name follows the pattern: project/filename_timestamp.gz
+	parts := strings.Split(name, "/")
+	if len(parts) != 2 {
+		return false, pattern
+	}
+
+	// split the filename and timestamp
+	filename := parts[1]
+	filenameParts := strings.Split(filename, "_")
+	if len(filenameParts) != 2 {
+		return false, pattern
+	}
+
+	return true, "File name is valid"
 }

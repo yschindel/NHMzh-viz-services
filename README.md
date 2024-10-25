@@ -24,10 +24,14 @@ Uses the @ThatOpen Companies library.
 ### viz_cost-consumer
 
 Coming Soon.
+TODO: link to README
+This consumer writes to a database. It will write/update the same items as `viz_lca-consumer`. Be careful to keep them in sync.
 
 ### viz_lca-consumer
 
 Coming Soon.
+TODO: link to README
+This consumer writes to a database. It will write/update the same items as `viz_cost-consumer`. Be careful to keep them in sync.
 
 ### Database for Data History
 

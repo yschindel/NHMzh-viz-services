@@ -18,6 +18,7 @@ Listens to a Kafka topic with links to IFC files
 - Loads the ifc file from Minio
 - Converts to fragments, compresses
 - Saves compressed fragments back to Minio
+- TODO: update 'fragments-files' Kafka topic.
 
 Uses the @ThatOpen Companies library.
 
@@ -38,6 +39,7 @@ Coming Soon.
 - Docker
 - Docker Compose
 - Node.js (for running the unit tests locally)
+- Go
 
 ## Environment Variables
 

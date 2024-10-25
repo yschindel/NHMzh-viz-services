@@ -7,4 +7,4 @@ Content-Type: application/json
   "name": "project1/file1_timestamp.gz"
 }
 
-Get http://localhost:3000/files/getFirst?name=project2/file2_2024-10-23T14:06:27.494Z.gz
+Get http://localhost:3000/file?name=project2/file2_2024-10-23T14:06:27.494Z.gz

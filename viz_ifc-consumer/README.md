@@ -13,7 +13,7 @@ The Kafka messages have the following format:
   "project": "string",
   "filename": "string",
   "timestamp": "number",
-  "content": "Buffer"
+  "location": "string"
 }
 ```
 
@@ -25,7 +25,7 @@ The service saves the IFC files to MinIO, in a bucket specified in the `MINIO_IF
 
 The files are saved with a unique name, which is a combination of the project name, the original filename, and a timestamp.
 
-Example: `my-project/my-file_1724230400000.gz`
+Example: `project2/file2_2024-10-25T16:36:04.986173Z.gz`
 
 ## Fragmentation
 

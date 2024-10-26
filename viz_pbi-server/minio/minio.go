@@ -45,22 +45,27 @@ func GetFile(bucketName string, objectName string) ([]byte, error) {
 	obj, err := minioClient.GetObject(context.Background(), bucketName, objectName, minio.GetObjectOptions{})
 	if err != nil {
 		if minioErr, ok := err.(minio.ErrorResponse); ok && minioErr.Code == "NoSuchKey" {
+			log.Printf("File '%s' not found in bucket '%s'", objectName, bucketName)
 			return nil, fmt.Errorf("file '%s' not found in bucket '%s'", objectName, bucketName)
 		}
+		log.Printf("Failed to get file '%s': %v", objectName, err)
 		return nil, err
 	}
 	defer obj.Close()
 
 	stat, err := obj.Stat()
 	if err != nil {
+		log.Printf("Failed to get file '%s' stats: %v", objectName, err)
 		return nil, err
 	}
 
 	buf := make([]byte, stat.Size)
 	_, err = obj.Read(buf)
 	if err != nil && err != io.EOF {
+		log.Printf("Failed to read file '%s': %v", objectName, err)
 		return nil, err
 	}
 
+	log.Printf("File '%s' fetched successfully", objectName)
 	return buf, nil
 }

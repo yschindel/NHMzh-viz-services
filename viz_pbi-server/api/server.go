@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"os"
 	"strings"
@@ -70,7 +71,7 @@ func (s *Server) getFile() http.HandlerFunc {
 		// Fetch the file from MinIO
 		file, err := minio.GetFile(fragmentsBucket, name)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			http.Error(w, fmt.Sprintf("Failed to fetch file from MinIO: %v", err), http.StatusInternalServerError)
 			return
 		}
 

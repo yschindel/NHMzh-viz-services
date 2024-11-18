@@ -129,7 +129,8 @@ func (m *DuckDBManager) EnsureParquetFile(project string, filename string) error
 					NULL::FLOAT as co2e,
 					NULL::FLOAT as greyEnergy,
 					NULL::FLOAT as UBP,
-					NULL::FLOAT as cost
+					NULL::FLOAT as cost,
+					NULL::VARCHAR as timestamp
 				FROM (SELECT '' as id) WHERE false
 			) TO 's3://%s/%s'
 			(FORMAT 'parquet', COMPRESSION 'zstd')
@@ -146,7 +147,7 @@ func (m *DuckDBManager) EnsureParquetFile(project string, filename string) error
 }
 
 // UpdateParquetFromEnvironmentalData updates the parquet file with environmental impact data
-func (m *DuckDBManager) UpdateParquetFromEnvironmentalData(project, filename string, data []LcaDataItem) error {
+func (m *DuckDBManager) UpdateParquetFromEnvironmentalData(project, filename string, data []LcaDataItem, timestamp string) error {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
@@ -161,8 +162,29 @@ func (m *DuckDBManager) UpdateParquetFromEnvironmentalData(project, filename str
 
 	_, err = m.db.Exec(`
 		DROP TABLE IF EXISTS new_lca_data; 
-		CREATE TABLE new_lca_data (id VARCHAR, category VARCHAR, co2e FLOAT, greyEnergy FLOAT, UBP FLOAT); 
-		INSERT INTO new_lca_data SELECT * FROM read_json('new_data.json', columns = {id: 'VARCHAR', category: 'VARCHAR', co2e: 'FLOAT', greyEnergy: 'FLOAT', UBP: 'FLOAT'})
+		CREATE TABLE new_lca_data (
+			id VARCHAR, 
+			category VARCHAR, 
+			co2e FLOAT, 
+			greyEnergy FLOAT, 
+			UBP FLOAT,
+			timestamp VARCHAR
+		); 
+		INSERT INTO new_lca_data 
+		SELECT 
+			id, 
+			category, 
+			co2e, 
+			greyEnergy, 
+			UBP,
+			'` + timestamp + `' as timestamp
+		FROM read_json('new_data.json', columns = {
+			id: 'VARCHAR', 
+			category: 'VARCHAR', 
+			co2e: 'FLOAT', 
+			greyEnergy: 'FLOAT', 
+			UBP: 'FLOAT'
+		})
 	`)
 	if err != nil {
 		return fmt.Errorf("failed to insert data into temp table: %w", err)
@@ -174,18 +196,58 @@ func (m *DuckDBManager) UpdateParquetFromEnvironmentalData(project, filename str
 			WITH existing AS (
 				SELECT * FROM read_parquet('s3://%s/%s')
 			),
-			merged AS (
+			new_data AS (
+				SELECT * FROM new_lca_data
+			),
+			matched_updates AS (
+				-- Merge records with matching id AND timestamp
 				SELECT 
 					COALESCE(n.id, e.id) as id,
 					COALESCE(n.category, e.category) as category,
 					COALESCE(n.co2e, e.co2e) as co2e,
 					COALESCE(n.greyEnergy, e.greyEnergy) as greyEnergy,
 					COALESCE(n.UBP, e.UBP) as UBP,
-					e.cost
+					e.cost,
+					COALESCE(n.timestamp, e.timestamp) as timestamp
 				FROM existing e
-				FULL OUTER JOIN new_lca_data n ON e.id = n.id
+				INNER JOIN new_data n 
+					ON e.id = n.id 
+					AND e.timestamp = n.timestamp
+			),
+			unmatched_existing AS (
+				-- Keep existing records that don't match
+				SELECT *
+				FROM existing e
+				WHERE NOT EXISTS (
+					SELECT 1 FROM new_data n
+					WHERE e.id = n.id AND e.timestamp = n.timestamp
+				)
+			),
+			unmatched_new AS (
+				-- Add new records that don't match
+				SELECT 
+					id,
+					category,
+					co2e,
+					greyEnergy,
+					UBP,
+					NULL as cost,
+					timestamp
+				FROM new_data n
+				WHERE NOT EXISTS (
+					SELECT 1 FROM existing e
+					WHERE e.id = n.id AND e.timestamp = n.timestamp
+				)
+			),
+			merged AS (
+				SELECT * FROM matched_updates
+				UNION ALL
+				SELECT * FROM unmatched_existing
+				UNION ALL
+				SELECT * FROM unmatched_new
 			)
 			SELECT * FROM merged
+			ORDER BY id, timestamp DESC
 		)
 		TO 's3://%s/%s'
 		(FORMAT 'parquet', COMPRESSION 'zstd')
@@ -200,7 +262,7 @@ func (m *DuckDBManager) UpdateParquetFromEnvironmentalData(project, filename str
 }
 
 // UpdateParquetFromCostData updates the parquet file with cost data
-func (m *DuckDBManager) UpdateParquetFromCostData(project, filename string, data []CostDataItem) error {
+func (m *DuckDBManager) UpdateParquetFromCostData(project, filename string, data []CostDataItem, timestamp string) error {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
@@ -215,8 +277,23 @@ func (m *DuckDBManager) UpdateParquetFromCostData(project, filename string, data
 
 	_, err = m.db.Exec(`
 		DROP TABLE IF EXISTS new_cost_data; 
-		CREATE TABLE new_cost_data (id VARCHAR, category VARCHAR, cost FLOAT); 
-		INSERT INTO new_cost_data SELECT * FROM read_json('new_cost_data.json', columns = {id: 'VARCHAR', category: 'VARCHAR', cost: 'FLOAT'})
+		CREATE TABLE new_cost_data (
+			id VARCHAR, 
+			category VARCHAR, 
+			cost FLOAT,
+			timestamp VARCHAR
+		); 
+		INSERT INTO new_cost_data 
+		SELECT 
+			id, 
+			category, 
+			cost,
+			'` + timestamp + `' as timestamp
+		FROM read_json('new_cost_data.json', columns = {
+			id: 'VARCHAR', 
+			category: 'VARCHAR', 
+			cost: 'FLOAT'
+		})
 	`)
 	if err != nil {
 		return fmt.Errorf("failed to insert data into temp table: %w", err)
@@ -228,18 +305,58 @@ func (m *DuckDBManager) UpdateParquetFromCostData(project, filename string, data
 			WITH existing AS (
 				SELECT * FROM read_parquet('s3://%s/%s')
 			),
-			merged AS (
+			new_data AS (
+				SELECT * FROM new_cost_data
+			),
+			matched_updates AS (
+				-- Merge records with matching id AND timestamp
 				SELECT 
 					COALESCE(n.id, e.id) as id,
 					e.category,
 					e.co2e,
 					e.greyEnergy,
 					e.UBP,
-					COALESCE(n.cost, e.cost) as cost
+					COALESCE(n.cost, e.cost) as cost,
+					COALESCE(n.timestamp, e.timestamp) as timestamp
 				FROM existing e
-				FULL OUTER JOIN new_cost_data n ON e.id = n.id
+				INNER JOIN new_data n 
+					ON e.id = n.id 
+					AND e.timestamp = n.timestamp
+			),
+			unmatched_existing AS (
+				-- Keep existing records that don't match
+				SELECT *
+				FROM existing e
+				WHERE NOT EXISTS (
+					SELECT 1 FROM new_data n
+					WHERE e.id = n.id AND e.timestamp = n.timestamp
+				)
+			),
+			unmatched_new AS (
+				-- Add new records that don't match
+				SELECT 
+					id,
+					NULL as category,
+					NULL as co2e,
+					NULL as greyEnergy,
+					NULL as UBP,
+					cost,
+					timestamp
+				FROM new_data n
+				WHERE NOT EXISTS (
+					SELECT 1 FROM existing e
+					WHERE e.id = n.id AND e.timestamp = n.timestamp
+				)
+			),
+			merged AS (
+				SELECT * FROM matched_updates
+				UNION ALL
+				SELECT * FROM unmatched_existing
+				UNION ALL
+				SELECT * FROM unmatched_new
 			)
 			SELECT * FROM merged
+			ORDER BY id, timestamp DESC
 		)
 		TO 's3://%s/%s'
 		(FORMAT 'parquet', COMPRESSION 'zstd')

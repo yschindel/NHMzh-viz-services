@@ -92,8 +92,8 @@ func (c *Consumer) handleEnvironmentalMessage(m kafka.Message) {
 		return
 	}
 
-	// Update environmental data
-	err = c.db.UpdateParquetFromEnvironmentalData(message.Project, filename, message.Data)
+	// Update environmental data with timestamp
+	err = c.db.UpdateParquetFromEnvironmentalData(message.Project, filename, message.Data, message.Timestamp)
 	if err != nil {
 		log.Printf("could not update environmental data: %v", err)
 		return
@@ -119,8 +119,8 @@ func (c *Consumer) handleCostMessage(m kafka.Message) {
 		return
 	}
 
-	// Update cost data
-	err = c.db.UpdateParquetFromCostData(message.Project, filename, message.Data)
+	// Update cost data with timestamp
+	err = c.db.UpdateParquetFromCostData(message.Project, filename, message.Data, message.Timestamp)
 	if err != nil {
 		log.Printf("could not update cost data: %v", err)
 		return

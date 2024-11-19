@@ -7,9 +7,10 @@ This repository contains the code for the Vizualization Services of the NHMzh pr
 ### Minio
 
 - Used for storing files.
-- Two buckets:
+- Three buckets:
   - ifc-files (the raw ifc files)
   - ifc-fragment-files (compressed counterparts to the ifc files, converted to 'fragments')
+  - lca-cost-data (history data of final calculation results)
 
 ### viz_ifc-consumer
 
@@ -22,27 +23,21 @@ Listens to a Kafka topic with links to IFC files
 
 Uses the @ThatOpen Companies library.
 
-### viz_cost-consumer
+### viz_lca-cost-consumer
 
-Coming Soon.
-TODO: link to README
-This consumer writes to a database. It will write/update the same items as `viz_lca-consumer`. Be careful to keep them in sync.
+This consumer writes parquet files to minio
 
-### viz_lca-consumer
 
-Coming Soon.
-TODO: link to README
-This consumer writes to a database. It will write/update the same items as `viz_cost-consumer`. Be careful to keep them in sync.
 
-### Database for Data History
+### Data History
 
-- MongoDB
+Parquet files on minio are used to capture data.
 
 ## Prerequisites
 
 - Docker
 - Docker Compose
-- Node.js (for running the unit tests locally)
+- Node.js
 - Go
 
 ## Environment Variables
@@ -94,10 +89,6 @@ docker-compose down
 ## Access the MinIO Console
 
 To access the MinIO Console, navigate to http://localhost:9001. You will need to use the credentials `ROOTUSER` and `CHANGEME123` to log in. Or whatever you have set in the `.env` file.
-
-## Access MongoDB
-
-To access the MongoDB database, navigate to http://localhost:27017.
 
 ## Tests
 

@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"lca_cost/mongo"
 	"log"
 	"time"
 
@@ -52,9 +51,9 @@ func newCostData(dataItems []DataItem) []CostDataItem {
 	return elements
 }
 
-func IsCostItemEqualTo(a CostDataItem, b mongo.Element) bool {
-	return a.Id == b.Id && a.Category == b.Category && a.Cost == b.Cost
-}
+// func IsCostItemEqualTo(a CostDataItem, b mongo.Element) bool {
+// 	return a.Id == b.Id && a.Category == b.Category && a.Cost == b.Cost
+// }
 
 // produceMessages sends messages to a Kafka topic
 func ProduceCostMessages(broker string, topic string) error {

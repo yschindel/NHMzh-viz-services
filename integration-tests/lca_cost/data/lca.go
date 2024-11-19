@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"lca_cost/mongo"
 	"log"
 	"time"
 
@@ -56,9 +55,9 @@ func newLcaData(dataItems []DataItem) []LcaDataItem {
 	return elements
 }
 
-func IsLcaItemEqualTo(a LcaDataItem, b mongo.Element) bool {
-	return a.Id == b.Id && a.Category == b.Category && a.CO2e == b.CO2e && a.GreyEnergy == b.GreyEnergy && a.UBP == b.UBP
-}
+// func IsLcaItemEqualTo(a LcaDataItem, b mongo.Element) bool {
+// 	return a.Id == b.Id && a.Category == b.Category && a.CO2e == b.CO2e && a.GreyEnergy == b.GreyEnergy && a.UBP == b.UBP
+// }
 
 // produceMessages sends messages to a Kafka topic
 func ProduceLcaMessages(broker string, topic string) error {

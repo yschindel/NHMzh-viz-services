@@ -22,11 +22,14 @@ type LcaMessage struct {
 
 // LcaDataItem represents an element in the LCA message
 type LcaDataItem struct {
-	Id         string  `json:"id"`
-	Category   string  `json:"category"`
-	CO2e       float32 `json:"co2e"`
-	GreyEnergy float32 `json:"greyEnergy"`
-	UBP        float32 `json:"UBP"`
+	Id           string  `json:"id"`
+	Category     string  `json:"category"`
+	GwpAbsolute  float32 `json:"gwp_absolute"`
+	GwpRelative  float32 `json:"gwp_relative"`
+	PenrAbsolute float32 `json:"penr_absolute"`
+	PenrRelative float32 `json:"penr_relative"`
+	UbpAbsolute  float32 `json:"ubp_absolute"`
+	UbpRelative  float32 `json:"ubp_relative"`
 }
 
 // newMessage creates a new LcaMessage
@@ -45,11 +48,14 @@ func newLcaData(dataItems []DataItem) []LcaDataItem {
 	elements := make([]LcaDataItem, len(dataItems))
 	for i, item := range dataItems {
 		elements[i] = LcaDataItem{
-			Id:         item.Id,
-			Category:   item.Category,
-			CO2e:       randFloat(),
-			GreyEnergy: randFloat(),
-			UBP:        randFloat(),
+			Id:           item.Id,
+			Category:     item.Category,
+			GwpAbsolute:  randFloat(),
+			GwpRelative:  randFloat(),
+			PenrAbsolute: randFloat(),
+			PenrRelative: randFloat(),
+			UbpAbsolute:  randFloat(),
+			UbpRelative:  randFloat(),
 		}
 	}
 	return elements

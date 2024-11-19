@@ -45,28 +45,6 @@ func init() {
 	pbiServerURL = "http://localhost:" + pbiServerPort
 }
 
-// func getDataFromPbiServer(url string, db string, collection string) ([]mongo.Element, error) {
-// 	// Make HTTP request to /data endpoint
-// 	resp, err := http.Get(url + "/data?db=" + db + "&collection=" + collection)
-// 	if err != nil {
-// 		return nil, fmt.Errorf("error making HTTP request to PBI server: %v", err)
-// 	}
-// 	defer resp.Body.Close()
-
-// 	// Check if the response status code is 200
-// 	if resp.StatusCode != http.StatusOK {
-// 		return nil, fmt.Errorf("unexpected status code from PBI server: got %v, want %v", resp.StatusCode, http.StatusOK)
-// 	}
-
-// 	// Decode the response body into a slice of Elements
-// 	var elements []mongo.Element
-// 	if err := json.NewDecoder(resp.Body).Decode(&elements); err != nil {
-// 		return nil, fmt.Errorf("error decoding response body: %v", err)
-// 	}
-
-// 	return elements, nil
-// }
-
 func getModelListFromPbiServer(url string, project string) ([]string, error) {
 	resp, err := http.Get(url + "/data/models?project=" + project)
 	if err != nil {

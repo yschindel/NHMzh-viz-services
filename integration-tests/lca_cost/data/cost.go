@@ -25,6 +25,7 @@ type CostDataItem struct {
 	Id       string  `json:"id"`
 	Category string  `json:"category"`
 	Cost     float32 `json:"cost"`
+	CostUnit float32 `json:"cost_unit"`
 }
 
 // newMessage creates a new costMessage
@@ -46,6 +47,7 @@ func newCostData(dataItems []DataItem) []CostDataItem {
 			Id:       item.Id,
 			Category: item.Category,
 			Cost:     randFloat(),
+			CostUnit: 200,
 		}
 	}
 	return elements

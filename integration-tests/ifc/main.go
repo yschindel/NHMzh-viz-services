@@ -211,7 +211,7 @@ func consumeMessages() error {
 
 func getFileFromPbiServer(url string, location string) ([]byte, error) {
 	// Make HTTP request to /file endpoint
-	resp, err := http.Get(url + "/file?name=" + location)
+	resp, err := http.Get(url + "/fragments?name=" + location)
 	if err != nil {
 		return nil, fmt.Errorf("error making HTTP request to PBI server: %v", err)
 	}

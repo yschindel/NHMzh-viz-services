@@ -1,7 +1,6 @@
 package api
 
 import (
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -48,12 +47,10 @@ func NewServer() *Server {
 }
 
 func (s *Server) routes() {
-	s.HandleFunc("/file", s.getFragmentsFile()).Methods("GET")
-	s.HandleFunc("/file/arrow-table", s.getFileAsArrowTable()).Methods("GET")
-	s.HandleFunc("/data/models", s.getDataFileList()).Methods("GET")
-	s.HandleFunc("/data/projects", s.getProjects()).Methods("GET")
+	s.HandleFunc("/fragments", s.getFragmentsFile()).Methods("GET")
+	s.HandleFunc("/fragments/list", s.getFragmentFileNames()).Methods("GET")
 	s.HandleFunc("/data", s.getDataFile()).Methods("GET")
-	s.HandleFunc("/data/all", s.getAllDataFiles()).Methods("GET")
+	s.HandleFunc("/data/list", s.getDataFileNames()).Methods("GET")
 }
 
 func (s *Server) getFragmentsFile() http.HandlerFunc {
@@ -84,40 +81,22 @@ func (s *Server) getFragmentsFile() http.HandlerFunc {
 	}
 }
 
-// get a data file from the lca-cost-data bucket
-func (s *Server) getFileAsArrowTable() http.HandlerFunc {
+// get all file names in the ifc-fragment-files bucket
+func (s *Server) getFragmentFileNames() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		name := r.URL.Query().Get("name")
-		if name == "" {
-			http.Error(w, "Missing 'name' query parameter", http.StatusBadRequest)
-			return
-		}
-
-		// Fetch the file from MinIO
-		file, err := minio.GetFile(lcaCostDataBucket, name)
+		files, err := minio.ListAllFiles(fragmentsBucket)
 		if err != nil {
-			http.Error(w, fmt.Sprintf("Failed to fetch file from MinIO: %v", err), http.StatusInternalServerError)
+			http.Error(w, fmt.Sprintf("Failed to list all files from MinIO: %v", err), http.StatusInternalServerError)
 			return
 		}
 
-		// setup duckdb
-		db, err := sql.Open("duckdb", "")
-		if err != nil {
-			http.Error(w, fmt.Sprintf("Failed to open duckdb: %v", err), http.StatusInternalServerError)
-			return
+		for _, file := range files {
+			log.Printf("fragments file: %s", file)
 		}
 
-		// write the file to a temp file
-		tempFile, err := os.CreateTemp("", "data_for_arrow_table.parquet")
-		if err != nil {
-			http.Error(w, fmt.Sprintf("Failed to create temp file: %v", err), http.StatusInternalServerError)
-			return
-		}
-		defer tempFile.Close()
-		tempFile.Write(file)
-
-		// read the file into a duckdb table
-		db.Exec(`CREATE TABLE data AS SELECT * FROM read_parquet($1)`, tempFile.Name())
+		// return list of files
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(files)
 	}
 }
 
@@ -158,58 +137,8 @@ func (s *Server) getDataFile() http.HandlerFunc {
 	}
 }
 
-// get all file names in the specified directory in the lca-cost-data bucket
-func (s *Server) getDataFileList() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		project := r.URL.Query().Get("project")
-		if project == "" {
-			http.Error(w, "Missing 'project' query parameter", http.StatusBadRequest)
-			return
-		}
-
-		files, err := minio.ListFiles(lcaCostDataBucket, project)
-		log.Printf("data files: %v", files)
-		if err != nil {
-			http.Error(w, fmt.Sprintf("Failed to list files from MinIO: %v", err), http.StatusInternalServerError)
-			return
-		}
-
-		// Filter only .parquet files and remove the project prefix
-		var modelList []string
-		for _, file := range files {
-			if strings.HasSuffix(file, ".parquet") {
-				// Remove the project prefix (e.g., "project1/")
-				modelName := strings.TrimPrefix(file, project+"/")
-				modelList = append(modelList, modelName)
-			}
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(modelList); err != nil {
-			http.Error(w, fmt.Sprintf("Failed to encode response: %v", err), http.StatusInternalServerError)
-			return
-		}
-	}
-}
-
 // get all projects in the lca-cost-data bucket
-func (s *Server) getProjects() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-
-		projects, err := minio.ListProjects(lcaCostDataBucket)
-		log.Printf("projects: %v", projects)
-		if err != nil {
-			http.Error(w, fmt.Sprintf("Failed to list projects from MinIO: %v", err), http.StatusInternalServerError)
-			return
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(projects)
-	}
-}
-
-// get all projects in the lca-cost-data bucket
-func (s *Server) getAllDataFiles() http.HandlerFunc {
+func (s *Server) getDataFileNames() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		files, err := minio.ListAllFiles(lcaCostDataBucket)
@@ -219,7 +148,7 @@ func (s *Server) getAllDataFiles() http.HandlerFunc {
 		}
 
 		for _, file := range files {
-			log.Printf("file: %s", file)
+			log.Printf("data file: %s", file)
 		}
 
 		// return list of files

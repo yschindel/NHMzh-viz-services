@@ -14,11 +14,15 @@ type LcaMessage struct {
 }
 
 type LcaDataItem struct {
-	Id         string  `json:"id"`
-	Category   string  `json:"category"`
-	CO2e       float32 `json:"co2e"`
-	GreyEnergy float32 `json:"greyEnergy"`
-	UBP        float32 `json:"UBP"`
+	Id           string  `json:"id"`
+	Category     string  `json:"ebkph"`
+	MaterialKbob string  `json:"mat_kbob"`
+	GwpAbsolute  float32 `json:"gwp_absolute"`
+	GwpRelative  float32 `json:"gwp_relative"`
+	PenrAbsolute float32 `json:"penr_absolute"`
+	PenrRelative float32 `json:"penr_relative"`
+	UbpAbsolute  float32 `json:"ubp_absolute"`
+	UbpRelative  float32 `json:"ubp_relative"`
 }
 
 type CostMessage struct {
@@ -30,6 +34,7 @@ type CostMessage struct {
 
 type CostDataItem struct {
 	Id       string  `json:"id"`
-	Category string  `json:"category"`
+	Category string  `json:"ebkph"`
 	Cost     float32 `json:"cost"`
+	CostUnit float32 `json:"cost_unit"`
 }

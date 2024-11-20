@@ -125,11 +125,16 @@ func (m *DuckDBManager) EnsureParquetFile(project string, filename string) error
 			COPY (
 				SELECT 
 					id,
-					NULL::VARCHAR as category,
-					NULL::FLOAT as co2e,
-					NULL::FLOAT as greyEnergy,
-					NULL::FLOAT as UBP,
+					NULL::VARCHAR as ebkph,
+					NULL::VARCHAR as mat_kbob,
+					NULL::FLOAT as gwp_absolute,
+					NULL::FLOAT as gwp_relative,
+					NULL::FLOAT as penr_absolute,
+					NULL::FLOAT as penr_relative,
+					NULL::FLOAT as ubp_absolute,
+					NULL::FLOAT as ubp_relative,
 					NULL::FLOAT as cost,
+					NULL::FLOAT as cost_unit,
 					NULL::VARCHAR as timestamp
 				FROM (SELECT '' as id) WHERE false
 			) TO 's3://%s/%s'
@@ -164,26 +169,38 @@ func (m *DuckDBManager) UpdateParquetFromEnvironmentalData(project, filename str
 		DROP TABLE IF EXISTS new_lca_data; 
 		CREATE TABLE new_lca_data (
 			id VARCHAR, 
-			category VARCHAR, 
-			co2e FLOAT, 
-			greyEnergy FLOAT, 
-			UBP FLOAT,
+			ebkph VARCHAR,
+			mat_kbob VARCHAR,
+			gwp_absolute FLOAT, 
+			gwp_relative FLOAT, 
+			penr_absolute FLOAT, 
+			penr_relative FLOAT, 
+			ubp_absolute FLOAT,
+			ubp_relative FLOAT,
 			timestamp VARCHAR
 		); 
 		INSERT INTO new_lca_data 
 		SELECT 
 			id, 
-			category, 
-			co2e, 
-			greyEnergy, 
-			UBP,
+			ebkph, 
+			mat_kbob,
+			gwp_absolute, 
+			gwp_relative, 
+			penr_absolute, 
+			penr_relative, 
+			ubp_absolute,
+			ubp_relative,
 			'` + timestamp + `' as timestamp
 		FROM read_json('new_data.json', columns = {
 			id: 'VARCHAR', 
-			category: 'VARCHAR', 
-			co2e: 'FLOAT', 
-			greyEnergy: 'FLOAT', 
-			UBP: 'FLOAT'
+			ebkph: 'VARCHAR', 
+			mat_kbob: 'VARCHAR',
+			gwp_absolute: 'FLOAT', 
+			gwp_relative: 'FLOAT', 
+			penr_absolute: 'FLOAT', 
+			penr_relative: 'FLOAT', 
+			ubp_absolute: 'FLOAT',
+			ubp_relative: 'FLOAT'
 		})
 	`)
 	if err != nil {
@@ -203,11 +220,16 @@ func (m *DuckDBManager) UpdateParquetFromEnvironmentalData(project, filename str
 				-- Merge records with matching id AND timestamp
 				SELECT 
 					COALESCE(n.id, e.id) as id,
-					COALESCE(n.category, e.category) as category,
-					COALESCE(n.co2e, e.co2e) as co2e,
-					COALESCE(n.greyEnergy, e.greyEnergy) as greyEnergy,
-					COALESCE(n.UBP, e.UBP) as UBP,
+					COALESCE(n.ebkph, e.ebkph) as ebkph,
+					COALESCE(n.mat_kbob, e.mat_kbob) as mat_kbob,
+					COALESCE(n.gwp_absolute, e.gwp_absolute) as gwp_absolute,
+					COALESCE(n.gwp_relative, e.gwp_relative) as gwp_relative,
+					COALESCE(n.penr_absolute, e.penr_absolute) as penr_absolute,
+					COALESCE(n.penr_relative, e.penr_relative) as penr_relative,
+					COALESCE(n.ubp_absolute, e.ubp_absolute) as ubp_absolute,
+					COALESCE(n.ubp_relative, e.ubp_relative) as ubp_relative,
 					e.cost,
+					e.cost_unit,
 					COALESCE(n.timestamp, e.timestamp) as timestamp
 				FROM existing e
 				INNER JOIN new_data n 
@@ -227,11 +249,16 @@ func (m *DuckDBManager) UpdateParquetFromEnvironmentalData(project, filename str
 				-- Add new records that don't match
 				SELECT 
 					id,
-					category,
-					co2e,
-					greyEnergy,
-					UBP,
+					ebkph,
+					mat_kbob,
+					gwp_absolute,
+					gwp_relative,
+					penr_absolute,
+					penr_relative,
+					ubp_absolute,
+					ubp_relative,
 					NULL as cost,
+					NULL as cost_unit,
 					timestamp
 				FROM new_data n
 				WHERE NOT EXISTS (
@@ -279,20 +306,23 @@ func (m *DuckDBManager) UpdateParquetFromCostData(project, filename string, data
 		DROP TABLE IF EXISTS new_cost_data; 
 		CREATE TABLE new_cost_data (
 			id VARCHAR, 
-			category VARCHAR, 
+			ebkph VARCHAR, 
 			cost FLOAT,
+			cost_unit FLOAT,
 			timestamp VARCHAR
 		); 
 		INSERT INTO new_cost_data 
 		SELECT 
 			id, 
-			category, 
+			ebkph, 
 			cost,
+			cost_unit,
 			'` + timestamp + `' as timestamp
 		FROM read_json('new_cost_data.json', columns = {
 			id: 'VARCHAR', 
-			category: 'VARCHAR', 
-			cost: 'FLOAT'
+			ebkph: 'VARCHAR', 
+			cost: 'FLOAT',
+			cost_unit: 'FLOAT'
 		})
 	`)
 	if err != nil {
@@ -312,11 +342,16 @@ func (m *DuckDBManager) UpdateParquetFromCostData(project, filename string, data
 				-- Merge records with matching id AND timestamp
 				SELECT 
 					COALESCE(n.id, e.id) as id,
-					e.category,
-					e.co2e,
-					e.greyEnergy,
-					e.UBP,
+					e.ebkph,
+					e.mat_kbob,
+					e.gwp_absolute,
+					e.gwp_relative,
+					e.penr_absolute,
+					e.penr_relative,
+					e.ubp_absolute,
+					e.ubp_relative,
 					COALESCE(n.cost, e.cost) as cost,
+					COALESCE(n.cost_unit, e.cost_unit) as cost_unit,
 					COALESCE(n.timestamp, e.timestamp) as timestamp
 				FROM existing e
 				INNER JOIN new_data n 
@@ -336,11 +371,16 @@ func (m *DuckDBManager) UpdateParquetFromCostData(project, filename string, data
 				-- Add new records that don't match
 				SELECT 
 					id,
-					NULL as category,
-					NULL as co2e,
-					NULL as greyEnergy,
-					NULL as UBP,
+					NULL as ebkph,
+					NULL as mat_kbob,
+					NULL as gwp_absolute,
+					NULL as gwp_relative,
+					NULL as penr_absolute,
+					NULL as penr_relative,
+					NULL as ubp_absolute,
+					NULL as ubp_relative,
 					cost,
+					cost_unit,
 					timestamp
 				FROM new_data n
 				WHERE NOT EXISTS (

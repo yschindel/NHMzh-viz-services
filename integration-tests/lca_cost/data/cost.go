@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"lca_cost/mongo"
 	"log"
 	"time"
 
@@ -24,8 +23,9 @@ type CostMessage struct {
 // costElement represents an element in the cost message
 type CostDataItem struct {
 	Id       string  `json:"id"`
-	Category string  `json:"category"`
+	Category string  `json:"ebkph"`
 	Cost     float32 `json:"cost"`
+	CostUnit float32 `json:"cost_unit"`
 }
 
 // newMessage creates a new costMessage
@@ -47,14 +47,15 @@ func newCostData(dataItems []DataItem) []CostDataItem {
 			Id:       item.Id,
 			Category: item.Category,
 			Cost:     randFloat(),
+			CostUnit: 200,
 		}
 	}
 	return elements
 }
 
-func IsCostItemEqualTo(a CostDataItem, b mongo.Element) bool {
-	return a.Id == b.Id && a.Category == b.Category && a.Cost == b.Cost
-}
+// func IsCostItemEqualTo(a CostDataItem, b mongo.Element) bool {
+// 	return a.Id == b.Id && a.Category == b.Category && a.Cost == b.Cost
+// }
 
 // produceMessages sends messages to a Kafka topic
 func ProduceCostMessages(broker string, topic string) error {

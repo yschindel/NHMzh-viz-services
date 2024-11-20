@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
@@ -68,4 +69,51 @@ func GetFile(bucketName string, objectName string) ([]byte, error) {
 
 	log.Printf("File '%s' fetched successfully", objectName)
 	return buf, nil
+}
+
+func ListFiles(bucketName string, prefix string) ([]string, error) {
+	// make sure prefix ends with a /
+	if !strings.HasSuffix(prefix, "/") {
+		prefix = prefix + "/"
+	}
+	log.Printf("Listing files in bucket: '%s' with prefix: '%s'", bucketName, prefix)
+	objectCh := minioClient.ListObjects(context.Background(), bucketName, minio.ListObjectsOptions{
+		Prefix:    prefix,
+		Recursive: true,
+	})
+
+	files := []string{}
+	for object := range objectCh {
+		files = append(files, object.Key)
+	}
+
+	return files, nil
+}
+
+func ListProjects(bucketName string) ([]string, error) {
+	objects := minioClient.ListObjects(context.Background(), bucketName, minio.ListObjectsOptions{
+		Prefix:    "",
+		Recursive: false,
+	})
+
+	projects := []string{}
+	for object := range objects {
+		projects = append(projects, strings.Split(object.Key, "/")[0])
+	}
+
+	return projects, nil
+}
+
+func ListAllFiles(bucketName string) ([]string, error) {
+	objects := minioClient.ListObjects(context.Background(), bucketName, minio.ListObjectsOptions{
+		Prefix:    "",
+		Recursive: true,
+	})
+
+	files := []string{}
+	for object := range objects {
+		files = append(files, object.Key)
+	}
+
+	return files, nil
 }

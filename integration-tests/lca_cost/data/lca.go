@@ -4,8 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"lca_cost/mongo"
 	"log"
+	"math/rand"
 	"time"
 
 	"github.com/segmentio/kafka-go"
@@ -23,12 +23,18 @@ type LcaMessage struct {
 
 // LcaDataItem represents an element in the LCA message
 type LcaDataItem struct {
-	Id         string  `json:"id"`
-	Category   string  `json:"category"`
-	CO2e       float32 `json:"co2e"`
-	GreyEnergy float32 `json:"greyEnergy"`
-	UBP        float32 `json:"UBP"`
+	Id           string  `json:"id"`
+	Category     string  `json:"ebkph"`
+	MaterialKbob string  `json:"mat_kbob"`
+	GwpAbsolute  float32 `json:"gwp_absolute"`
+	GwpRelative  float32 `json:"gwp_relative"`
+	PenrAbsolute float32 `json:"penr_absolute"`
+	PenrRelative float32 `json:"penr_relative"`
+	UbpAbsolute  float32 `json:"ubp_absolute"`
+	UbpRelative  float32 `json:"ubp_relative"`
 }
+
+var MaterialKbob = [6]string{"Aether", "Coaxium", "Dilithium", "Kryptonite", "Spice", "Vibranium"}
 
 // newMessage creates a new LcaMessage
 func newLcaMessage(project, filename string) LcaMessage {
@@ -46,19 +52,23 @@ func newLcaData(dataItems []DataItem) []LcaDataItem {
 	elements := make([]LcaDataItem, len(dataItems))
 	for i, item := range dataItems {
 		elements[i] = LcaDataItem{
-			Id:         item.Id,
-			Category:   item.Category,
-			CO2e:       randFloat(),
-			GreyEnergy: randFloat(),
-			UBP:        randFloat(),
+			Id:           item.Id,
+			Category:     item.Category,
+			MaterialKbob: MaterialKbob[rand.Intn(len(MaterialKbob))],
+			GwpAbsolute:  randFloat(),
+			GwpRelative:  randFloat(),
+			PenrAbsolute: randFloat(),
+			PenrRelative: randFloat(),
+			UbpAbsolute:  randFloat(),
+			UbpRelative:  randFloat(),
 		}
 	}
 	return elements
 }
 
-func IsLcaItemEqualTo(a LcaDataItem, b mongo.Element) bool {
-	return a.Id == b.Id && a.Category == b.Category && a.CO2e == b.CO2e && a.GreyEnergy == b.GreyEnergy && a.UBP == b.UBP
-}
+// func IsLcaItemEqualTo(a LcaDataItem, b mongo.Element) bool {
+// 	return a.Id == b.Id && a.Category == b.Category && a.CO2e == b.CO2e && a.GreyEnergy == b.GreyEnergy && a.UBP == b.UBP
+// }
 
 // produceMessages sends messages to a Kafka topic
 func ProduceLcaMessages(broker string, topic string) error {

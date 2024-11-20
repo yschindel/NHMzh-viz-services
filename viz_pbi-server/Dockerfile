@@ -1,5 +1,5 @@
 # Use the official Golang image as the base image
-FROM golang:1.23.2-alpine AS builder
+FROM golang:1.23 AS builder
 
 # Set the Current Working Directory inside the container
 WORKDIR /app
@@ -13,14 +13,19 @@ RUN go mod download
 # Copy the source from the current directory to the Working Directory inside the container
 COPY . .
 
-# Build the Go app
-RUN go build -o main .
+# Build the application
+RUN CGO_ENABLED=1 go build -o main .
 
-# Use a minimal base image to reduce the size of the final image
-FROM alpine:latest
+# Final stage
+FROM ubuntu:latest
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 
 # Set the Current Working Directory inside the container
-WORKDIR /root/
+WORKDIR /app
 
 # Copy the Pre-built binary file from the previous stage
 COPY --from=builder /app/main .

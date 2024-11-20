@@ -8,7 +8,7 @@ import (
 
 type DataItem struct {
 	Id       string `bson:"_id"`
-	Category string `bson:"category"`
+	Category string `bson:"ebkph"`
 }
 
 func generate22CharGUID() (string, error) {
@@ -40,7 +40,7 @@ func randCat() string {
 	return categories[rand.Intn(len(categories))]
 }
 
-var categories = [3]string{"IfcWalls", "IfcDoors", "IfcFloors"}
+var categories = [10]string{"B07", "C01", "C02", "C03", "C04", "C05", "E02", "E03", "G01", "G02"}
 
 func newDataItems(numElements int) []DataItem {
 	dataItems := make([]DataItem, numElements)
@@ -60,4 +60,4 @@ func newDataItems(numElements int) []DataItem {
 
 // this is used to make lca and cost data have the same ids.
 // That way the data can be merged into the same item in mongoDB
-var DataItems = newDataItems(9000)
+var DataItems = newDataItems(4500)

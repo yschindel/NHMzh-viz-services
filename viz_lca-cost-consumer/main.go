@@ -19,7 +19,7 @@ func main() {
 	minioPort := getEnv("MINIO_PORT", "9000")
 	minioAccessKey := getEnv("MINIO_ACCESS_KEY", "ROOTUSER")
 	minioSecretKey := getEnv("MINIO_SECRET_KEY", "CHANGEME123")
-	minioBucket := getEnv("MINIO_BUCKET", "lca-cost-data")
+	minioBucket := getEnv("MINIO_LCA_COST_DATA_BUCKET", "lca-cost-data")
 
 	// Initialize DuckDB manager
 	credentials := server.CustomMinioCredentials{

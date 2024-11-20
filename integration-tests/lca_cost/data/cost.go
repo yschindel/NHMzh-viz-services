@@ -23,7 +23,7 @@ type CostMessage struct {
 // costElement represents an element in the cost message
 type CostDataItem struct {
 	Id       string  `json:"id"`
-	Category string  `json:"category"`
+	Category string  `json:"ebkph"`
 	Cost     float32 `json:"cost"`
 	CostUnit float32 `json:"cost_unit"`
 }

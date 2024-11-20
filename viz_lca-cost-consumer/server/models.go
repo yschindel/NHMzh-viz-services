@@ -15,7 +15,8 @@ type LcaMessage struct {
 
 type LcaDataItem struct {
 	Id           string  `json:"id"`
-	Category     string  `json:"category"`
+	Category     string  `json:"ebkph"`
+	MaterialKbob string  `json:"mat_kbob"`
 	GwpAbsolute  float32 `json:"gwp_absolute"`
 	GwpRelative  float32 `json:"gwp_relative"`
 	PenrAbsolute float32 `json:"penr_absolute"`
@@ -33,7 +34,7 @@ type CostMessage struct {
 
 type CostDataItem struct {
 	Id       string  `json:"id"`
-	Category string  `json:"category"`
+	Category string  `json:"ebkph"`
 	Cost     float32 `json:"cost"`
 	CostUnit float32 `json:"cost_unit"`
 }

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math/rand"
 	"time"
 
 	"github.com/segmentio/kafka-go"
@@ -23,7 +24,8 @@ type LcaMessage struct {
 // LcaDataItem represents an element in the LCA message
 type LcaDataItem struct {
 	Id           string  `json:"id"`
-	Category     string  `json:"category"`
+	Category     string  `json:"ebkph"`
+	MaterialKbob string  `json:"mat_kbob"`
 	GwpAbsolute  float32 `json:"gwp_absolute"`
 	GwpRelative  float32 `json:"gwp_relative"`
 	PenrAbsolute float32 `json:"penr_absolute"`
@@ -31,6 +33,8 @@ type LcaDataItem struct {
 	UbpAbsolute  float32 `json:"ubp_absolute"`
 	UbpRelative  float32 `json:"ubp_relative"`
 }
+
+var MaterialKbob = [6]string{"Aether", "Coaxium", "Dilithium", "Kryptonite", "Spice", "Vibranium"}
 
 // newMessage creates a new LcaMessage
 func newLcaMessage(project, filename string) LcaMessage {
@@ -50,6 +54,7 @@ func newLcaData(dataItems []DataItem) []LcaDataItem {
 		elements[i] = LcaDataItem{
 			Id:           item.Id,
 			Category:     item.Category,
+			MaterialKbob: MaterialKbob[rand.Intn(len(MaterialKbob))],
 			GwpAbsolute:  randFloat(),
 			GwpRelative:  randFloat(),
 			PenrAbsolute: randFloat(),

@@ -176,13 +176,7 @@ func checkFragmentsFileName(name string) (bool, string) {
 	// check if file name follows the pattern: project/filename_timestamp.gz
 	parts := strings.Split(name, "/")
 	if len(parts) != 2 {
-		return false, pattern
-	}
-
-	// split the filename and timestamp
-	filename := parts[1]
-	filenameParts := strings.Split(filename, "_")
-	if len(filenameParts) != 2 {
+		log.Printf("invalid file name, parts: %v", parts)
 		return false, pattern
 	}
 

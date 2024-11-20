@@ -1,6 +1,7 @@
 package api
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -12,6 +13,8 @@ import (
 	"github.com/rs/cors"
 
 	"viz_pbi-server/minio"
+
+	_ "github.com/marcboeker/go-duckdb"
 )
 
 var fragmentsBucket string
@@ -46,9 +49,11 @@ func NewServer() *Server {
 
 func (s *Server) routes() {
 	s.HandleFunc("/file", s.getFragmentsFile()).Methods("GET")
+	s.HandleFunc("/file/arrow-table", s.getFileAsArrowTable()).Methods("GET")
 	s.HandleFunc("/data/models", s.getDataFileList()).Methods("GET")
 	s.HandleFunc("/data/projects", s.getProjects()).Methods("GET")
 	s.HandleFunc("/data", s.getDataFile()).Methods("GET")
+	s.HandleFunc("/data/all", s.getAllDataFiles()).Methods("GET")
 }
 
 func (s *Server) getFragmentsFile() http.HandlerFunc {
@@ -76,6 +81,43 @@ func (s *Server) getFragmentsFile() http.HandlerFunc {
 		// Set the appropriate headers and return the file content
 		w.Header().Set("Content-Type", "application/octet-stream")
 		w.Write(file)
+	}
+}
+
+// get a data file from the lca-cost-data bucket
+func (s *Server) getFileAsArrowTable() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		name := r.URL.Query().Get("name")
+		if name == "" {
+			http.Error(w, "Missing 'name' query parameter", http.StatusBadRequest)
+			return
+		}
+
+		// Fetch the file from MinIO
+		file, err := minio.GetFile(lcaCostDataBucket, name)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("Failed to fetch file from MinIO: %v", err), http.StatusInternalServerError)
+			return
+		}
+
+		// setup duckdb
+		db, err := sql.Open("duckdb", "")
+		if err != nil {
+			http.Error(w, fmt.Sprintf("Failed to open duckdb: %v", err), http.StatusInternalServerError)
+			return
+		}
+
+		// write the file to a temp file
+		tempFile, err := os.CreateTemp("", "data_for_arrow_table.parquet")
+		if err != nil {
+			http.Error(w, fmt.Sprintf("Failed to create temp file: %v", err), http.StatusInternalServerError)
+			return
+		}
+		defer tempFile.Close()
+		tempFile.Write(file)
+
+		// read the file into a duckdb table
+		db.Exec(`CREATE TABLE data AS SELECT * FROM read_parquet($1)`, tempFile.Name())
 	}
 }
 
@@ -163,6 +205,26 @@ func (s *Server) getProjects() http.HandlerFunc {
 
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(projects)
+	}
+}
+
+// get all projects in the lca-cost-data bucket
+func (s *Server) getAllDataFiles() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+
+		files, err := minio.ListAllFiles(lcaCostDataBucket)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("Failed to list all files from MinIO: %v", err), http.StatusInternalServerError)
+			return
+		}
+
+		for _, file := range files {
+			log.Printf("file: %s", file)
+		}
+
+		// return list of files
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(files)
 	}
 }
 

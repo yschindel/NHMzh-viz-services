@@ -103,3 +103,17 @@ func ListProjects(bucketName string) ([]string, error) {
 
 	return projects, nil
 }
+
+func ListAllFiles(bucketName string) ([]string, error) {
+	objects := minioClient.ListObjects(context.Background(), bucketName, minio.ListObjectsOptions{
+		Prefix:    "",
+		Recursive: true,
+	})
+
+	files := []string{}
+	for object := range objects {
+		files = append(files, object.Key)
+	}
+
+	return files, nil
+}

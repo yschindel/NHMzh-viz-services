@@ -4,18 +4,18 @@ on:
   push:
     branches: [main]
     paths:
-      - "viz_ifc-consumer/**"
+      - "viz_ifc/**"
   pull_request:
     branches: [main]
     paths:
-      - "viz_ifc-consumer/**"
+      - "viz_ifc/**"
 
 jobs:
   test:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./viz_ifc-consumer
+        working-directory: ./viz_ifc
 
     steps:
       - uses: actions/checkout@v3

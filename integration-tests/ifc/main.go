@@ -2,11 +2,11 @@ package main
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log"
+	"mime/multipart"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -15,9 +15,6 @@ import (
 	"time"
 
 	"github.com/joho/godotenv"
-	"github.com/minio/minio-go/v7"
-	"github.com/minio/minio-go/v7/pkg/credentials"
-	"github.com/segmentio/kafka-go"
 )
 
 var (
@@ -25,16 +22,10 @@ var (
 	topic           string
 	ifcBucket       string
 	fragmentsBucket string
-	minioEndpoint   = "localhost" // has to be hardcoded for the test because the .env uses 'docker-compose' service name
-	minioPort       int
-	minioUrl        string
-	minioUseSSL     bool
-	minioAccessKey  string
-	minioSecretKey  string
+	ifcApiPort      int
 	pbiServerPort   int
 	pbiServerUrl    string
 	messages        []Message
-	minioClient     *minio.Client
 )
 
 func init() {
@@ -50,26 +41,17 @@ func init() {
 	topic = getEnv("KAFKA_IFC_TOPIC", "ifc-files")
 	ifcBucket = getEnv("MINIO_IFC_BUCKET", "ifc-files")
 	fragmentsBucket = getEnv("MINIO_FRAGMENTS_BUCKET", "ifc-fragment-files")
-	minioPort = getEnvAsInt("MINIO_PORT", 9000)
-	minioUseSSL = getEnvAsBool("MINIO_USE_SSL", false)
-	minioAccessKey = getEnv("MINIO_ACCESS_KEY", "")
-	minioSecretKey = getEnv("MINIO_SECRET_KEY", "")
+	ifcApiPort = getEnvAsInt("IFC_API_PORT", 4242)
 	pbiServerPort = getEnvAsInt("PBI_SERVER_PORT", 3000)
 	pbiServerUrl = "http://localhost:" + strconv.Itoa(pbiServerPort)
-	minioUrl = fmt.Sprintf("%s:%d", minioEndpoint, minioPort)
 
 	// log all environment variables
 	log.Printf("KAFKA_BROKER: %s", kafkaBroker)
 	log.Printf("KAFKA_IFC_TOPIC: %s", topic)
 	log.Printf("MINIO_IFC_BUCKET: %s", ifcBucket)
+	log.Printf("IFC_API_PORT: %d", ifcApiPort)
 	log.Printf("MINIO_FRAGMENTS_BUCKET: %s", fragmentsBucket)
-	log.Printf("MINIO_ENDPOINT: %s", minioEndpoint)
-	log.Printf("MINIO_PORT: %d", minioPort)
-	log.Printf("MINIO_USE_SSL: %t", minioUseSSL)
-	log.Printf("MINIO_ACCESS_KEY: %s", minioAccessKey)
-	log.Printf("MINIO_SECRET_KEY: %s", minioSecretKey)
 	log.Printf("PBI_SERVER_PORT: %d", pbiServerPort)
-	log.Printf("MINIO_URL: %s", minioUrl)
 
 	// Initialize messages
 	messages = []Message{
@@ -77,12 +59,6 @@ func init() {
 		newMessage("project2", "file2.ifc"),
 		newMessage("project1", "file3.ifc"),
 	}
-
-	client, err := newMinioClient()
-	if err != nil {
-		log.Fatalf("Error creating MinIO client: %v", err)
-	}
-	minioClient = client
 
 }
 
@@ -104,17 +80,6 @@ func newMessage(project, filename string) Message {
 	}
 }
 
-func newMinioClient() (*minio.Client, error) {
-	client, err := minio.New(minioUrl, &minio.Options{
-		Creds:  credentials.NewStaticV4(minioAccessKey, minioSecretKey, ""),
-		Secure: minioUseSSL,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to create MinIO client: %w", err)
-	}
-	return client, nil
-}
-
 func newFilename(project, filename, timestamp string) string {
 	ext := filepath.Ext(filename)
 	name := strings.TrimSuffix(filename, ext)
@@ -122,92 +87,131 @@ func newFilename(project, filename, timestamp string) string {
 	return fmt.Sprintf("%s/%s_%s%s", project, name, fileTimestamp, ext)
 }
 
-func addIfcFileToMinio(client *minio.Client, location string, content []byte) error {
-	_, err := client.PutObject(context.Background(), ifcBucket, location, bytes.NewReader(content), int64(len(content)), minio.PutObjectOptions{})
-	return err
-}
-
 func addIfcFilesToMinio() error {
-	if err := createBucket(minioClient, ifcBucket); err != nil {
-		return err
-	}
-
+	// Read the test file content
 	content, err := os.ReadFile(filepath.Join("..", "assets", "test.ifc"))
 	if err != nil {
 		return fmt.Errorf("failed to read test.ifc file: %w", err)
 	}
 
-	for _, msg := range messages {
-		if err := addIfcFileToMinio(minioClient, msg.Location, content); err != nil {
-			return fmt.Errorf("failed to add file to MinIO: %w", err)
-		}
-		log.Printf("Added file to MinIO: %s\n", msg.Location)
-	}
-
-	return nil
-}
-
-func createBucket(client *minio.Client, bucketName string) error {
-	exists, err := client.BucketExists(context.Background(), bucketName)
-	if err != nil {
-		return err
-	}
-	if !exists {
-		return client.MakeBucket(context.Background(), bucketName, minio.MakeBucketOptions{})
-	}
-	return nil
-}
-
-func produceMessages() error {
-	writer := kafka.NewWriter(kafka.WriterConfig{
-		Brokers:  []string{kafkaBroker},
-		Topic:    topic,
-		Balancer: &kafka.LeastBytes{},
-	})
-	defer writer.Close()
+	// Create a new HTTP client
+	client := &http.Client{}
 
 	for _, msg := range messages {
-		data, err := json.Marshal(msg)
+		// Create a new multipart form buffer
+		body := &bytes.Buffer{}
+		writer := multipart.NewWriter(body)
+
+		// Add the file
+		part, err := writer.CreateFormFile("file", msg.Filename)
 		if err != nil {
-			return fmt.Errorf("failed to marshal message: %w", err)
+			return fmt.Errorf("failed to create form file: %w", err)
+		}
+		if _, err := part.Write(content); err != nil {
+			return fmt.Errorf("failed to write file content: %w", err)
 		}
 
-		err = writer.WriteMessages(context.Background(), kafka.Message{
-			Value: data,
-		})
-		if err != nil {
-			return fmt.Errorf("failed to send message: %w", err)
+		// Add the project field
+		if err := writer.WriteField("project", msg.Project); err != nil {
+			return fmt.Errorf("failed to write project field: %w", err)
 		}
-		log.Printf("Sent message: %s/%s\n", msg.Project, msg.Filename)
+
+		// Add the timestamp field
+		if err := writer.WriteField("timestamp", msg.Timestamp); err != nil {
+			return fmt.Errorf("failed to write timestamp field: %w", err)
+		}
+
+		// Close the writer
+		writer.Close()
+
+		// Create the request
+		url := fmt.Sprintf("http://localhost:%d/api/upload", ifcApiPort)
+		req, err := http.NewRequest("POST", url, body)
+		if err != nil {
+			return fmt.Errorf("failed to create request: %w", err)
+		}
+
+		// Set the content type
+		req.Header.Set("Content-Type", writer.FormDataContentType())
+
+		// Send the request
+		resp, err := client.Do(req)
+		if err != nil {
+			return fmt.Errorf("failed to send request: %w", err)
+		}
+		defer resp.Body.Close()
+
+		// Check the response
+		if resp.StatusCode != http.StatusOK {
+			bodyBytes, _ := io.ReadAll(resp.Body)
+			return fmt.Errorf("unexpected status code: %d, body: %s", resp.StatusCode, string(bodyBytes))
+		}
+
+		// Parse the response to get the location
+		var response struct {
+			Location string `json:"location"`
+		}
+		if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
+			return fmt.Errorf("failed to decode response: %w", err)
+		}
+
+		// Update the message location with the one returned from the API
+		log.Printf("Uploaded file to API: %s\n", response.Location)
 	}
 
 	return nil
 }
 
-func consumeMessages() error {
-	reader := kafka.NewReader(kafka.ReaderConfig{
-		Brokers:  []string{kafkaBroker},
-		GroupID:  "test-group",
-		Topic:    topic,
-		MinBytes: 10e3, // 10KB
-		MaxBytes: 10e6, // 10MB
-	})
-	defer reader.Close()
+// func produceMessages() error {
+// 	writer := kafka.NewWriter(kafka.WriterConfig{
+// 		Brokers:  []string{kafkaBroker},
+// 		Topic:    topic,
+// 		Balancer: &kafka.LeastBytes{},
+// 	})
+// 	defer writer.Close()
 
-	for {
-		msg, err := reader.ReadMessage(context.Background())
-		if err != nil {
-			return fmt.Errorf("failed to read message: %w", err)
-		}
+// 	for _, msg := range messages {
+// 		data, err := json.Marshal(msg)
+// 		if err != nil {
+// 			return fmt.Errorf("failed to marshal message: %w", err)
+// 		}
 
-		var value Message
-		if err := json.Unmarshal(msg.Value, &value); err != nil {
-			return fmt.Errorf("failed to unmarshal message: %w", err)
-		}
-		log.Printf("Received message: %s/%s\n", value.Project, value.Filename)
-	}
+// 		err = writer.WriteMessages(context.Background(), kafka.Message{
+// 			Value: data,
+// 		})
+// 		if err != nil {
+// 			return fmt.Errorf("failed to send message: %w", err)
+// 		}
+// 		log.Printf("Sent message: %s/%s\n", msg.Project, msg.Filename)
+// 	}
 
-}
+// 	return nil
+// }
+
+// func consumeMessages() error {
+// 	reader := kafka.NewReader(kafka.ReaderConfig{
+// 		Brokers:  []string{kafkaBroker},
+// 		GroupID:  "test-group",
+// 		Topic:    topic,
+// 		MinBytes: 10e3, // 10KB
+// 		MaxBytes: 10e6, // 10MB
+// 	})
+// 	defer reader.Close()
+
+// 	for {
+// 		msg, err := reader.ReadMessage(context.Background())
+// 		if err != nil {
+// 			return fmt.Errorf("failed to read message: %w", err)
+// 		}
+
+// 		var value Message
+// 		if err := json.Unmarshal(msg.Value, &value); err != nil {
+// 			return fmt.Errorf("failed to unmarshal message: %w", err)
+// 		}
+// 		log.Printf("Received message: %s/%s\n", value.Project, value.Filename)
+// 	}
+
+// }
 
 func getFileFromPbiServer(url string, location string) ([]byte, error) {
 	// Make HTTP request to /file endpoint
@@ -237,20 +241,17 @@ func main() {
 		log.Fatalf("Error adding IFC files to MinIO: %v", err)
 	}
 
-	log.Println("Waiting for MinIO to process IFC file...")
-	time.Sleep(2 * time.Second)
+	// log.Println("Producing IFC messages...")
+	// if err := produceMessages(); err != nil {
+	// 	log.Fatalf("Error producing IFC messages: %v", err)
+	// }
 
-	log.Println("Producing IFC messages...")
-	if err := produceMessages(); err != nil {
-		log.Fatalf("Error producing IFC messages: %v", err)
-	}
-
-	log.Println("Consuming IFC messages...")
-	go func() {
-		if err := consumeMessages(); err != nil {
-			log.Fatalf("Error consuming IFC messages: %v", err)
-		}
-	}()
+	// log.Println("Consuming IFC messages...")
+	// go func() {
+	// 	if err := consumeMessages(); err != nil {
+	// 		log.Fatalf("Error consuming IFC messages: %v", err)
+	// 	}
+	// }()
 
 	log.Println("Waiting for IFC consumer to convert ifc to gz and write back to MinIO...")
 	time.Sleep(30 * time.Second)
@@ -287,10 +288,10 @@ func getEnvAsInt(name string, defaultValue int) int {
 	return defaultValue
 }
 
-func getEnvAsBool(name string, defaultVal bool) bool {
-	valStr := getEnv(name, "")
-	if val, err := strconv.ParseBool(valStr); err == nil {
-		return val
-	}
-	return defaultVal
-}
+// func getEnvAsBool(name string, defaultVal bool) bool {
+// 	valStr := getEnv(name, "")
+// 	if val, err := strconv.ParseBool(valStr); err == nil {
+// 		return val
+// 	}
+// 	return defaultVal
+// }

@@ -1,5 +1,7 @@
 # PowerBI Server
 
+Code available at: [https://github.com/yschindel/NHMzh-viz-services/tree/main/viz_pbi-server](https://github.com/yschindel/NHMzh-viz-services/tree/main/viz_pbi-server)
+
 This is a server for providing data for a PowerBi dashboard. All data is stored in MinIO as .parquet files.
 The file paths are project/file. The directory structure is an important part of the information in the system as it is used to inform the PowerBi dashboard of the data that is available.
 

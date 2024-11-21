@@ -1,5 +1,7 @@
 # IFC Service
 
+Code available at: [https://github.com/yschindel/NHMzh-viz-services/tree/main/viz_ifc](https://github.com/yschindel/NHMzh-viz-services/tree/main/viz_ifc)
+
 Responsibilites:
 
 - Api endpoint for uploading IFC files

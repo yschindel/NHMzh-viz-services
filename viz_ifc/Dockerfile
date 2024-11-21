@@ -14,5 +14,7 @@ COPY . .
 # Build TypeScript
 RUN npm run build
 
+EXPOSE 4242
+
 # Start the application
 CMD ["node", "dist/index.js"]

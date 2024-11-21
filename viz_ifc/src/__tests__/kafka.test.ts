@@ -30,7 +30,7 @@ describe("Kafka Consumer", () => {
 		process.env.KAFKA_BROKER = kafkaBroker;
 		process.env.KAFKA_IFC_TOPIC = kafkaTopic;
 		process.env.VIZ_KAFKA_IFC_GROUP_ID = kafkaGroupId;
-		process.env.VIZ_KAFKA_IFC_CLIENT_ID = kafkaClientId;
+		process.env.VIZ_KAFKA_IFC_CONSUMER_ID = kafkaClientId;
 	});
 
 	afterEach(() => {
@@ -38,7 +38,7 @@ describe("Kafka Consumer", () => {
 		delete process.env.KAFKA_BROKER;
 		delete process.env.KAFKA_IFC_TOPIC;
 		delete process.env.VIZ_KAFKA_IFC_GROUP_ID;
-		delete process.env.VIZ_KAFKA_IFC_CLIENT_ID;
+		delete process.env.VIZ_KAFKA_IFC_CONSUMER_ID;
 	});
 
 	it("should create and connect a consumer", async () => {
@@ -76,7 +76,7 @@ describe("Kafka Consumer", () => {
 		delete process.env.KAFKA_BROKER;
 		delete process.env.KAFKA_IFC_TOPIC;
 		delete process.env.VIZ_KAFKA_IFC_GROUP_ID;
-		delete process.env.VIZ_KAFKA_IFC_CLIENT_ID;
+		delete process.env.VIZ_KAFKA_IFC_CONSUMER_ID;
 
 		await setupKafkaConsumer();
 

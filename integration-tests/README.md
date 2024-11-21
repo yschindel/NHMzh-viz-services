@@ -6,7 +6,6 @@
 - Docker Compose
 - Go 1.23.2 (or higher)
 - You have followed the instructions to set up the .env file in the [main README](../README.md)
-- MongoDB Compass (Desktop viewer for MongoDB, optional)
 
 ### Install dependencies
 
@@ -51,6 +50,8 @@ In your browser, go to `localhost:9001` to see the MinIO console.
 - Delete the `ifc-files` bucket.
 - Delete all items in the `ifc-fragment-files` bucket.
 - Delete the `ifc-fragment-files` bucket.
+- Delete all items in the `lca-cost-data` bucket.
+- Delete the `lca-cost-data` bucket.
 
 ### Add Content to the IFC Kafka Topic
 
@@ -59,6 +60,8 @@ Open a terminal in the `integration-tests/ifc` directory and run:
 ```bash
 go run main.go
 ```
+
+Watch the output of the terminal. It should tell you that the test was passed. This takes up to a minute.
 
 **Verify the content was added correctly:**
 
@@ -79,21 +82,13 @@ go run main.go
 
 **Verify the content was added correctly:**
 
-Check the console output for something like this:
+Verify that the bucket was created and that the content was added correctly:
 
-```
-2024/10/25 15:19:34 LCA data for project1/file1.ifc at 2024-10-25T15:19:14+02:00 match
-2024/10/25 15:19:34 Cost data for project1/file1.ifc at 2024-10-25T15:19:14+02:00 match
-```
-
-(Optional) Additionally you can do this:
-
-1. Open MongoDB Compass
-2. Check the 'testdb' Database
-3. Check the 'testcollection' in testdb
-4. You should see 3 documents
+1. Refresh the Object Browser in the MinIO console.
+2. You should see a bucket called `lca-cost-data`.
+3. Open the bucket. If no folders show up, try refreshing the bucket.
+4. Open the folders and check that the files are present.
 
 ### Verify the viz_pbi-server is Working
 
 Check the output of the test.ts in the terminal. It should say: "Pass: Fragments file is a Buffer".
-

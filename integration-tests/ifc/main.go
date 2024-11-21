@@ -162,57 +162,6 @@ func addIfcFilesToMinio() error {
 	return nil
 }
 
-// func produceMessages() error {
-// 	writer := kafka.NewWriter(kafka.WriterConfig{
-// 		Brokers:  []string{kafkaBroker},
-// 		Topic:    topic,
-// 		Balancer: &kafka.LeastBytes{},
-// 	})
-// 	defer writer.Close()
-
-// 	for _, msg := range messages {
-// 		data, err := json.Marshal(msg)
-// 		if err != nil {
-// 			return fmt.Errorf("failed to marshal message: %w", err)
-// 		}
-
-// 		err = writer.WriteMessages(context.Background(), kafka.Message{
-// 			Value: data,
-// 		})
-// 		if err != nil {
-// 			return fmt.Errorf("failed to send message: %w", err)
-// 		}
-// 		log.Printf("Sent message: %s/%s\n", msg.Project, msg.Filename)
-// 	}
-
-// 	return nil
-// }
-
-// func consumeMessages() error {
-// 	reader := kafka.NewReader(kafka.ReaderConfig{
-// 		Brokers:  []string{kafkaBroker},
-// 		GroupID:  "test-group",
-// 		Topic:    topic,
-// 		MinBytes: 10e3, // 10KB
-// 		MaxBytes: 10e6, // 10MB
-// 	})
-// 	defer reader.Close()
-
-// 	for {
-// 		msg, err := reader.ReadMessage(context.Background())
-// 		if err != nil {
-// 			return fmt.Errorf("failed to read message: %w", err)
-// 		}
-
-// 		var value Message
-// 		if err := json.Unmarshal(msg.Value, &value); err != nil {
-// 			return fmt.Errorf("failed to unmarshal message: %w", err)
-// 		}
-// 		log.Printf("Received message: %s/%s\n", value.Project, value.Filename)
-// 	}
-
-// }
-
 func getFileFromPbiServer(url string, location string) ([]byte, error) {
 	// Make HTTP request to /file endpoint
 	resp, err := http.Get(url + "/fragments?name=" + location)
@@ -240,18 +189,6 @@ func main() {
 	if err := addIfcFilesToMinio(); err != nil {
 		log.Fatalf("Error adding IFC files to MinIO: %v", err)
 	}
-
-	// log.Println("Producing IFC messages...")
-	// if err := produceMessages(); err != nil {
-	// 	log.Fatalf("Error producing IFC messages: %v", err)
-	// }
-
-	// log.Println("Consuming IFC messages...")
-	// go func() {
-	// 	if err := consumeMessages(); err != nil {
-	// 		log.Fatalf("Error consuming IFC messages: %v", err)
-	// 	}
-	// }()
 
 	log.Println("Waiting for IFC consumer to convert ifc to gz and write back to MinIO...")
 	time.Sleep(30 * time.Second)
@@ -287,11 +224,3 @@ func getEnvAsInt(name string, defaultValue int) int {
 	}
 	return defaultValue
 }
-
-// func getEnvAsBool(name string, defaultVal bool) bool {
-// 	valStr := getEnv(name, "")
-// 	if val, err := strconv.ParseBool(valStr); err == nil {
-// 		return val
-// 	}
-// 	return defaultVal
-// }

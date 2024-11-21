@@ -4,7 +4,7 @@ import (
 	"context"
 	"log"
 	"os"
-	"viz_lca-cost-consumer/server"
+	"viz_lca-cost/server"
 )
 
 func main() {

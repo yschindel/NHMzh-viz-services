@@ -12,7 +12,7 @@ This repository contains the code for the Vizualization Services of the NHMzh pr
   - ifc-fragment-files (compressed counterparts to the ifc files, converted to 'fragments')
   - lca-cost-data (history data of final calculation results)
 
-### viz_ifc-consumer
+### viz_ifc
 
 Listens to a Kafka topic with links to IFC files
 
@@ -23,11 +23,9 @@ Listens to a Kafka topic with links to IFC files
 
 Uses the @ThatOpen Companies library.
 
-### viz_lca-cost-consumer
+### viz_lca-cost
 
 This consumer writes parquet files to minio
-
-
 
 ### Data History
 

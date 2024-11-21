@@ -45,9 +45,9 @@ services:
       - minio
       - kafka
 
-  viz_lca-cost-consumer:
+  viz_lca-cost:
     build: 
-      context: ../viz_lca-cost-consumer
+      context: ../viz_lca-cost
       dockerfile: Dockerfile
     env_file:
       - ../.env

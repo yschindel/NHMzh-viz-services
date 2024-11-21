@@ -1,4 +1,4 @@
-module viz_lca-cost-consumer
+module viz_lca-cost
 
 go 1.23
 

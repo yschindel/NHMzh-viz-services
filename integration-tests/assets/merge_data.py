@@ -14,19 +14,19 @@ os.chdir(script_dir)
 csv_files = [f for f in os.listdir('.') if f.endswith('.csv')]
 
 # remove all non utf-8 characters from the csv files
-for file in csv_files:
-    try:
-        # First try to read with utf-8
-        with open(file, 'r', encoding='utf-8') as f:
-            content = f.read()
-    except UnicodeDecodeError:
-        # If that fails, try with ISO-8859-1 (common for German text)
-        with open(file, 'r', encoding='ISO-8859-1') as f:
-            content = f.read()
+# for file in csv_files:
+#     try:
+#         # First try to read with utf-8
+#         with open(file, 'r', encoding='utf-8') as f:
+#             content = f.read()
+#     except UnicodeDecodeError:
+#         # If that fails, try with ISO-8859-1 (common for German text)
+#         with open(file, 'r', encoding='ISO-8859-1') as f:
+#             content = f.read()
     
-    # Write back as UTF-8
-    with open(file, 'w', encoding='utf-8') as f:
-        f.write(content)
+#     # Write back as UTF-8
+#     with open(file, 'w', encoding='utf-8') as f:
+#         f.write(content)
 
 
 # timestamps

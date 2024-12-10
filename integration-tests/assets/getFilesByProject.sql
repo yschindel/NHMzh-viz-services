@@ -1,0 +1,1 @@
+SELECT DISTINCT filename, project FROM data;

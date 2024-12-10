@@ -49,7 +49,12 @@ cost_unit DOUBLE,
 timestamp VARCHAR, 
 )""")
 
+limit = 5
+iteration = 0
 for file, timestamp in zip(csv_files, timestamps):
+    if iteration == limit:
+        break
+    iteration += 1
     duckdb.sql(f"INSERT INTO data SELECT *, VARCHAR '{timestamp}' as timestamp FROM read_csv('{file}')")
 
 
@@ -57,7 +62,7 @@ for file, timestamp in zip(csv_files, timestamps):
 print(duckdb.sql("SHOW TABLES"))
 
 # save the database to a parquet file
-duckdb.sql("COPY (SELECT * FROM data) TO 'data.parquet' (FORMAT 'parquet');")
+duckdb.sql("COPY (SELECT * FROM data) TO 'data5.parquet' (FORMAT 'parquet');")
 
 end_time = time.time()
 print(f"Time taken: {end_time - start_time} seconds")

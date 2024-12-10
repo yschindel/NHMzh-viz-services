@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"os"
+	"strconv"
 	"viz_lca-cost/server"
 )
 
@@ -21,6 +22,13 @@ func main() {
 	minioSecretKey := getEnv("MINIO_SECRET_KEY", "CHANGEME123")
 	minioBucket := getEnv("MINIO_LCA_COST_DATA_BUCKET", "lca-cost-data")
 
+	// Azure configuration
+	azureServer := getEnv("AZURE_DB_SERVER", "nhmzhtest-server.database.windows.net")
+	azurePort := getEnv("AZURE_DB_PORT", "1433")
+	azureUser := getEnv("AZURE_DB_USER", "test")
+	azurePassword := getEnv("AZURE_DB_PASSWORD", "password!1")
+	azureDatabase := getEnv("AZURE_DB_DATABASE", "nhmzhtest_db")
+
 	// Initialize DuckDB manager
 	credentials := server.CustomMinioCredentials{
 		Endpoint:        minioEndpoint + ":" + minioPort,
@@ -29,11 +37,11 @@ func main() {
 	}
 
 	config := server.DBConfig{
-		Server:   "nhmzhtest-server.database.windows.net",
-		Port:     1433,
-		User:     "test",
-		Password: "password!1",
-		Database: "nhmzhtest_db",
+		Server:   azureServer,
+		Port:     StringToInt(azurePort),
+		User:     azureUser,
+		Password: azurePassword,
+		Database: azureDatabase,
 	}
 
 	azureDB, err := server.ConnectDB(config)
@@ -69,4 +77,12 @@ func getEnv(key, fallback string) string {
 		return fallback
 	}
 	return value
+}
+
+func StringToInt(s string) int {
+	i, err := strconv.Atoi(s)
+	if err != nil {
+		log.Fatalf("failed to convert string to int: %v", err)
+	}
+	return i
 }

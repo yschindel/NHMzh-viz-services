@@ -23,11 +23,11 @@ func main() {
 	minioBucket := getEnv("MINIO_LCA_COST_DATA_BUCKET", "lca-cost-data")
 
 	// Azure configuration
-	azureServer := getEnv("AZURE_DB_SERVER", "nhmzhtest-server.database.windows.net")
-	azurePort := getEnv("AZURE_DB_PORT", "1433")
-	azureUser := getEnv("AZURE_DB_USER", "test")
-	azurePassword := getEnv("AZURE_DB_PASSWORD", "password!1")
-	azureDatabase := getEnv("AZURE_DB_DATABASE", "nhmzhtest_db")
+	azureServer := getEnv("AZURE_DB_SERVER", "")
+	azurePort := getEnv("AZURE_DB_PORT", "")
+	azureUser := getEnv("AZURE_DB_USER", "")
+	azurePassword := getEnv("AZURE_DB_PASSWORD", "")
+	azureDatabase := getEnv("AZURE_DB_DATABASE", "")
 
 	// Initialize DuckDB manager
 	credentials := server.CustomMinioCredentials{

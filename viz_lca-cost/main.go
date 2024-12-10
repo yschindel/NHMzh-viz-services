@@ -28,6 +28,20 @@ func main() {
 		SecretAccessKey: minioSecretKey,
 	}
 
+	config := server.DBConfig{
+		Server:   "nhmzhtest-server.database.windows.net",
+		Port:     1433,
+		User:     "test",
+		Password: "password!1",
+		Database: "nhmzhtest_db",
+	}
+
+	azureDB, err := server.ConnectDB(config)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer azureDB.Close()
+
 	db, err := server.NewDuckDBManager("", credentials, minioBucket)
 	if err != nil {
 		log.Fatalf("failed to create DuckDB manager: %v", err)
@@ -42,6 +56,7 @@ func main() {
 		costTopic,
 		groupID,
 		db,
+		azureDB,
 	)
 
 	ctx := context.Background()

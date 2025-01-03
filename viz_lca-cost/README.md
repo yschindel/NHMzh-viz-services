@@ -22,3 +22,26 @@ The service uses DuckDB to merge the LCA and Cost data into a single .parquet fi
 The service has one bucket in MinIO:
 
 - `lca-cost-data`: Where the LCA and Cost data is saved.
+
+## Azure
+
+Ensure one table in Azure SQL Server:
+
+```sql
+CREATE TABLE project_data (
+    project NVARCHAR(255),
+    filename NVARCHAR(255),
+    timestamp NVARCHAR(255),
+    id NVARCHAR(255),
+    category NVARCHAR(255),
+    material_kbob NVARCHAR(255),
+    gwp_absolute FLOAT,
+    gwp_relative FLOAT,
+    penr_absolute FLOAT,
+    penr_relative FLOAT,
+    ubp_absolute FLOAT,
+    ubp_relative FLOAT,
+    cost FLOAT,
+    cost_unit FLOAT
+)
+```

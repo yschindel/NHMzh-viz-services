@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"sort"
 	"strings"
 
 	"github.com/gorilla/mux"
@@ -55,18 +56,29 @@ func (s *Server) routes() {
 
 func (s *Server) getFragmentsFile() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		name := r.URL.Query().Get("name")
-		if name == "" {
-			http.Error(w, "Missing 'name' query parameter", http.StatusBadRequest)
+		id := r.URL.Query().Get("id")
+		if id == "" {
+			http.Error(w, "Missing 'id' query parameter", http.StatusBadRequest)
 			return
 		}
 
-		// Check if the file name is valid
-		passed, msg := checkFragmentsFileName(name)
-		if !passed {
-			http.Error(w, msg, http.StatusBadRequest)
+		files, err := minio.ListAllFiles(fragmentsBucket)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("Failed to list all files from MinIO: %v", err), http.StatusInternalServerError)
 			return
 		}
+
+		// find the file name that matches the id
+		var fileNames []string
+		for _, file := range files {
+			if strings.Contains(file, id) {
+				fileNames = append(fileNames, file)
+			}
+		}
+
+		// get the file with the latest timestamp
+		sort.Strings(fileNames)
+		name := fileNames[len(fileNames)-1]
 
 		// Fetch the file from MinIO
 		file, err := minio.GetFile(fragmentsBucket, name)
@@ -163,24 +175,6 @@ func getEnv(key, fallback string) string {
 		return fallback
 	}
 	return value
-}
-
-func checkFragmentsFileName(name string) (bool, string) {
-	// check if file ends with .gz
-	if !strings.HasSuffix(name, ".gz") {
-		return false, "file name does not end with .gz"
-	}
-
-	pattern := "project/filename_timestamp.gz"
-
-	// check if file name follows the pattern: project/filename_timestamp.gz
-	parts := strings.Split(name, "/")
-	if len(parts) != 2 {
-		log.Printf("invalid file name, parts: %v", parts)
-		return false, pattern
-	}
-
-	return true, "File name is valid"
 }
 
 func checkDataFileName(name string) (bool, string) {

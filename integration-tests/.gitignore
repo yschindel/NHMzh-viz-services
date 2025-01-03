@@ -1,3 +1,5 @@
-*assets
 *.pyc
 *.parquet
+*.csv
+*.ifc
+*.ddb

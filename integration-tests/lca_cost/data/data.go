@@ -60,4 +60,4 @@ func newDataItems(numElements int) []DataItem {
 
 // this is used to make lca and cost data have the same ids.
 // That way the data can be merged into the same item in mongoDB
-var DataItems = newDataItems(4500)
+var DataItems = newDataItems(3)

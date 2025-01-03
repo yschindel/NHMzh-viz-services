@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"log"
 	"strings"
@@ -13,9 +14,10 @@ type Consumer struct {
 	environmentalReader *kafka.Reader
 	costReader          *kafka.Reader
 	db                  *DuckDBManager
+	azureDB             *sql.DB
 }
 
-func NewConsumer(envBroker, envTopic, costBroker, costTopic, groupID string, db *DuckDBManager) *Consumer {
+func NewConsumer(envBroker, envTopic, costBroker, costTopic, groupID string, db *DuckDBManager, azureDB *sql.DB) *Consumer {
 	environmentalReader := kafka.NewReader(kafka.ReaderConfig{
 		Brokers: []string{envBroker},
 		Topic:   envTopic,
@@ -35,6 +37,7 @@ func NewConsumer(envBroker, envTopic, costBroker, costTopic, groupID string, db 
 		environmentalReader: environmentalReader,
 		costReader:          costReader,
 		db:                  db,
+		azureDB:             azureDB,
 	}
 }
 
@@ -83,21 +86,27 @@ func (c *Consumer) handleEnvironmentalMessage(m kafka.Message) {
 		return
 	}
 
-	filename := strings.TrimSuffix(message.Filename, ".ifc")
+	message.Filename = strings.TrimSuffix(message.Filename, ".ifc")
+
+	err = WriteLcaMessage(c.azureDB, message)
+	if err != nil {
+		log.Printf("could not write lca message: %v", err)
+		return
+	}
 
 	// Ensure parquet file exists
-	err = c.db.EnsureParquetFile(message.Project, filename)
-	if err != nil {
-		log.Printf("could not ensure parquet file: %v", err)
-		return
-	}
+	// err = c.db.EnsureParquetFile(message.Project, filename)
+	// if err != nil {
+	// 	log.Printf("could not ensure parquet file: %v", err)
+	// 	return
+	// }
 
-	// Update environmental data with timestamp
-	err = c.db.UpdateParquetFromEnvironmentalData(message.Project, filename, message.Data, message.Timestamp)
-	if err != nil {
-		log.Printf("could not update environmental data: %v", err)
-		return
-	}
+	// // Update environmental data with timestamp
+	// err = c.db.UpdateParquetFromEnvironmentalData(message.Project, filename, message.Data, message.Timestamp)
+	// if err != nil {
+	// 	log.Printf("could not update environmental data: %v", err)
+	// 	return
+	// }
 }
 
 func (c *Consumer) handleCostMessage(m kafka.Message) {
@@ -110,19 +119,25 @@ func (c *Consumer) handleCostMessage(m kafka.Message) {
 		return
 	}
 
-	filename := strings.TrimSuffix(message.Filename, ".ifc")
+	message.Filename = strings.TrimSuffix(message.Filename, ".ifc")
 
-	// Ensure parquet file exists
-	err = c.db.EnsureParquetFile(message.Project, filename)
+	err = WriteCostMessage(c.azureDB, message)
 	if err != nil {
-		log.Printf("could not ensure parquet file: %v", err)
+		log.Printf("could not write cost message: %v", err)
 		return
 	}
 
-	// Update cost data with timestamp
-	err = c.db.UpdateParquetFromCostData(message.Project, filename, message.Data, message.Timestamp)
-	if err != nil {
-		log.Printf("could not update cost data: %v", err)
-		return
-	}
+	// // Ensure parquet file exists
+	// err = c.db.EnsureParquetFile(message.Project, filename)
+	// if err != nil {
+	// 	log.Printf("could not ensure parquet file: %v", err)
+	// 	return
+	// }
+
+	// // Update cost data with timestamp
+	// err = c.db.UpdateParquetFromCostData(message.Project, filename, message.Data, message.Timestamp)
+	// if err != nil {
+	// 	log.Printf("could not update cost data: %v", err)
+	// 	return
+	// }
 }

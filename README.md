@@ -66,6 +66,12 @@ KAFKA_BROKER=kafka:9093
 KAFKA_IFC_TOPIC=ifc-files
 KAFKA_LCA_TOPIC=lca-data
 KAFKA_COST_TOPIC=cost-data
+
+AZURE_DB_SERVER=your-server-name.database.windows.net
+AZURE_DB_PORT=1234
+AZURE_DB_USER=your-user-name
+AZURE_DB_PASSWORD=your-password
+AZURE_DB_DATABASE=your-database-name
 ```
 
 Make sure to replace `ROOTUSER` and `CHANGEME123` with your own credentials.

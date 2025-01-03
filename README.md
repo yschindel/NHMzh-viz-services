@@ -7,10 +7,9 @@ This repository contains the code for the Vizualization Services of the NHMzh pr
 ### Minio
 
 - Used for storing files.
-- Three buckets:
+- Buckets:
   - ifc-files (the raw ifc files)
   - ifc-fragment-files (compressed counterparts to the ifc files, converted to 'fragments')
-  - lca-cost-data (history data of final calculation results)
 
 ### viz_ifc
 
@@ -25,11 +24,8 @@ Uses the @ThatOpen Companies library.
 
 ### viz_lca-cost
 
-This consumer writes parquet files to minio
-
-### Data History
-
-Parquet files on minio are used to capture data.
+This consumer writes listens to the cost and lca kafka topics and writes data to Azure SQL DB.
+Cost and LCA data is captured in Azure SQL DB. This allows for reporting of the data over time.
 
 ## Prerequisites
 

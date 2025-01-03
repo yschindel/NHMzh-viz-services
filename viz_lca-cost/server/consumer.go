@@ -13,11 +13,10 @@ import (
 type Consumer struct {
 	environmentalReader *kafka.Reader
 	costReader          *kafka.Reader
-	db                  *DuckDBManager
 	azureDB             *sql.DB
 }
 
-func NewConsumer(envBroker, envTopic, costBroker, costTopic, groupID string, db *DuckDBManager, azureDB *sql.DB) *Consumer {
+func NewConsumer(envBroker, envTopic, costBroker, costTopic, groupID string, azureDB *sql.DB) *Consumer {
 	environmentalReader := kafka.NewReader(kafka.ReaderConfig{
 		Brokers: []string{envBroker},
 		Topic:   envTopic,
@@ -36,7 +35,6 @@ func NewConsumer(envBroker, envTopic, costBroker, costTopic, groupID string, db 
 	return &Consumer{
 		environmentalReader: environmentalReader,
 		costReader:          costReader,
-		db:                  db,
 		azureDB:             azureDB,
 	}
 }
@@ -93,20 +91,6 @@ func (c *Consumer) handleEnvironmentalMessage(m kafka.Message) {
 		log.Printf("could not write lca message: %v", err)
 		return
 	}
-
-	// Ensure parquet file exists
-	// err = c.db.EnsureParquetFile(message.Project, filename)
-	// if err != nil {
-	// 	log.Printf("could not ensure parquet file: %v", err)
-	// 	return
-	// }
-
-	// // Update environmental data with timestamp
-	// err = c.db.UpdateParquetFromEnvironmentalData(message.Project, filename, message.Data, message.Timestamp)
-	// if err != nil {
-	// 	log.Printf("could not update environmental data: %v", err)
-	// 	return
-	// }
 }
 
 func (c *Consumer) handleCostMessage(m kafka.Message) {
@@ -126,18 +110,4 @@ func (c *Consumer) handleCostMessage(m kafka.Message) {
 		log.Printf("could not write cost message: %v", err)
 		return
 	}
-
-	// // Ensure parquet file exists
-	// err = c.db.EnsureParquetFile(message.Project, filename)
-	// if err != nil {
-	// 	log.Printf("could not ensure parquet file: %v", err)
-	// 	return
-	// }
-
-	// // Update cost data with timestamp
-	// err = c.db.UpdateParquetFromCostData(message.Project, filename, message.Data, message.Timestamp)
-	// if err != nil {
-	// 	log.Printf("could not update cost data: %v", err)
-	// 	return
-	// }
 }

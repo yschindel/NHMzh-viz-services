@@ -14,6 +14,7 @@ services:
     build: 
       context: ./viz_ifc
       dockerfile: Dockerfile
+    image: yschindel/viz_ifc:latest
     env_file:
       - .env
     depends_on:
@@ -25,6 +26,7 @@ services:
     build: 
       context: ./viz_lca-cost
       dockerfile: Dockerfile
+    image: yschindel/viz_lca-cost:latest
     env_file:
       - .env
     depends_on:
@@ -34,6 +36,7 @@ services:
     build: 
       context: ./viz_pbi-server
       dockerfile: Dockerfile
+    image: yschindel/viz_pbi-server:latest
     env_file:
       - .env
     depends_on:

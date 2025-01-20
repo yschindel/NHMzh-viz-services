@@ -42,7 +42,7 @@ jobs:
       # - name: Deploy to Azure Web App
       #   uses: azure/webapps-deploy@v2
       #   with:
-      #     app-name: "nhmzh-viz-services"
+      #     app-name: "nhmzh-viz-services_app"
       #     slot-name: "dev"
       #     publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
       #     images: |
@@ -55,7 +55,7 @@ jobs:
       #  - name: Azure App Service Settings
       #  uses: Azure/appservice-settings@v1
       #  with:
-      #    app-name: 'nhmzh-viz-services'
+      #    app-name: 'nhmzh-viz-services_app'
       #    slot-name: 'dev'
       #    app-settings-json: |
       #      [

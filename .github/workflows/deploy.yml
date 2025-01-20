@@ -46,6 +46,7 @@ jobs:
       #     slot-name: "dev"
       #     publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
       #     images: |
-      #       yschindel/viz_ifc:latest
-      #       yschindel/viz_lca-cost:latest
+      #       yschindel/nhmzh-viz-services_ifc:latest
+      #       yschindel/nhmzh-viz-services_lca-cost:latest
+      #       yschindel/nhmzh-viz-services_pbi-server:latest
       #       yschindel/minio:latest

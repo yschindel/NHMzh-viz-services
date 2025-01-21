@@ -24,6 +24,11 @@ connection.json
 *.log
 logs/
 
+# bin and Debug folders
+bin/
+Debug/
+obj/
+
 # macOS system files
 .DS_Store
 .DS_Store?

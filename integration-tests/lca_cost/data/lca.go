@@ -85,6 +85,15 @@ func ProduceLcaMessages(broker string, topic string) error {
 		newLcaMessage("project1", "file3.ifc"),
 	}
 
+	for i, msg := range LcaMessages {
+		msgJson, err := json.MarshalIndent(msg, "", "  ")
+		if err != nil {
+			log.Printf("Error marshaling message %d: %v", i+1, err)
+			continue
+		}
+		log.Printf("LCA Message %d:\n%s", i+1, string(msgJson))
+	}
+
 	for _, msg := range LcaMessages {
 		data, err := json.Marshal(msg)
 		if err != nil {

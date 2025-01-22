@@ -24,7 +24,7 @@ Uses the @ThatOpen Companies library.
 
 ### viz_lca-cost
 
-This consumer writes listens to the cost and lca kafka topics and writes data to Azure SQL DB.
+This consumer listens to the cost and lca kafka topics and writes data to Azure SQL DB.
 Cost and LCA data is captured in Azure SQL DB. This allows for reporting of the data over time.
 
 ## Additional Services Needed:

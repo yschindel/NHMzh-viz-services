@@ -2,7 +2,7 @@
 
 This repository contains the code for the Vizualization Services of the NHMzh project.
 
-## The Services
+## The Services in this repository
 
 ### Minio
 
@@ -27,12 +27,18 @@ Uses the @ThatOpen Companies library.
 This consumer writes listens to the cost and lca kafka topics and writes data to Azure SQL DB.
 Cost and LCA data is captured in Azure SQL DB. This allows for reporting of the data over time.
 
+## Additional Services Needed:
+
+- Azure SQL Server SQL Database for storing all cost and lca data over time.
+- This services can be connected to PowerBI via direct query so it always shows the latest data without having to updating the dashboard in PowerBI desktop and republish.
+
 ## Prerequisites
 
 - Docker
 - Docker Compose
 - Node.js
 - Go
+- Azure SQL Server Emulator (VSCode extension 'mssql')
 
 ## Environment Variables
 
@@ -70,6 +76,9 @@ AZURE_DB_USER=your-user-name
 AZURE_DB_PASSWORD=your-password
 AZURE_DB_DATABASE=your-database-name
 ```
+
+If you intend to do local integration testing:
+Create a '.env.dev' file next to the '.env' file and override the Azure DB credentials.
 
 Make sure to replace `ROOTUSER` and `CHANGEME123` with your own credentials.
 

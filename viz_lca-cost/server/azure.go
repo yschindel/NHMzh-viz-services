@@ -18,7 +18,7 @@ type DBConfig struct {
 
 func ConnectDB(config DBConfig) (*sql.DB, error) {
 	// Build connection string
-	connString := fmt.Sprintf("server=%s;user id=%s;password=%s;port=%d;database=%s;",
+	connString := fmt.Sprintf("server=%s;user id=%s;password=%s;port=%d;database=%s;encrypt=false;trustservercertificate=true;",
 		config.Server, config.User, config.Password, config.Port, config.Database)
 
 	// Create connection pool

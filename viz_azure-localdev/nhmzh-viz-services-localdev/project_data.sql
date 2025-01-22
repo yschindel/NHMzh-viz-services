@@ -1,6 +1,7 @@
 CREATE TABLE [dbo].[project_data]
 (
-  [Id] VARCHAR(255) NOT NULL PRIMARY KEY,
+  [record_id] BIGINT IDENTITY(1,1) PRIMARY KEY,
+  [Id] VARCHAR(255) NOT NULL,
   [project] VARCHAR(255) NOT NULL,
   [filename] VARCHAR(255) NOT NULL,
   [timestamp] VARCHAR(255) NOT NULL,
@@ -13,5 +14,6 @@ CREATE TABLE [dbo].[project_data]
   [penr_absolute] DECIMAL(18,2),
   [penr_relative] DECIMAL(18,2),
   [ubp_absolute] DECIMAL(18,2),
-  [ubp_relative] DECIMAL(18,2)
-)
+  [ubp_relative] DECIMAL(18,2),
+  CONSTRAINT UQ_project_data UNIQUE (Id, project, filename)
+);

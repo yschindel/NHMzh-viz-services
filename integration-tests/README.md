@@ -9,15 +9,13 @@
 
 ### Install dependencies
 
-Open a terminal in the `integration-tests/lca` directory.
+Open a terminal in the `integration-tests/lca_cost` directory.
 
 Install dependencies:
 
 ```bash
 go mod tidy
 ```
-
-Do the same in the `integration-tests/ifc` directory.
 
 ## Add an IFC File to the Test
 

@@ -101,9 +101,9 @@ func writeCostMessageWithRetry(db *sql.DB, message CostMessage) error {
 			ON target.id = source.id 
 			   AND target.project = source.project 
 			   AND target.filename = source.filename
+				 AND target.timestamp = source.timestamp
 			WHEN MATCHED THEN
 					UPDATE SET 
-							target.timestamp = source.timestamp,
 							target.cost = source.cost,
 							target.cost_unit = source.cost_unit
 			WHEN NOT MATCHED THEN
@@ -164,10 +164,9 @@ func writeLcaMessageWithRetry(db *sql.DB, message LcaMessage) error {
 			ON target.id = source.id 
 			   AND target.project = source.project 
 			   AND target.filename = source.filename
+				 AND target.timestamp = source.timestamp
 			WHEN MATCHED THEN
 					UPDATE SET 
-							target.timestamp = source.timestamp,
-							target.category = source.category,
 							target.material_kbob = source.material_kbob,
 							target.gwp_absolute = source.gwp_absolute,
 							target.gwp_relative = source.gwp_relative,

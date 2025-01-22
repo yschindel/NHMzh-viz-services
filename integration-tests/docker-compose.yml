@@ -6,6 +6,7 @@ services:
       - "9001:9001"
     env_file:
       - ../.env
+      - ../.env.dev # since this is the local integration test, we need to use the dev env file to override the env variables
     volumes:
       - minio_data:/data
     command: server /data --console-address ":9001"
@@ -41,6 +42,7 @@ services:
       dockerfile: Dockerfile
     env_file:
       - ../.env
+      - ../.env.dev
     depends_on:
       - minio
       - kafka
@@ -53,6 +55,7 @@ services:
       dockerfile: Dockerfile
     env_file:
       - ../.env
+      - ../.env.dev
     depends_on:
       - kafka
       - minio
@@ -63,6 +66,7 @@ services:
       dockerfile: Dockerfile
     env_file:
       - ../.env
+      - ../.env.dev
     depends_on:
       - minio
     ports:

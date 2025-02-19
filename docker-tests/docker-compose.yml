@@ -1,0 +1,39 @@
+services:
+  minio:
+    image: minio/minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    env_file:
+      - ../.env
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+
+  nhmzh-viz-services_ifc:
+    image: yschindel/nhmzh-viz-services_ifc:latest
+    env_file:
+      - ../.env
+    depends_on:
+      - minio
+    ports:
+      - "4242:4242"
+
+  nhmzh-viz-services_lca-cost:
+    image: yschindel/nhmzh-viz-services_lca-cost:latest
+    env_file:
+      - ../.env
+    depends_on:
+      - minio
+
+  nhmzh-viz-services_pbi-server:
+    image: yschindel/nhmzh-viz-services_pbi-server:latest
+    env_file:
+      - ../.env
+    depends_on:
+      - minio
+    ports:
+      - "3000:3000"
+
+volumes:
+  minio_data:

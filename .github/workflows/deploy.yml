@@ -1,0 +1,155 @@
+name: CI/CD Pipeline for Multi-Container Azure Web App
+
+on:
+  push:
+    branches:
+      - main # Trigger on pushes to the main branch
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Check out the code
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Create .env file
+        run: |
+          echo "MINIO_ACCESS_KEY=dummy" >> .env
+
+      # Step 2: Set up Docker Buildx
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+        with:
+          install: true
+
+      # Step 3: Log in to Docker Hub
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      # Step 3: Build and Push Docker Images
+      - name: Build and Push Docker Images
+        run: |
+          docker compose -f docker-compose.yml build
+          docker compose -f docker-compose.yml push
+
+      # Step 4: Deploy to Azure Web App
+      # - name: Deploy to Azure Web App
+      #   uses: azure/webapps-deploy@v2
+      #   with:
+      #     app-name: "nhmzh-viz-services_app"
+      #     slot-name: "dev"
+      #     publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+      #     images: |
+      #       yschindel/nhmzh-viz-services_ifc:latest
+      #       yschindel/nhmzh-viz-services_lca-cost:latest
+      #       yschindel/nhmzh-viz-services_pbi-server:latest
+      #       yschindel/minio:latest
+
+      # Add step to configure App Settings
+      #  - name: Azure App Service Settings
+      #  uses: Azure/appservice-settings@v1
+      #  with:
+      #    app-name: 'nhmzh-viz-services_app'
+      #    slot-name: 'dev'
+      #    app-settings-json: |
+      #      [
+      #        {
+      #          "name": "MINIO_ACCESS_KEY",
+      #          "value": "${{ secrets.MINIO_ACCESS_KEY }}"
+      #        },
+      #        {
+      #          "name": "MINIO_SECRET_KEY",
+      #           "value": "${{ secrets.MINIO_SECRET_KEY }}"
+      #         },
+      #         {
+      #           "name": "MINIO_ENDPOINT",
+      #           "value": "minio"
+      #         },
+      #         {
+      #           "name": "MINIO_PORT",
+      #           "value": "9000"
+      #         },
+      #         {
+      #           "name": "MINIO_USE_SSL",
+      #           "value": "false"
+      #         },
+      #         {
+      #           "name": "MINIO_IFC_BUCKET",
+      #           "value": "ifc-files"
+      #         },
+      #         {
+      #           "name": "MINIO_FRAGMENTS_BUCKET",
+      #           "value": "ifc-fragment-files"
+      #         },
+      #         {
+      #           "name": "MINIO_LCA_COST_DATA_BUCKET",
+      #           "value": "lca-cost-data"
+      #         },
+      #         {
+      #           "name": "VIZ_KAFKA_IFC_CONSUMER_ID",
+      #           "value": "viz-ifc-consumer"
+      #         },
+      #         {
+      #           "name": "VIZ_KAFKA_IFC_PRODUCER_ID",
+      #           "value": "viz-ifc-producer"
+      #         },
+      #         {
+      #           "name": "VIZ_KAFKA_IFC_GROUP_ID",
+      #           "value": "viz-ifc"
+      #         },
+      #         {
+      #           "name": "VIZ_KAFKA_DATA_GROUP_ID",
+      #           "value": "viz-data"
+      #         },
+      #         {
+      #           "name": "IFC_API_PORT",
+      #           "value": "4242"
+      #         },
+      #         {
+      #           "name": "KAFKA_BROKER",
+      #           "value": "kafka:9093"
+      #         },
+      #         {
+      #           "name": "KAFKA_IFC_TOPIC",
+      #           "value": "ifc-files"
+      #         },
+      #         {
+      #           "name": "KAFKA_LCA_TOPIC",
+      #           "value": "lca-data"
+      #         },
+      #         {
+      #           "name": "KAFKA_COST_TOPIC",
+      #           "value": "cost-data"
+      #         },
+      #         {
+      #           "name": "PBI_SERVER_PORT",
+      #           "value": "3000"
+      #         },
+      #         {
+      #           "name": "AZURE_DB_SERVER",
+      #           "value": "nhmzhtest-server.database.windows.net"
+      #         },
+      #         {
+      #           "name": "AZURE_DB_PORT",
+      #           "value": "1433"
+      #         },
+      #         {
+      #           "name": "AZURE_DB_USER",
+      #           "value": "${{ secrets.AZURE_DB_USER }}"
+      #         },
+      #         {
+      #           "name": "AZURE_DB_PASSWORD",
+      #           "value": "${{ secrets.AZURE_DB_PASSWORD }}"
+      #         },
+      #         {
+      #           "name": "AZURE_DB_DATABASE",
+      #           "value": "nhmzhtest_db"
+      #         }
+
+      #         # Add other environment variables as needed
+      #       ]

@@ -1,7 +1,7 @@
 import { runIfcToGzWorker } from "./ifc/ifcParser";
 import { ensureWasmFile } from "./ifc/wasm";
 import { setupKafkaConsumer, startKafkaConsumer, IfcMsg, setupKafkaProducer } from "./kafka";
-import { initializeMinio, getFile, minioClient } from "./minio";
+import { initializeMinio, getFile, getFileMetadata, minioClient } from "./minio";
 import express from "express";
 import apiRouter from "./api";
 import { Producer } from "kafkajs";
@@ -46,9 +46,11 @@ async function main() {
 				};
 
 				const file = await getFile(ifcMessage.location, IFC_BUCKET_NAME, minioClient);
+				const metadata = await getFileMetadata(ifcMessage.location, IFC_BUCKET_NAME, minioClient);
+				console.log("metadata", metadata);
 
 				// Parse the IFC file to fragments and save to minio in a worker thread - no need to await
-				runIfcToGzWorker(file, ifcMessage.location);
+				runIfcToGzWorker(file, ifcMessage.location, metadata.timestamp, metadata.project, metadata.filename);
 			} catch (error) {
 				console.error("Error processing Kafka message:", error);
 			}

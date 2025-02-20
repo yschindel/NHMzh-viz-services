@@ -6,20 +6,22 @@ import path from "path";
  * Saves the compressed file to MinIO.
  *
  * @param file - The file buffer to be processed by the worker.
- * @param fileName - The name of the file to be processed.
+ * @param location - The location of the file in the bucket.
+ * @param timestamp - The timestamp of the file.
+ * @param project - The project name.
  * @throws If the worker stops with a non-zero exit code.
  */
-export function runIfcToGzWorker(file: Buffer, fileName: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const workerPath = path.resolve(__dirname, "ifcWorker.js");
-    const worker = new Worker(workerPath, {
-      workerData: { file, fileName },
-    });
+export function runIfcToGzWorker(file: Buffer, location: string, timestamp: string, project: string, filename: string): Promise<void> {
+	return new Promise((resolve, reject) => {
+		const workerPath = path.resolve(__dirname, "ifcWorker.js");
+		const worker = new Worker(workerPath, {
+			workerData: { file, location, timestamp, project, filename },
+		});
 
-    worker.on("message", resolve);
-    worker.on("error", reject);
-    worker.on("exit", (code) => {
-      if (code !== 0) reject(new Error(`Worker stopped with exit code ${code}`));
-    });
-  });
+		worker.on("message", resolve);
+		worker.on("error", reject);
+		worker.on("exit", (code) => {
+			if (code !== 0) reject(new Error(`Worker stopped with exit code ${code}`));
+		});
+	});
 }

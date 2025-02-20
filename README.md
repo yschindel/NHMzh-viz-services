@@ -62,7 +62,8 @@ VIZ_KAFKA_IFC_PRODUCER_ID=viz-ifc-producer
 VIZ_KAFKA_IFC_GROUP_ID=viz-ifc
 VIZ_KAFKA_DATA_GROUP_ID=viz-data
 
-IFC_API_PORT=4242
+
+
 PBI_SERVER_PORT=3000
 
 KAFKA_BROKER=kafka:9093
@@ -70,11 +71,15 @@ KAFKA_IFC_TOPIC=ifc-files
 KAFKA_LCA_TOPIC=lca-data
 KAFKA_COST_TOPIC=cost-data
 
+# Azure DB credentials - Not used in the showcase
 AZURE_DB_SERVER=your-server-name.database.windows.net
 AZURE_DB_PORT=1234
 AZURE_DB_USER=your-user-name
 AZURE_DB_PASSWORD=your-password
 AZURE_DB_DATABASE=your-database-name
+
+# Legacy, used by the integration tests
+IFC_API_PORT=4242
 ```
 
 If you intend to do local integration testing:

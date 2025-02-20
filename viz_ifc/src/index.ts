@@ -37,20 +37,20 @@ async function main() {
 	await startKafkaConsumer(consumer, async (message: any) => {
 		if (message.value) {
 			try {
-				const value = JSON.parse(message.value.toString());
-				const ifcMessage: IfcMsg = {
-					project: value.project,
-					filename: value.filename,
-					location: value.location,
-					timestamp: value.timestamp,
-				};
+				console.log("received message: ", message);
+				const location = message.value.toString();
 
-				const file = await getFile(ifcMessage.location, IFC_BUCKET_NAME, minioClient);
-				const metadata = await getFileMetadata(ifcMessage.location, IFC_BUCKET_NAME, minioClient);
-				console.log("metadata", metadata);
+				console.log("getting object from minio at: ", location);
+				const file = await getFile(location, IFC_BUCKET_NAME, minioClient);
+
+				console.log("getting metadata from minio at: ", location);
+				const metadata = await getFileMetadata(location, IFC_BUCKET_NAME, minioClient);
+
+				console.log("received metadata: ", metadata);
 
 				// Parse the IFC file to fragments and save to minio in a worker thread - no need to await
-				runIfcToGzWorker(file, ifcMessage.location, metadata.timestamp, metadata.project, metadata.filename);
+				console.log("running ifc to gz worker");
+				runIfcToGzWorker(file, location, metadata.timestamp, metadata.project, metadata.filename);
 			} catch (error) {
 				console.error("Error processing Kafka message:", error);
 			}

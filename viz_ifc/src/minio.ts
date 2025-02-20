@@ -46,8 +46,6 @@ export async function initializeMinio(bucketNames: string[], client: MinioClient
  * @returns The full filename of the saved object
  */
 export async function saveToMinIO(client: MinioClient, bucketName: string, fileName: string, data: Buffer): Promise<string> {
-	// Use provided timestamp or generate a new one if nullish
-
 	// The client input argument is optional, but it allows us to pass in a mocked client for testing
 	const bucketExists = await client.bucketExists(bucketName);
 	if (!bucketExists) {
@@ -68,6 +66,7 @@ export async function saveToMinIO(client: MinioClient, bucketName: string, fileN
  * @returns The full filename of the saved object
  */
 export function createFileName(project: string, filename: string, timestamp: string): string {
+	// legacy function for file upload api
 	const { name, ext } = path.parse(filename);
 	const fileTimestamp = timestamp || new Date().toISOString();
 	return `${project}/${name}_${fileTimestamp}${ext}`;
@@ -100,6 +99,8 @@ export async function getFile(location: string, bucketName: string, client: Mini
  */
 export async function getFileMetadata(location: string, bucketName: string, client: MinioClient): Promise<FileMetadata> {
 	const statObject = await client.statObject(bucketName, location);
+	console.log("statobject received");
+	console.log("extracting metadata for keys: 'x-amz-meta-created-at', 'x-amz-meta-project-name', 'x-amz-meta-filename'");
 	return {
 		timestamp: statObject.metaData["x-amz-meta-created-at"], // Ensure proper casing
 		project: statObject.metaData["x-amz-meta-project-name"], // Match MinIO key

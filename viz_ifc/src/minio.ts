@@ -38,21 +38,27 @@ export async function initializeMinio(bucketNames: string[], client: MinioClient
 }
 
 /**
- * Save a file to MinIO as a new object
+ * Save a file to MinIO as a new object with metadata
  * @param client - MinioClient
  * @param bucketName - The bucket name
  * @param fileName - The name of the file (project/filename_timestamp.extension)
  * @param data - The file data
+ * @param metadata - Optional metadata object
  * @returns The full filename of the saved object
  */
-export async function saveToMinIO(client: MinioClient, bucketName: string, fileName: string, data: Buffer): Promise<string> {
-	// The client input argument is optional, but it allows us to pass in a mocked client for testing
+export async function saveToMinIO(
+	client: MinioClient,
+	bucketName: string,
+	fileName: string,
+	data: Buffer,
+	metadata?: Record<string, string>
+): Promise<string> {
 	const bucketExists = await client.bucketExists(bucketName);
 	if (!bucketExists) {
 		await client.makeBucket(bucketName);
 	}
 
-	await client.putObject(bucketName, fileName, data);
+	await client.putObject(bucketName, fileName, data, undefined, metadata);
 	console.log(`File ${fileName} saved to MinIO bucket ${bucketName}`);
 
 	return fileName;
@@ -99,11 +105,10 @@ export async function getFile(location: string, bucketName: string, client: Mini
  */
 export async function getFileMetadata(location: string, bucketName: string, client: MinioClient): Promise<FileMetadata> {
 	const statObject = await client.statObject(bucketName, location);
-	console.log("statobject received");
-	console.log("extracting metadata for keys: 'x-amz-meta-created-at', 'x-amz-meta-project-name', 'x-amz-meta-filename'");
+	console.log("statobject metadata: ", statObject.metaData);
 	return {
-		timestamp: statObject.metaData["x-amz-meta-created-at"], // Ensure proper casing
-		project: statObject.metaData["x-amz-meta-project-name"], // Match MinIO key
-		filename: statObject.metaData["x-amz-meta-filename"], // Match MinIO key
+		timestamp: statObject.metaData["created-at"], // Ensure proper casing
+		project: statObject.metaData["project-name"], // Match MinIO key
+		filename: statObject.metaData["filename"], // Match MinIO key
 	};
 }

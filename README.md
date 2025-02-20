@@ -45,6 +45,8 @@ Cost and LCA data is captured in Azure SQL DB. This allows for reporting of the 
 Create a `.env` file in the root directory of the repository with the following variables:
 
 ```
+ENVIRONMENT=production
+
 MINIO_ACCESS_KEY=ROOTUSER
 MINIO_SECRET_KEY=CHANGEME123
 

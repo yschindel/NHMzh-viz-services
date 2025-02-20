@@ -2,7 +2,7 @@ import express from "express";
 import multer from "multer";
 import cors from "cors";
 import { saveToMinIO, minioClient, createFileName } from "./minio";
-import { newIfcMsg, sendKafkaMessage } from "./kafka";
+import { sendKafkaMessage } from "./kafka";
 import { producer } from "./index";
 
 const router = express.Router();
@@ -31,8 +31,13 @@ router.post("/upload", upload.single("file"), async (req, res) => {
 		// Create a unique filename
 		location = createFileName(project, req.file.originalname, timestamp);
 
+		const metadata = {
+			"X-Amz-Meta-Project-Name": project,
+			"X-Amz-Meta-Filename": req.file.originalname,
+			"X-Amz-Meta-Created-At": timestamp,
+		};
 		// Save to MinIO
-		await saveToMinIO(minioClient, process.env.MINIO_IFC_BUCKET || "ifc-files", location, req.file.buffer);
+		await saveToMinIO(minioClient, process.env.MINIO_IFC_BUCKET || "ifc-files", location, req.file.buffer, metadata);
 
 		res.status(200).json({
 			message: "File uploaded successfully",
@@ -47,9 +52,8 @@ router.post("/upload", upload.single("file"), async (req, res) => {
 	} finally {
 		// Send the message to Kafka topic
 		if (producer) {
-			const msg = newIfcMsg(project, fileName, timestamp, location);
-			await sendKafkaMessage(producer, msg);
-			console.log("Sent message to Kafka:", msg);
+			await sendKafkaMessage(producer, location);
+			console.log("Sent message to Kafka:", location);
 		}
 	}
 });

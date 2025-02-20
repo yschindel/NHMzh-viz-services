@@ -1,26 +1,6 @@
 import { Kafka, Consumer, Producer } from "kafkajs";
 
 /**
- * TODO: CONVERT TO RDF INPUT?? probably not, because we can't have buffers in RDF
- * Interface for the Kafka message payload
- * This has to be in sync with the producer
- * It's important to have the timestamp in the message payload to keep track of the file version
- * The project is also relevant, because file names can be the same across multiple projects.
- * The location is the path inside the MinIO bucket, consisting of project/filename_timestamp.extension
- * The locaion is used to retrieve the IFC file from the IFC MinIO Instance
- */
-export interface IfcMsg {
-	project: string;
-	filename: string;
-	timestamp: string; // Timestamp for the filename (in ISO 8601 format)
-	location: string; // The file path inside the MinIO bucket, consisting of project/filename_timestamp
-}
-
-export function newIfcMsg(project: string, filename: string, timestamp: string, location: string): IfcMsg {
-	return { project, filename, timestamp, location };
-}
-
-/**
  * Setup the Kafka consumer
  * @returns The Kafka consumer
  */
@@ -71,9 +51,9 @@ export async function setupKafkaProducer(): Promise<Producer> {
  * @param producer - The Kafka producer
  * @param message - The message to send
  */
-export async function sendKafkaMessage(producer: Producer, message: IfcMsg): Promise<void> {
+export async function sendKafkaMessage(producer: Producer, message: string): Promise<void> {
 	await producer.send({
 		topic: process.env.KAFKA_IFC_TOPIC || "ifc-files",
-		messages: [{ value: JSON.stringify(message) }],
+		messages: [{ value: message }],
 	});
 }

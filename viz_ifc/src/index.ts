@@ -1,6 +1,6 @@
 import { runIfcToGzWorker } from "./ifc/ifcParser";
 import { ensureWasmFile } from "./ifc/wasm";
-import { setupKafkaConsumer, startKafkaConsumer, IfcMsg, setupKafkaProducer } from "./kafka";
+import { setupKafkaConsumer, startKafkaConsumer, setupKafkaProducer } from "./kafka";
 import { initializeMinio, getFile, getFileMetadata, minioClient } from "./minio";
 import express from "express";
 import apiRouter from "./api";

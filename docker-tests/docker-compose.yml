@@ -52,14 +52,14 @@ services:
   #     - minio
   #     - kafka
 
-  # nhmzh-viz-services_pbi-server:
-  #   image: yschindel/nhmzh-viz-services_pbi-server:latest
-  #   env_file:
-  #     - ../.env
-  #   depends_on:
-  #     - minio
-  #   ports:
-  #     - "3000:3000"
+  nhmzh-viz-services_pbi-server:
+    image: yschindel/nhmzh-viz-services_pbi-server:latest
+    env_file:
+      - ../.env
+    depends_on:
+      - minio
+    ports:
+      - "3000:3000"
 
 volumes:
   minio_data:

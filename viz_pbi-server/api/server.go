@@ -62,6 +62,8 @@ func (s *Server) getFragmentsFile() http.HandlerFunc {
 			return
 		}
 
+		log.Printf("getting fragments files with id: %s", id)
+
 		files, err := minio.ListAllFiles(fragmentsBucket)
 		if err != nil {
 			http.Error(w, fmt.Sprintf("Failed to list all files from MinIO: %v", err), http.StatusInternalServerError)

@@ -86,9 +86,9 @@ function log(fileName: string, message: string) {
  */
 function createFileName(project: string, filename: string, timestamp: string, extension: string): string {
 	project = sanitizeString(project);
-	filename = sanitizeString(filename);
+	filename = sanitizeString(filename.replace(".ifc", ""));
 	const fileTimestamp = timestamp || new Date().toISOString();
-	return `${project}/${filename.replace(".ifc", "")}_${fileTimestamp}${extension}`;
+	return `${project}/${filename}_${fileTimestamp}${extension}`;
 }
 
 function sanitizeString(str: string): string {

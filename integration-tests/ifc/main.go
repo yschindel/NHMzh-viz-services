@@ -163,8 +163,8 @@ func addIfcFilesToMinio() error {
 }
 
 func getFileFromPbiServer(url string, location string) ([]byte, error) {
-	// Make HTTP request to /file endpoint
-	resp, err := http.Get(url + "/fragments?name=" + location)
+	// Make HTTP request to /fragments endpoint with id parameter
+	resp, err := http.Get(url + "/fragments?id=" + location)
 	if err != nil {
 		return nil, fmt.Errorf("error making HTTP request to PBI server: %v", err)
 	}
@@ -195,7 +195,8 @@ func main() {
 
 	log.Println("Getting fragments files...")
 	for _, msg := range messages {
-		name := strings.Replace(msg.Location, ".ifc", ".gz", 1)
+		// split the file name by the last underscore and take the first part
+		name := strings.Split(msg.Location, "_")[0]
 		_, err := getFileFromPbiServer(pbiServerUrl, name)
 		if err != nil {
 			log.Fatalf("Error getting fragments files: %v", err)

@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - main # Trigger on pushes to the main branch
-      - dockerhub
+      # - dockerhub
 
 jobs:
   build-and-deploy:

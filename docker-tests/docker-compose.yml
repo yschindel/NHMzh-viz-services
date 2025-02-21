@@ -2,13 +2,13 @@ services:
   minio:
     image: minio/minio
     ports:
-      - "9000:9000"
+      - "${MINIO_PORT:-9000}:9000"
       - "9001:9001"
     environment:
-      MINIO_ACCESS_KEY: ROOTUSER
-      MINIO_SECRET_KEY: CHANGEME123
-      MINIO_PORT: 9000
-      MINIO_USE_SSL: false
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-ROOTUSER}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-CHANGEME123}
+      MINIO_PORT: ${MINIO_PORT:-9000}
+      MINIO_USE_SSL: ${MINIO_USE_SSL:-false}
     volumes:
       - minio_data:/data
     command: server /data --console-address ":9001"
@@ -31,11 +31,8 @@ services:
       KAFKA_LISTENERS: INSIDE://0.0.0.0:9093,OUTSIDE://0.0.0.0:9092
       KAFKA_INTER_BROKER_LISTENER_NAME: INSIDE
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_CREATE_TOPICS: "ifc-files:1:1, lca-data:1:1, lca-data:1:1, lca-history:1:1"
+      KAFKA_CREATE_TOPICS: "${KAFKA_IFC_TOPIC:-ifc-files}:1:1, ${KAFKA_LCA_TOPIC:-lca-data}:1:1, ${KAFKA_COST_TOPIC:-cost-data}:1:1, ${KAFKA_HISTORY_TOPIC:-lca-history}:1:1"
       KAFKA_BROKER: kafka:9093
-      KAFKA_IFC_TOPIC: ifc-files
-      KAFKA_LCA_TOPIC: lca-data
-      KAFKA_COST_TOPIC: cost-data
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     depends_on:
@@ -44,17 +41,19 @@ services:
   nhmzh-viz-services_ifc:
     image: yschindel/nhmzh-viz-services_ifc:latest
     environment:
-      MINIO_ACCESS_KEY: ROOTUSER
-      MINIO_SECRET_KEY: CHANGEME123
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-ROOTUSER}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-CHANGEME123}
+      MINIO_PORT: ${MINIO_PORT:-9000}
+      MINIO_USE_SSL: ${MINIO_USE_SSL:-false}
       MINIO_ENDPOINT: minio
-      MINIO_PORT: 9000
-      MINIO_USE_SSL: false
-      MINIO_FRAGMENTS_BUCKET: ifc-fragment-files
-      MINIO_IFC_BUCKET: ifc-files
+      MINIO_FRAGMENTS_BUCKET: ${MINIO_FRAGMENTS_BUCKET:-ifc-fragment-files}
+      MINIO_IFC_BUCKET: ${MINIO_IFC_BUCKET:-ifc-files}
       KAFKA_BROKER: kafka:9093
-      KAFKA_IFC_TOPIC: ifc-files
-      IFC_API_PORT: 4242
-      VIZ_KAFKA_IFC_PRODUCER_ID: viz-ifc-producer
+      KAFKA_IFC_TOPIC: ${KAFKA_IFC_TOPIC:-ifc-files}
+      # This is used by the integration tests, keep it for now until I change the integration tests
+      IFC_API_PORT: ${IFC_API_PORT:-4242}
+      # This is used by the integration tests, keep it for now until I change the integration tests
+      VIZ_KAFKA_IFC_PRODUCER_ID: ${VIZ_KAFKA_IFC_PRODUCER_ID:-viz-ifc-producer}
     depends_on:
       - minio
       - kafka
@@ -75,14 +74,14 @@ services:
   nhmzh-viz-services_pbi-server:
     image: yschindel/nhmzh-viz-services_pbi-server:latest
     environment:
-      MINIO_ACCESS_KEY: ROOTUSER
-      MINIO_SECRET_KEY: CHANGEME123
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-ROOTUSER}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-CHANGEME123}
+      MINIO_PORT: ${MINIO_PORT:-9000}
+      MINIO_USE_SSL: ${MINIO_USE_SSL:-false}
       MINIO_ENDPOINT: minio
-      MINIO_PORT: 9000
-      MINIO_USE_SSL: false
-      MINIO_FRAGMENTS_BUCKET: ifc-fragment-files
-      MINIO_IFC_BUCKET: ifc-files
-      PBI_SERVER_PORT: 3000
+      MINIO_FRAGMENTS_BUCKET: ${MINIO_FRAGMENTS_BUCKET:-ifc-fragment-files}
+      MINIO_IFC_BUCKET: ${MINIO_IFC_BUCKET:-ifc-files}
+      PBI_SERVER_PORT: ${PBI_SERVER_PORT:-3000}
     depends_on:
       - minio
     ports:

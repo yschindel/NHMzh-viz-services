@@ -15,11 +15,11 @@ route: **/fragments**
 
 Description:
 
-Returns a fragments file compressed as .gz
+Returns the latest version of a fragments file compressed as .gz
 
 Arguments:
 
-- **name**: The name of the file in the following format: `project2/file2_2024-10-25T16:36:04.986173Z.gz`
+- **id**: The id of the file in the following format: `project2/file2`
 
 ### List All Fragment Files
 

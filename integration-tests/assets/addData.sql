@@ -3,7 +3,7 @@ DROP TABLE IF EXISTS data;
 CREATE TABLE data (
     project VARCHAR,
     filename VARCHAR,
-    fileId VARCHAR,
+    fileid VARCHAR,
     timestamp VARCHAR,
     id VARCHAR,
     lca BOOLEAN,
@@ -26,7 +26,7 @@ INSERT INTO data
   SELECT 
       'juch-areal' AS project,
       'file1' AS filename,
-      'juch-areal/file1' AS fileId,
+      'juch-areal/file1' AS fileid,
       '2024-10-25T16:36:04.986158Z' AS timestamp,
       id, 
       lca, 
@@ -49,7 +49,7 @@ INSERT INTO data
   SELECT 
       'juch-areal' AS project,
       'file1' AS filename,
-      'juch-areal/file1' AS fileId,
+      'juch-areal/file1' AS fileid,
       '2024-11-25T16:36:04.986158Z' AS timestamp,
       id, 
       lca, 
@@ -72,7 +72,7 @@ INSERT INTO data
   SELECT 
       'juch-areal' AS project,
       'file2' AS filename,
-      'juch-areal/file2' AS fileId,
+      'juch-areal/file2' AS fileid,
       '2024-10-25T16:36:04.986158Z' AS timestamp,
       id, 
       lca, 
@@ -93,9 +93,9 @@ INSERT INTO data
 
 INSERT INTO data 
   SELECT 
-      'project1' AS project,
+      'other-project' AS project,
       'file3' AS filename,
-      'project1/file3' AS fileId,
+      'other-project/file3' AS fileid,
       '2024-10-23T16:36:04.986158Z' AS timestamp,
       id, 
       lca, 
@@ -114,4 +114,5 @@ INSERT INTO data
       ubp_relative
   FROM 'data4.parquet';
 
-COPY data TO 'data.csv' (HEADER, DELIMITER ',');
+COPY data TO 'export_data.csv' (HEADER, DELIMITER ',');
+COPY data TO 'export_data.parquet';

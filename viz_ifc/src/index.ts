@@ -38,7 +38,8 @@ async function main() {
 		if (message.value) {
 			try {
 				console.log("received message: ", message);
-				const location = message.value.toString();
+				const donwloadLink = message.value.toString();
+				const location = donwloadLink.split("/").pop();
 
 				console.log("getting object from minio at: ", location);
 				const file = await getFile(location, IFC_BUCKET_NAME, minioClient);

@@ -11,7 +11,7 @@ CREATE TABLE [dbo].[cost_data]
   [ebkph_1] VARCHAR(255),
   [ebkph_2] VARCHAR(255),
   [ebkph_3] VARCHAR(255),
-  [mat_kbob] VARCHAR(255),
   [cost] DECIMAL(18,2),
   [cost_unit] DECIMAL(18,2),
+  CONSTRAINT [UQ_cost_data_id_filename_timestamp] UNIQUE ([id], [filename], [timestamp], [project])
 );

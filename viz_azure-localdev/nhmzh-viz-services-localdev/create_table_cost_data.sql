@@ -4,7 +4,7 @@ CREATE TABLE [dbo].[cost_data]
   [project] VARCHAR(255) NOT NULL,
   [filename] VARCHAR(255) NOT NULL,
   [fileid] VARCHAR(255) NOT NULL,
-  [timestamp] VARCHAR(255) NOT NULL,
+  [timestamp] DATETIME2 NOT NULL,
   [id] VARCHAR(255) NOT NULL,
   [ebkph] VARCHAR(255),
   [ebkph_1] VARCHAR(255),

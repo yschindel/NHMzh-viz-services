@@ -1,7 +1,6 @@
 DROP TABLE IF EXISTS [dbo].[lca_data];
 CREATE TABLE [dbo].[lca_data]
 (
-  [record_id] BIGINT IDENTITY(1,1) PRIMARY KEY,
   [project] VARCHAR(255) NOT NULL,
   [filename] VARCHAR(255) NOT NULL,
   [fileid] VARCHAR(255) NOT NULL,

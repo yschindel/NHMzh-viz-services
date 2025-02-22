@@ -1,7 +1,6 @@
 DROP TABLE IF EXISTS [dbo].[cost_data];
 CREATE TABLE [dbo].[cost_data]
 (
-  [record_id] BIGINT IDENTITY(1,1) PRIMARY KEY,
   [project] VARCHAR(255) NOT NULL,
   [filename] VARCHAR(255) NOT NULL,
   [fileid] VARCHAR(255) NOT NULL,
@@ -13,5 +12,5 @@ CREATE TABLE [dbo].[cost_data]
   [ebkph_3] VARCHAR(255),
   [cost] DECIMAL(18,2),
   [cost_unit] DECIMAL(18,2),
-  CONSTRAINT [UQ_cost_data_id_filename_timestamp] UNIQUE ([id], [filename], [timestamp], [project])
+  CONSTRAINT [UQ_cost_data_id_filename_timestamp_project] UNIQUE ([id], [filename], [timestamp], [project])
 );

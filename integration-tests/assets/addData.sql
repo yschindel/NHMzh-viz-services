@@ -189,8 +189,5 @@ FROM (
     FROM 'data4.csv'
 ) t;
 
-COPY lca_data TO 'export_lca_data.csv' (HEADER, DELIMITER ',');
-COPY lca_data TO 'export_lca_data.parquet';
-
-COPY cost_data TO 'export_cost_data.csv' (HEADER, DELIMITER ',');
-COPY cost_data TO 'export_cost_data.parquet';
+COPY (SELECT * FROM lca_data WHERE ebkph IS NOT NULL LIMIT 100) TO 'export_lca_data.parquet';
+COPY (SELECT * FROM cost_data WHERE ebkph IS NOT NULL LIMIT 100) TO 'export_cost_data.parquet';

@@ -70,7 +70,7 @@ CREATE TABLE [dbo].[cost_data]
 # Execute CREATE TABLE statements
 with engine.connect() as conn:
     conn.execute(text(create_lca_table))
-    conn.execute(text(create_cost_table))
+    # conn.execute(text(create_cost_table))
     conn.commit()
 
 # Ensure column types match SQL table definitions
@@ -91,6 +91,25 @@ cost_columns = [
 df_lca = df_lca[lca_columns]
 df_cost = df_cost[cost_columns]
 
+# Before the to_sql call
+print(f"Total records in DataFrame: {len(df_cost)}")
+print(f"Unique combinations: {len(df_cost.groupby(['id', 'filename', 'timestamp', 'project']).size())}")
+
+problem_record = df_cost[
+    (df_cost['id'] == '36LFaFK0yHxxXz4547fLgL') & 
+    (df_cost['filename'] == 'file1') & 
+    (df_cost['project'] == 'juch-areal')
+]
+print("\nProblem record timestamps:")
+for idx, row in problem_record.iterrows():
+    print(f"Timestamp type: {type(row['timestamp'])}")
+    print(f"Timestamp value: {row['timestamp']}")
+    print(f"Timestamp components: {row['timestamp'].year}-{row['timestamp'].month:02d}-{row['timestamp'].day:02d}")
+
+# Before the to_sql, ensure timestamp precision is maintained
+df_cost['timestamp'] = df_cost['timestamp'].dt.strftime('%Y-%m-%d %H:%M:%S.%f')
+
+
 # Write to SQL tables
-df_lca.to_sql('lca_data', engine, if_exists='append', index=False, schema='dbo')
-df_cost.to_sql('cost_data', engine, if_exists='append', index=False, schema='dbo')
+# df_cost.to_sql('cost_data', engine, if_exists='replace', index=False, schema='dbo')
+df_lca.to_sql('lca_data', engine, if_exists='replace', index=False, schema='dbo')

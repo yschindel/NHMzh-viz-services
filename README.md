@@ -1,36 +1,46 @@
-# NHMzh Vizualization Services
+# NHMzh Visualization Services
 
-This repository contains the code for the Vizualization Services of the NHMzh project.
+This repository contains the code for the Visualization Services of the NHMzh project.
 
-## The Services in this repository
+## The Services in this Repository
 
 ### Minio
 
 - Used for storing files.
 - Buckets:
-  - ifc-files (the raw ifc files)
-  - ifc-fragment-files (compressed counterparts to the ifc files, converted to 'fragments')
+  - `ifc-files` (the raw IFC files)
+  - `ifc-fragment-files` (compressed counterparts to the IFC files, converted to 'fragments')
+  - `lca-cost-data` (data related to LCA and cost calculations)
 
 ### viz_ifc
 
-Listens to a Kafka topic with links to IFC files
+Listens to a Kafka topic with links to IFC files:
 
-- Loads the ifc file from Minio
+- Loads the IFC file from Minio
 - Converts to fragments, compresses
 - Saves compressed fragments back to Minio
-- TODO: update 'fragments-files' Kafka topic.
+- TODO: update 'fragments-files' Kafka topic
 
 Uses the @ThatOpen Companies library.
 
 ### viz_lca-cost
 
-This consumer listens to the cost and lca kafka topics and writes data to Azure SQL DB.
-Cost and LCA data is captured in Azure SQL DB. This allows for reporting of the data over time.
+This consumer listens to the cost and LCA Kafka topics and writes data to Azure SQL DB:
+
+- Cost and LCA data is captured in Azure SQL DB
+- This enables reporting of the data over time
+
+### viz_pbi-server
+
+Serves the Power BI integration:
+
+- Provides an API for accessing data stored in Minio
+- Enables Power BI to display the latest visualization data
 
 ## Additional Services Needed:
 
-- Azure SQL Server SQL Database for storing all cost and lca data over time.
-- This services can be connected to PowerBI via direct query so it always shows the latest data without having to updating the dashboard in PowerBI desktop and republish.
+- Azure SQL Server SQL Database for storing all cost and LCA data over time.
+- These services can be connected to PowerBI via direct query so it always shows the latest data without having to update the dashboard in PowerBI desktop and republish.
 
 ## Prerequisites
 
@@ -62,8 +72,6 @@ VIZ_KAFKA_IFC_PRODUCER_ID=viz-ifc-producer
 VIZ_KAFKA_IFC_GROUP_ID=viz-ifc
 VIZ_KAFKA_DATA_GROUP_ID=viz-data
 
-
-
 PBI_SERVER_PORT=3000
 
 KAFKA_BROKER=kafka:9093
@@ -71,9 +79,9 @@ KAFKA_IFC_TOPIC=ifc-files
 KAFKA_LCA_TOPIC=lca-data
 KAFKA_COST_TOPIC=cost-data
 
-# Azure DB credentials - Not used in the showcase
+# Azure DB credentials
 AZURE_DB_SERVER=your-server-name.database.windows.net
-AZURE_DB_PORT=1234
+AZURE_DB_PORT=1433
 AZURE_DB_USER=your-user-name
 AZURE_DB_PASSWORD=your-password
 AZURE_DB_DATABASE=your-database-name
@@ -83,11 +91,22 @@ IFC_API_PORT=4242
 ```
 
 If you intend to do local integration testing:
-Create a '.env.dev' file next to the '.env' file and override the Azure DB credentials.
+Create a `.env.dev` file next to the `.env` file and override the Azure DB credentials:
+
+```
+# Azure DB credentials
+AZURE_DB_SERVER=host.docker.internal
+AZURE_DB_PORT=1234
+AZURE_DB_USER=your-user-name
+AZURE_DB_PASSWORD=your-password
+AZURE_DB_DATABASE=your-database-name
+
+ENVIRONMENT=development
+```
 
 Make sure to replace `ROOTUSER` and `CHANGEME123` with your own credentials.
 
-## Running the services
+## Running the Services
 
 To run the services, navigate to the root directory of the repository and run the following command:
 
@@ -95,7 +114,7 @@ To run the services, navigate to the root directory of the repository and run th
 docker-compose up --build -d
 ```
 
-## Stopping the services
+## Stopping the Services
 
 To stop the services, navigate to the root directory of the repository and run the following command:
 
@@ -105,7 +124,7 @@ docker-compose down
 
 ## Access the MinIO Console
 
-To access the MinIO Console, navigate to http://localhost:9001. You will need to use the credentials `ROOTUSER` and `CHANGEME123` to log in. Or whatever you have set in the `.env` file.
+To access the MinIO Console, navigate to http://localhost:9001. You will need to use the credentials `ROOTUSER` and `CHANGEME123` to log in (or whatever you have set in the `.env` file).
 
 ## Tests
 

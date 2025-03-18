@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"log"
-	"strings"
 
 	"github.com/segmentio/kafka-go"
 )
@@ -13,7 +12,8 @@ import (
 type Consumer struct {
 	environmentalReader *kafka.Reader
 	costReader          *kafka.Reader
-	azureDB             *sql.DB
+	processor           *MessageProcessor
+	writer              *MessageWriter
 }
 
 func NewConsumer(envBroker, envTopic, costBroker, costTopic, groupID string, azureDB *sql.DB) *Consumer {
@@ -35,7 +35,8 @@ func NewConsumer(envBroker, envTopic, costBroker, costTopic, groupID string, azu
 	return &Consumer{
 		environmentalReader: environmentalReader,
 		costReader:          costReader,
-		azureDB:             azureDB,
+		processor:           NewMessageProcessor(),
+		writer:              NewMessageWriter(azureDB),
 	}
 }
 
@@ -77,6 +78,9 @@ func (c *Consumer) consumeCost(ctx context.Context) {
 func (c *Consumer) handleEnvironmentalMessage(m kafka.Message) {
 	log.Printf("received environmental message: %s", string(m.Key))
 
+	// Step 1: Receive - already done via Kafka consumer
+
+	// Step 2: Process message
 	var message LcaMessage
 	err := json.Unmarshal(m.Value, &message)
 	if err != nil {
@@ -84,9 +88,15 @@ func (c *Consumer) handleEnvironmentalMessage(m kafka.Message) {
 		return
 	}
 
-	message.Filename = strings.TrimSuffix(message.Filename, ".ifc")
+	// Process the message (apply transformations, validations, etc.)
+	err = c.processor.ProcessLcaMessage(&message)
+	if err != nil {
+		log.Printf("could not process lca message: %v", err)
+		return
+	}
 
-	err = WriteLcaMessage(c.azureDB, message)
+	// Step 3: Write to database
+	err = c.writer.WriteLcaMessage(message)
 	if err != nil {
 		log.Printf("could not write lca message: %v", err)
 		return
@@ -96,6 +106,9 @@ func (c *Consumer) handleEnvironmentalMessage(m kafka.Message) {
 func (c *Consumer) handleCostMessage(m kafka.Message) {
 	log.Printf("received cost message: %s", string(m.Key))
 
+	// Step 1: Receive - already done via Kafka consumer
+
+	// Step 2: Process message
 	var message CostMessage
 	err := json.Unmarshal(m.Value, &message)
 	if err != nil {
@@ -103,9 +116,15 @@ func (c *Consumer) handleCostMessage(m kafka.Message) {
 		return
 	}
 
-	message.Filename = strings.TrimSuffix(message.Filename, ".ifc")
+	// Process the message (apply transformations, validations, etc.)
+	err = c.processor.ProcessCostMessage(&message)
+	if err != nil {
+		log.Printf("could not process cost message: %v", err)
+		return
+	}
 
-	err = WriteCostMessage(c.azureDB, message)
+	// Step 3: Write to database
+	err = c.writer.WriteCostMessage(message)
 	if err != nil {
 		log.Printf("could not write cost message: %v", err)
 		return

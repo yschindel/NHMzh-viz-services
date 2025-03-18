@@ -40,7 +40,7 @@ func randCat() string {
 	return categories[rand.Intn(len(categories))]
 }
 
-var categories = [10]string{"B07", "C01", "C02", "C03", "C04", "C05", "E02", "E03", "G01", "G02"}
+var categories = [10]string{"B.07.01", "C.01.01", "C.02.01", "C.03.01", "C.04.01", "C.05.01", "E.02.01", "E.03.01", "G.01.01", "G.02.01"}
 
 func newDataItems(numElements int) []DataItem {
 	dataItems := make([]DataItem, numElements)

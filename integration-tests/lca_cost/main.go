@@ -1,12 +1,8 @@
 package main
 
 import (
-	"encoding/json"
-	"fmt"
-	"io"
 	"lca_cost/data"
 	"log"
-	"net/http"
 	"os"
 	"path/filepath"
 
@@ -40,58 +36,6 @@ func init() {
 		pbiServerPort = "8080"
 	}
 	pbiServerURL = "http://localhost:" + pbiServerPort
-}
-
-func getModelListFromPbiServer(url string, project string) ([]string, error) {
-	resp, err := http.Get(url + "/data/models?project=" + project)
-	if err != nil {
-		return nil, fmt.Errorf("error making HTTP request to PBI server: %v", err)
-	}
-	defer resp.Body.Close()
-
-	var modelList []string
-	if err := json.NewDecoder(resp.Body).Decode(&modelList); err != nil {
-		return nil, fmt.Errorf("error decoding response body: %v", err)
-	}
-
-	return modelList, nil
-}
-
-func getProjectListFromPbiServer(url string) ([]string, error) {
-	resp, err := http.Get(url + "/data/projects")
-	if err != nil {
-		return nil, fmt.Errorf("error making HTTP request to PBI server: %v", err)
-	}
-	defer resp.Body.Close()
-
-	var projectList []string
-	if err := json.NewDecoder(resp.Body).Decode(&projectList); err != nil {
-		return nil, fmt.Errorf("error decoding response body: %v", err)
-	}
-
-	return projectList, nil
-}
-
-// get a parquet file from the lca-cost-data bucket
-func getDataFromPbiServer(url string, project string, filename string) ([]byte, error) {
-	resp, err := http.Get(url + "/data?name=" + filename + "&project=" + project)
-	if err != nil {
-		return nil, fmt.Errorf("error making HTTP request to PBI server: %v", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("server returned status %d: %s", resp.StatusCode, string(body))
-	}
-
-	// Read all bytes at once, similar to arrayBuffer() in TypeScript
-	data, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("error reading response body: %v", err)
-	}
-
-	return data, nil
 }
 
 func main() {

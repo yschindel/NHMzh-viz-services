@@ -69,10 +69,10 @@ func (w *MessageWriter) writeCostMessageWithRetry(message CostMessage) error {
 	}
 	defer tx.Rollback()
 
-	// Pre
+	// Prepare the INSERT statement for cost_data table
 	costStmt, err := tx.PrepareContext(ctx, `
-			INSERT INTO cost_data (project, filename, fileid, timestamp, id, ebkph, ebkph_1, ebkph_2, ebkph_3, cost, cost_unit)
-			VALUES (@p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9, @p10, @p11);`)
+			INSERT INTO cost_data (project, filename, fileid, timestamp, id, category, level, is_structural, fire_rating, ebkph, ebkph_1, ebkph_2, ebkph_3, cost, cost_unit)
+			VALUES (@p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9, @p10, @p11, @p12, @p13, @p14, @p15);`)
 	if err != nil {
 		return fmt.Errorf("error preparing cost_data statement: %v", err)
 	}
@@ -89,12 +89,16 @@ func (w *MessageWriter) writeCostMessageWithRetry(message CostMessage) error {
 			fileID,            // @p3
 			message.Timestamp, // @p4
 			item.Id,           // @p5
-			item.Category,     // @p6 (full ebkph code)
-			item.Ebkph1,       // @p7 (first ebkph component)
-			item.Ebkph2,       // @p8 (second ebkph component)
-			item.Ebkph3,       // @p9 (third ebkph component)
-			item.Cost,         // @p10
-			item.CostUnit,     // @p11
+			item.Category,     // @p6
+			item.Level,        // @p7
+			item.IsStructural, // @p8
+			item.FireRating,   // @p9
+			item.Ebkph,        // @p10
+			item.Ebkph1,       // @p11
+			item.Ebkph2,       // @p12
+			item.Ebkph3,       // @p13
+			item.Cost,         // @p14
+			item.CostUnit,     // @p15
 		)
 		if err != nil {
 			return fmt.Errorf("error inserting cost_data record: %v", err)
@@ -127,12 +131,12 @@ func (w *MessageWriter) writeLcaMessageWithRetry(message LcaMessage) error {
 	}
 	defer tx.Rollback()
 
-	// Prepare the INSERT statement for lca_data table
+	// Prepare the INSERT statement for lca_data table based on create_tables.sql
 	lcaStmt, err := tx.PrepareContext(ctx, `
-			INSERT INTO lca_data (project, filename, fileid, timestamp, id, ebkph, ebkph_1, ebkph_2, ebkph_3, mat_kbob,
+			INSERT INTO lca_data (project, filename, fileid, timestamp, id, mat_kbob,
 								  gwp_absolute, gwp_relative, penr_absolute, penr_relative,
 								  ubp_absolute, ubp_relative)
-			VALUES (@p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9, @p10, @p11, @p12, @p13, @p14, @p15, @p16);`)
+			VALUES (@p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9, @p10, @p11, @p12);`)
 	if err != nil {
 		return fmt.Errorf("error preparing lca_data statement: %v", err)
 	}
@@ -142,24 +146,20 @@ func (w *MessageWriter) writeLcaMessageWithRetry(message LcaMessage) error {
 	fileID := message.FileID
 
 	for _, item := range message.Data {
-		// Write to lca_data table with the eBKP-H component fields
+		// Write to lca_data table
 		_, err = lcaStmt.ExecContext(ctx,
 			message.Project,   // @p1
 			message.Filename,  // @p2
 			fileID,            // @p3
 			message.Timestamp, // @p4
 			item.Id,           // @p5
-			item.Category,     // @p6 (full ebkph code)
-			item.Ebkph1,       // @p7 (first ebkph component)
-			item.Ebkph2,       // @p8 (second ebkph component)
-			item.Ebkph3,       // @p9 (third ebkph component)
-			item.MaterialKbob, // @p10
-			item.GwpAbsolute,  // @p11
-			item.GwpRelative,  // @p12
-			item.PenrAbsolute, // @p13
-			item.PenrRelative, // @p14
-			item.UbpAbsolute,  // @p15
-			item.UbpRelative,  // @p16
+			item.MaterialKbob, // @p6
+			item.GwpAbsolute,  // @p7
+			item.GwpRelative,  // @p8
+			item.PenrAbsolute, // @p9
+			item.PenrRelative, // @p10
+			item.UbpAbsolute,  // @p11
+			item.UbpRelative,  // @p12
 		)
 		if err != nil {
 			return fmt.Errorf("error inserting lca_data record: %v", err)

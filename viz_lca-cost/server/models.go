@@ -18,10 +18,6 @@ type LcaMessage struct {
 // LcaDataItem represents a single LCA data item
 type LcaDataItem struct {
 	Id           string  `json:"id"`            // Unique identifier for the item
-	Category     string  `json:"ebkph"`         // eBKP-H category (e.g., "C.02.95")
-	Ebkph1       string  `json:"-"`             // First component of eBKP-H (e.g., "C" from "C.02.95")
-	Ebkph2       string  `json:"-"`             // Second component of eBKP-H (e.g., "02" from "C.02.95")
-	Ebkph3       string  `json:"-"`             // Third component of eBKP-H (e.g., "95" from "C.02.95")
 	MaterialKbob string  `json:"mat_kbob"`      // KBOB material reference
 	GwpAbsolute  float32 `json:"gwp_absolute"`  // Global Warming Potential (absolute)
 	GwpRelative  float32 `json:"gwp_relative"`  // Global Warming Potential (relative)
@@ -42,11 +38,15 @@ type CostMessage struct {
 
 // CostDataItem represents a single cost data item
 type CostDataItem struct {
-	Id       string  `json:"id"`        // Unique identifier for the item
-	Category string  `json:"ebkph"`     // eBKP-H category (e.g., "C.02.95")
-	Ebkph1   string  `json:"-"`         // First component of eBKP-H (e.g., "C" from "C.02.95")
-	Ebkph2   string  `json:"-"`         // Second component of eBKP-H (e.g., "02" from "C.02.95")
-	Ebkph3   string  `json:"-"`         // Third component of eBKP-H (e.g., "95" from "C.02.95")
-	Cost     float32 `json:"cost"`      // Cost value
-	CostUnit float32 `json:"cost_unit"` // Cost unit
+	Id           string  `json:"id"`            // Unique identifier for the item
+	Category     string  `json:"category"`      // The element category (e.g. "walls" or "floors")
+	Level        string  `json:"level"`         // The level of the element (e.g. "wall" or "floor")
+	IsStructural bool    `json:"is_structural"` // Whether the element is structural (e.g. true or false)
+	FireRating   string  `json:"fire_rating"`   // The fire rating of the element (e.g. "A" or "B")
+	Ebkph        string  `json:"ebkph"`         // eBKP-H category (e.g., "C.02.95")
+	Ebkph1       string  `json:"-"`             // First component of eBKP-H (e.g., "C" from "C.02.95")
+	Ebkph2       string  `json:"-"`             // Second component of eBKP-H (e.g., "02" from "C.02.95")
+	Ebkph3       string  `json:"-"`             // Third component of eBKP-H (e.g., "95" from "C.02.95")
+	Cost         float32 `json:"cost"`          // Cost value
+	CostUnit     float32 `json:"cost_unit"`     // Cost unit
 }

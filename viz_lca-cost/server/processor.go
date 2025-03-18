@@ -91,17 +91,6 @@ func (p *MessageProcessor) ProcessLcaMessage(message *LcaMessage) error {
 	// Add fileid to the message for easier use by the writer
 	message.FileID = p.GenerateFileID(message.Project, message.Filename)
 
-	// Process the eBKP-H codes for all items
-	for i := range message.Data {
-		// Split the eBKP-H code into components
-		ebkphComponents := p.SplitEbkphCode(message.Data[i].Category)
-
-		// Assign the components to the respective fields
-		message.Data[i].Ebkph1 = ebkphComponents[0]
-		message.Data[i].Ebkph2 = ebkphComponents[1]
-		message.Data[i].Ebkph3 = ebkphComponents[2]
-	}
-
 	// Additional processing logic can be added here
 
 	return nil
@@ -134,17 +123,6 @@ func (p *MessageProcessor) ProcessCostMessage(message *CostMessage) error {
 
 	// Add fileid to the message for easier use by the writer
 	message.FileID = p.GenerateFileID(message.Project, message.Filename)
-
-	// Process the eBKP-H codes for all items
-	for i := range message.Data {
-		// Split the eBKP-H code into components
-		ebkphComponents := p.SplitEbkphCode(message.Data[i].Category)
-
-		// Assign the components to the respective fields
-		message.Data[i].Ebkph1 = ebkphComponents[0]
-		message.Data[i].Ebkph2 = ebkphComponents[1]
-		message.Data[i].Ebkph3 = ebkphComponents[2]
-	}
 
 	// Additional processing logic can be added here
 

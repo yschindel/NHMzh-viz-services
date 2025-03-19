@@ -1,4 +1,4 @@
-import { Kafka, Consumer, Producer } from "kafkajs";
+import { Kafka, Consumer } from "kafkajs";
 
 /**
  * Setup the Kafka consumer
@@ -40,44 +40,5 @@ export async function startKafkaConsumer(consumer: Consumer, messageHandler: (me
 		console.error("Error running Kafka consumer:", error);
 		// Exit with a non-zero code to trigger restart
 		process.exit(1);
-	}
-}
-
-/**
- * Setup the Kafka producer
- * @returns The Kafka producer
- */
-export async function setupKafkaProducer(): Promise<Producer> {
-	const kafka = new Kafka({
-		clientId: process.env.VIZ_KAFKA_IFC_PRODUCER_ID || "viz-ifc-producer",
-		brokers: [process.env.KAFKA_BROKER || "kafka:9093"],
-	});
-
-	const producer = kafka.producer();
-	try {
-		await producer.connect();
-		return producer;
-	} catch (error) {
-		console.error("Failed to connect to Kafka producer:", error);
-		// Exit with a non-zero code to trigger restart
-		process.exit(1);
-	}
-}
-
-/**
- * Send a message to the Kafka producer
- * @param producer - The Kafka producer
- * @param message - The message to send
- */
-export async function sendKafkaMessage(producer: Producer, message: string): Promise<void> {
-	try {
-		await producer.send({
-			topic: process.env.KAFKA_IFC_TOPIC || "ifc-files",
-			messages: [{ value: message }],
-		});
-	} catch (error) {
-		console.error("Failed to send Kafka message:", error);
-		// Depending on your requirements, you might want to exit here too
-		// process.exit(1);
 	}
 }

@@ -30,7 +30,17 @@ WORKDIR /app
 # Copy the Pre-built binary file from the previous stage
 COPY --from=builder /app/main .
 
-# Expose port 3000 to the outside world
+# Environment variables for configuration
+# - PBI_SERVER_PORT: Port to listen on (default: 3000)
+# - PBI_SRV_API_KEY: API key for authentication
+# - MINIO_ENDPOINT: MinIO server endpoint
+# - MINIO_ACCESS_KEY: MinIO access key
+# - MINIO_SECRET_KEY: MinIO secret key
+# - MINIO_FRAGMENTS_BUCKET: MinIO bucket for fragment files (default: ifc-fragment-files)
+# - MINIO_LCA_COST_DATA_BUCKET: MinIO bucket for LCA cost data (default: lca-cost-data)
+ENV PBI_SERVER_PORT=3000
+
+# Expose port to the outside world
 EXPOSE 3000
 
 # Command to run the executable

@@ -1,16 +1,10 @@
 import { runIfcToGzWorker } from "./ifc/ifcParser";
 import { ensureWasmFile } from "./ifc/wasm";
-import { setupKafkaConsumer, startKafkaConsumer, setupKafkaProducer } from "./kafka";
+import { setupKafkaConsumer, startKafkaConsumer } from "./kafka";
 import { initializeMinio, getFile, getFileMetadata, minioClient } from "./minio";
-import express from "express";
-import apiRouter from "./api";
-import { Producer } from "kafkajs";
 
 const FRAGMENTS_BUCKET_NAME = process.env.MINIO_IFC_FRAGMENTS_BUCKET || "ifc-fragment-files";
 const IFC_BUCKET_NAME = process.env.MINIO_IFC_BUCKET || "ifc-files";
-const IFC_API_PORT = process.env.IFC_API_PORT || 4242;
-
-export let producer: Producer;
 
 /**
  * Main function to start the IFC consumer
@@ -22,17 +16,6 @@ async function main() {
 
 	const consumer = await setupKafkaConsumer();
 	console.log("IFC Consumer is running...");
-
-	producer = await setupKafkaProducer();
-	console.log("IFC Producer is running...");
-
-	// Setup Express API server
-	const app = express();
-	app.use("/api", apiRouter);
-
-	app.listen(IFC_API_PORT, () => {
-		console.log(`API server listening on port ${IFC_API_PORT}`);
-	});
 
 	await startKafkaConsumer(consumer, async (message: any) => {
 		if (message.value) {

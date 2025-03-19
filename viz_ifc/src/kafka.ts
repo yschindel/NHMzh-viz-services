@@ -11,10 +11,16 @@ export async function setupKafkaConsumer(): Promise<Consumer> {
 	});
 
 	const consumer = kafka.consumer({ groupId: process.env.VIZ_KAFKA_IFC_GROUP_ID || "viz-ifc-consumers" });
-	await consumer.connect();
-	await consumer.subscribe({ topic: process.env.KAFKA_IFC_TOPIC || "ifc-files", fromBeginning: true });
 
-	return consumer;
+	try {
+		await consumer.connect();
+		await consumer.subscribe({ topic: process.env.KAFKA_IFC_TOPIC || "ifc-files", fromBeginning: true });
+		return consumer;
+	} catch (error) {
+		console.error("Failed to connect to Kafka:", error);
+		// Exit with a non-zero code to trigger restart
+		process.exit(1);
+	}
 }
 
 /**
@@ -23,12 +29,18 @@ export async function setupKafkaConsumer(): Promise<Consumer> {
  * @param messageHandler - The message handler
  */
 export async function startKafkaConsumer(consumer: Consumer, messageHandler: (message: any) => Promise<void>): Promise<void> {
-	await consumer.run({
-		eachMessage: async ({ topic, partition, message }) => {
-			console.log(`Received message from topic ${topic}, partition ${partition}, offset ${message.offset}`);
-			await messageHandler(message);
-		},
-	});
+	try {
+		await consumer.run({
+			eachMessage: async ({ topic, partition, message }) => {
+				console.log(`Received message from topic ${topic}, partition ${partition}, offset ${message.offset}`);
+				await messageHandler(message);
+			},
+		});
+	} catch (error) {
+		console.error("Error running Kafka consumer:", error);
+		// Exit with a non-zero code to trigger restart
+		process.exit(1);
+	}
 }
 
 /**
@@ -42,8 +54,14 @@ export async function setupKafkaProducer(): Promise<Producer> {
 	});
 
 	const producer = kafka.producer();
-	await producer.connect();
-	return producer;
+	try {
+		await producer.connect();
+		return producer;
+	} catch (error) {
+		console.error("Failed to connect to Kafka producer:", error);
+		// Exit with a non-zero code to trigger restart
+		process.exit(1);
+	}
 }
 
 /**
@@ -52,8 +70,14 @@ export async function setupKafkaProducer(): Promise<Producer> {
  * @param message - The message to send
  */
 export async function sendKafkaMessage(producer: Producer, message: string): Promise<void> {
-	await producer.send({
-		topic: process.env.KAFKA_IFC_TOPIC || "ifc-files",
-		messages: [{ value: message }],
-	});
+	try {
+		await producer.send({
+			topic: process.env.KAFKA_IFC_TOPIC || "ifc-files",
+			messages: [{ value: message }],
+		});
+	} catch (error) {
+		console.error("Failed to send Kafka message:", error);
+		// Depending on your requirements, you might want to exit here too
+		// process.exit(1);
+	}
 }

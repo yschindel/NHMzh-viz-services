@@ -51,7 +51,7 @@ services:
       - "1433:1433"
     volumes:
       - sqlserver_data:/var/opt/mssql
-      
+
   # Create the database needed by the application
   sqlserver-init:
     image: mcr.microsoft.com/mssql-tools:latest
@@ -70,7 +70,7 @@ services:
       "
 
   viz_ifc:
-    build: 
+    build:
       context: ../viz_ifc
       dockerfile: Dockerfile
     env_file:
@@ -81,9 +81,10 @@ services:
       - kafka
     ports:
       - "4242:4242"
+    restart: on-failure
 
   viz_lca-cost:
-    build: 
+    build:
       context: ../viz_lca-cost
       dockerfile: Dockerfile
     env_file:
@@ -100,7 +101,7 @@ services:
     restart: on-failure
 
   viz_pbi-server:
-    build: 
+    build:
       context: ../viz_pbi-server
       dockerfile: Dockerfile
     env_file:

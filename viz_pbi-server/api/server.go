@@ -80,6 +80,7 @@ func NewServer() *Server {
 	router.HandleFunc("/fragments/list", getFragmentFileNames()).Methods("GET")
 	router.HandleFunc("/data", getDataFile()).Methods("GET")
 	router.HandleFunc("/data/list", getDataFileNames()).Methods("GET")
+	router.HandleFunc("/gltf", getGltfFile()).Methods("GET")
 
 	// Create middleware chain
 	var handler http.Handler = router
@@ -221,6 +222,27 @@ func getDataFileNames() http.HandlerFunc {
 		// return list of files
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(files)
+	}
+}
+
+func getGltfFile() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		id := r.URL.Query().Get("id")
+		if id == "" {
+			http.Error(w, "Missing 'id' query parameter", http.StatusBadRequest)
+			return
+		}
+
+		// Fetch the file from MinIO
+		file, err := minio.GetFile("gltf-files", id)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("Failed to fetch file from MinIO: %v", err), http.StatusInternalServerError)
+			return
+		}
+
+		// Set the appropriate headers and return the file content
+		w.Header().Set("Content-Type", "application/octet-stream")
+		w.Write(file)
 	}
 }
 

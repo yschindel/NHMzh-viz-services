@@ -32,7 +32,7 @@ IF NOT EXISTS (SELECT *
 FROM sys.columns
 WHERE name = 'id' AND object_id = OBJECT_ID('lca_data'))
     BEGIN
-  ALTER TABLE [dbo].[lca_data] ADD [id] VARCHAR(255) NOT NULL DEFAULT '';
+  ALTER TABLE [dbo].[lca_data] ADD [id] VARCHAR(255) COLLATE Latin1_General_CS_AS NOT NULL DEFAULT '';
 END
 
 IF NOT EXISTS (SELECT *
@@ -117,7 +117,7 @@ IF NOT EXISTS (SELECT *
 FROM sys.columns
 WHERE name = 'id' AND object_id = OBJECT_ID('cost_data'))
     BEGIN
-  ALTER TABLE [dbo].[cost_data] ADD [id] VARCHAR(255) NOT NULL DEFAULT '';
+  ALTER TABLE [dbo].[cost_data] ADD [id] VARCHAR(255) COLLATE Latin1_General_CS_AS NOT NULL DEFAULT '';
 END
 
 IF NOT EXISTS (SELECT *

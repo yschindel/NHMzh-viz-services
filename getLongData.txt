@@ -1,0 +1,49 @@
+let
+    Source = Sql.Database("sql-nhmzh-vis-dev.database.windows.net", "sqldb-nhmzh-vis-dev", [Query="
+        SELECT 
+            e.project,
+            e.filename,
+            e.fileid,
+            e.timestamp,
+            e.id,
+            e.layer_index,
+            -- Element Properties (layer_index = 0)
+            MAX(CASE WHEN e.layer_index = 0 AND e.param_name = 'ifcType' THEN e.param_value ELSE NULL END) AS ifcType,
+            MAX(CASE WHEN e.layer_index = 0 AND e.param_name = 'level' THEN e.param_value ELSE NULL END) AS level,
+            MAX(CASE WHEN e.layer_index = 0 AND e.param_name = 'cost' THEN CAST(e.param_value AS FLOAT) ELSE NULL END) AS cost,
+            MAX(CASE WHEN e.layer_index = 0 AND e.param_name = 'cost_unit' THEN CAST(e.param_value AS FLOAT) ELSE NULL END) AS cost_unit,
+            
+            -- Material Properties (layer_index > 0)
+            MAX(CASE WHEN e.layer_index > 0 AND e.param_name = 'mat_kbob' THEN e.param_value ELSE NULL END) AS material,
+            MAX(CASE WHEN e.layer_index > 0 AND e.param_name = 'gwp_absolute' THEN CAST(e.param_value AS FLOAT) ELSE NULL END) AS gwp_absolute,
+            MAX(CASE WHEN e.layer_index > 0 AND e.param_name = 'gwp_relative' THEN CAST(e.param_value AS FLOAT) ELSE NULL END) AS gwp_relative,
+            MAX(CASE WHEN e.layer_index > 0 AND e.param_name = 'penr_absolute' THEN CAST(e.param_value AS FLOAT) ELSE NULL END) AS penr_absolute,
+            MAX(CASE WHEN e.layer_index > 0 AND e.param_name = 'penr_relative' THEN CAST(e.param_value AS FLOAT) ELSE NULL END) AS penr_relative,
+            MAX(CASE WHEN e.layer_index > 0 AND e.param_name = 'ubp_absolute' THEN CAST(e.param_value AS FLOAT) ELSE NULL END) AS ubp_absolute,
+            MAX(CASE WHEN e.layer_index > 0 AND e.param_name = 'ubp_relative' THEN CAST(e.param_value AS FLOAT) ELSE NULL END) AS ubp_relative,
+            
+            -- EBKPH properties (available for both elements and materials)
+            MAX(CASE WHEN e.param_name = 'ebkph' THEN e.param_value ELSE NULL END) AS ebkph,
+            MAX(CASE WHEN e.param_name = 'ebkph_1' THEN e.param_value ELSE NULL END) AS ebkph_1,
+            MAX(CASE WHEN e.param_name = 'ebkph_2' THEN e.param_value ELSE NULL END) AS ebkph_2,
+            MAX(CASE WHEN e.param_name = 'ebkph_3' THEN e.param_value ELSE NULL END) AS ebkph_3
+        FROM 
+            [dbo].[data_eav] e
+        WHERE 
+            e.fileid = '"&FileIdSelected&"'
+        GROUP BY 
+            e.project,
+            e.filename,
+            e.fileid,
+            e.timestamp,
+            e.id,
+            e.layer_index
+        ORDER BY 
+            e.project,
+            e.filename,
+            e.timestamp,
+            e.id,
+            e.layer_index
+    ", CreateNavigationProperties=false])
+in
+    Source

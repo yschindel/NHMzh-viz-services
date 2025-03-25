@@ -49,7 +49,8 @@ material_properties = {
 }
 
 # Generate data
-rows = []
+element_rows = []
+material_rows = []
 element_count = len(real_ids)
 
 # Generate base timestamp for each project/file
@@ -81,102 +82,105 @@ for i, element_id in enumerate(real_ids):
     cost = round(random.uniform(1000, 15000), 2)
     cost_unit = round(random.uniform(50, 500), 2)  # Cost per unit for the element
     
-    # Add element properties (layer_index = 0)
-    rows.append({
+    # Add element properties
+    element_rows.append({
         'project': project,
         'filename': file,
         'fileid': fileid,
         'timestamp': timestamp,
         'id': element_id,
-        'layer_index': 0,
         'param_name': 'ifcType',
-        'param_value': ifc_category,
+        'param_value_string': ifc_category,
         'param_type': 'string'
     })
     
-    rows.append({
+    element_rows.append({
         'project': project,
         'filename': file,
         'fileid': fileid,
         'timestamp': timestamp,
         'id': element_id,
-        'layer_index': 0,
         'param_name': 'level',
-        'param_value': ebkph_2,
+        'param_value_string': ebkph_2,
         'param_type': 'string'
+    })
+
+    element_rows.append({
+        'project': project,
+        'filename': file,
+        'fileid': fileid,
+        'timestamp': timestamp,
+        'id': element_id,
+        'param_name': 'is_structural',
+        'param_value_boolean': random.choice([True, False]),
+        'param_type': 'boolean'
     })
     
     # Add full EBKPH
-    rows.append({
+    element_rows.append({
         'project': project,
         'filename': file,
         'fileid': fileid,
         'timestamp': timestamp,
         'id': element_id,
-        'layer_index': 0,
         'param_name': 'ebkph',
-        'param_value': full_ebkph,
+        'param_value_string': full_ebkph,
         'param_type': 'string'
     })
     
     # Add split EBKPH fields
-    rows.append({
+    element_rows.append({
         'project': project,
         'filename': file,
         'fileid': fileid,
         'timestamp': timestamp,
         'id': element_id,
-        'layer_index': 0,
         'param_name': 'ebkph_1',
-        'param_value': ebkph_1,
+        'param_value_string': ebkph_1,
         'param_type': 'string'
     })
     
-    rows.append({
+    element_rows.append({
         'project': project,
         'filename': file,
         'fileid': fileid,
         'timestamp': timestamp,
         'id': element_id,
-        'layer_index': 0,
         'param_name': 'ebkph_2',
-        'param_value': ebkph_2,
+        'param_value_string': ebkph_2,
         'param_type': 'string'
     })
     
-    rows.append({
+    element_rows.append({
         'project': project,
         'filename': file,
         'fileid': fileid,
         'timestamp': timestamp,
         'id': element_id,
-        'layer_index': 0,
         'param_name': 'ebkph_3',
-        'param_value': ebkph_3,
+        'param_value_string': ebkph_3,
         'param_type': 'string'
     })
     
-    rows.append({
+    element_rows.append({
         'project': project,
         'filename': file,
         'fileid': fileid,
         'timestamp': timestamp,
         'id': element_id,
-        'layer_index': 0,
         'param_name': 'cost',
-        'param_value': str(cost),
+        'param_value_number': cost,
         'param_type': 'number'
     })
     
-    rows.append({
+    element_rows.append({
         'project': project,
         'filename': file,
         'fileid': fileid,
         'timestamp': timestamp,
         'id': element_id,
-        'layer_index': 0,
         'param_name': 'cost_unit',
-        'param_value': str(cost_unit),
+        'param_value_number': cost_unit,
         'param_type': 'number'
     })
     
@@ -184,202 +188,116 @@ for i, element_id in enumerate(real_ids):
     material_count = random.randint(1, 5)
     selected_materials = random.sample(materials, material_count)
     
-    for layer_idx, material in enumerate(selected_materials, 1):
+    for layer_idx, material in enumerate(selected_materials):
         # Add material name
-        rows.append({
+        material_rows.append({
             'project': project,
             'filename': file,
             'fileid': fileid,
             'timestamp': timestamp,
             'id': element_id,
-            'layer_index': layer_idx,
+            'sequence': layer_idx,
             'param_name': 'mat_kbob',
-            'param_value': material,
+            'param_value_string': material,
             'param_type': 'string'
         })
-        
-        # Add EBKPH information to material layers too
-        rows.append({
-            'project': project,
-            'filename': file,
-            'fileid': fileid,
-            'timestamp': timestamp,
-            'id': element_id,
-            'layer_index': layer_idx,
-            'param_name': 'ebkph',
-            'param_value': full_ebkph,
-            'param_type': 'string'
-        })
-        
-        rows.append({
-            'project': project,
-            'filename': file,
-            'fileid': fileid,
-            'timestamp': timestamp,
-            'id': element_id,
-            'layer_index': layer_idx,
-            'param_name': 'ebkph_1',
-            'param_value': ebkph_1,
-            'param_type': 'string'
-        })
-        
-        rows.append({
-            'project': project,
-            'filename': file,
-            'fileid': fileid,
-            'timestamp': timestamp,
-            'id': element_id,
-            'layer_index': layer_idx,
-            'param_name': 'ebkph_2',
-            'param_value': ebkph_2,
-            'param_type': 'string'
-        })
-        
-        rows.append({
-            'project': project,
-            'filename': file,
-            'fileid': fileid,
-            'timestamp': timestamp,
-            'id': element_id,
-            'layer_index': layer_idx,
-            'param_name': 'ebkph_3',
-            'param_value': ebkph_3,
-            'param_type': 'string'
-        })
-        
+                
         # Add GWP absolute (fully random, not tied to material)
         gwp_abs = round(random.uniform(30, 300), 2)
-        rows.append({
+        material_rows.append({
             'project': project,
             'filename': file,
             'fileid': fileid,
             'timestamp': timestamp,
             'id': element_id,
-            'layer_index': layer_idx,
+            'sequence': layer_idx,
             'param_name': 'gwp_absolute',
-            'param_value': str(gwp_abs),
+            'param_value_number': gwp_abs,
             'param_type': 'number'
         })
         
         # Add GWP relative (completely independent random value)
         gwp_rel = round(random.uniform(1, 50), 2)
-        rows.append({
+        material_rows.append({
             'project': project,
             'filename': file,
             'fileid': fileid,
             'timestamp': timestamp,
             'id': element_id,
-            'layer_index': layer_idx,
+            'sequence': layer_idx,
             'param_name': 'gwp_relative',
-            'param_value': str(gwp_rel),
+            'param_value_number': gwp_rel,
             'param_type': 'number'
         })
         
         # Add PENR absolute
         penr_abs = round(random.uniform(100, 600), 2)
-        rows.append({
+        material_rows.append({
             'project': project,
             'filename': file,
             'fileid': fileid,
             'timestamp': timestamp,
             'id': element_id,
-            'layer_index': layer_idx,
+            'sequence': layer_idx,
             'param_name': 'penr_absolute',
-            'param_value': str(penr_abs),
+            'param_value_number': penr_abs,
             'param_type': 'number'
         })
         
         # Add PENR relative
         penr_rel = round(random.uniform(5, 100), 2)
-        rows.append({
+        material_rows.append({
             'project': project,
             'filename': file,
             'fileid': fileid,
             'timestamp': timestamp,
             'id': element_id,
-            'layer_index': layer_idx,
+            'sequence': layer_idx,
             'param_name': 'penr_relative',
-            'param_value': str(penr_rel),
+            'param_value_number': penr_rel,
             'param_type': 'number'
         })
         
         # Add UBP absolute
         ubp_abs = round(random.uniform(300, 2000), 2)
-        rows.append({
+        material_rows.append({
             'project': project,
             'filename': file,
             'fileid': fileid,
             'timestamp': timestamp,
             'id': element_id,
-            'layer_index': layer_idx,
+            'sequence': layer_idx,
             'param_name': 'ubp_absolute',
-            'param_value': str(ubp_abs),
+            'param_value_number': ubp_abs,
             'param_type': 'number'
         })
         
         # Add UBP relative
         ubp_rel = round(random.uniform(10, 300), 2)
-        rows.append({
+        material_rows.append({
             'project': project,
             'filename': file,
             'fileid': fileid,
             'timestamp': timestamp,
             'id': element_id,
-            'layer_index': layer_idx,
+            'sequence': layer_idx,
             'param_name': 'ubp_relative',
-            'param_value': str(ubp_rel),
+            'param_value_number': ubp_rel,
             'param_type': 'number'
         })
 
-# Create DataFrame
-df = pd.DataFrame(rows)
+# Create DataFrames
+elements_df = pd.DataFrame(element_rows)
+materials_df = pd.DataFrame(material_rows)
 
 # Sort the data
-df = df.sort_values(['project', 'fileid', 'timestamp', 'id', 'layer_index', 'param_name'])
+elements_df = elements_df.sort_values(['project', 'fileid', 'timestamp', 'id', 'param_name'])
+materials_df = materials_df.sort_values(['project', 'fileid', 'timestamp', 'id', 'sequence', 'param_name'])
 
-# Save to parquet
-df.to_parquet('denormalized_elements_materials_eav.parquet', index=False)
+# Save to parquet files
+elements_df.to_parquet('data_eav_elements.parquet', index=False)
+materials_df.to_parquet('data_eav_materials.parquet', index=False)
 
-# For testing, create a pivoted version - FIXED VERSION
-# Create a pivoted version by directly using pandas pivot_table
-print("Creating pivoted version...")
-
-# First, group by the key fields that identify a unique row
-grouped = df.groupby(['project', 'filename', 'fileid', 'timestamp', 'id', 'layer_index'])
-
-# Create an empty list to store pivoted records
-pivoted_records = []
-
-# Process each group (each element+layer combination)
-for (project, filename, fileid, timestamp, element_id, layer_index), group in grouped:
-    # Create a new record with the key fields
-    record = {
-        'project': project,
-        'filename': filename,
-        'fileid': fileid,
-        'timestamp': timestamp,
-        'id': element_id,
-        'layer_index': layer_index
-    }
-    
-    # Add all parameters as columns
-    for _, row in group.iterrows():
-        param_name = row['param_name']
-        param_value = row['param_value']
-        record[param_name] = param_value
-    
-    # Add this record to our list
-    pivoted_records.append(record)
-
-# Create a DataFrame from the pivoted records
-pivoted = pd.DataFrame(pivoted_records)
-
-# Convert layer_index to integer
-pivoted['layer_index'] = pivoted['layer_index'].astype(int)
-
-# Save pivoted version
-pivoted.to_parquet('pivoted_elements_materials.parquet', index=False)
-
-print(f"Generated {len(df)} rows in EAV format for {element_count} elements")
-print(f"Pivoted data has {len(pivoted)} rows")
-print(f"Files saved: denormalized_elements_materials_eav.parquet and pivoted_elements_materials.parquet")
+print(f"Generated {len(elements_df)} rows in EAV format for elements")
+print(f"Generated {len(materials_df)} rows in EAV format for materials")
+print(f"Files saved: data_eav_elements.parquet and data_eav_materials.parquet")

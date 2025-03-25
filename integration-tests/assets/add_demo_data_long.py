@@ -33,12 +33,15 @@ CREATE TABLE [dbo].[data_eav]
   [fileid] VARCHAR(255) NOT NULL,
   [timestamp] DATETIME2 NOT NULL,
   [id] VARCHAR(255) COLLATE Latin1_General_CS_AS NOT NULL,
-  [layer_index] INT NOT NULL,
+  [group] VARCHAR(255) NOT NULL,
+  [sequence] INT NOT NULL,
   [param_name] VARCHAR(255) NOT NULL,
-  [param_value] NVARCHAR(MAX) NOT NULL,
+  [param_value_string] NVARCHAR(MAX) NOT NULL,
+  [param_value_number] DECIMAL(18,2) NOT NULL,
+  [param_value_boolean] BIT NOT NULL,
   [param_type] VARCHAR(50) NOT NULL,
   CONSTRAINT [PK_elements_materials_eav] PRIMARY KEY 
-    ([project], [filename], [timestamp], [id], [layer_index], [param_name])
+    ([project], [filename], [timestamp], [id], [group], [sequence], [param_name])
 );
 """
 
@@ -49,7 +52,7 @@ with engine.connect() as conn:
 
 # Before inserting data
 print(f"Total records in DataFrame: {len(df_eav)}")
-print(f"Unique combinations: {len(df_eav.groupby(['project', 'filename', 'timestamp', 'id', 'layer_index', 'param_name']).size())}")
+print(f"Unique combinations: {len(df_eav.groupby(['project', 'filename', 'timestamp', 'id', 'group', 'sequence', 'param_name']).size())}")
 
 # Get a list of IDs from the DataFrame for comparison
 original_ids = set(df_eav['id'].unique())
@@ -89,7 +92,7 @@ with engine.connect() as conn:
     result = conn.execute(text("""
         SELECT TOP 10 * 
         FROM [dbo].[data_eav]
-        ORDER BY project, filename, id, layer_index, param_name
+        ORDER BY project, filename, id, group, sequence, param_name
     """))
     print("\nSample data in database:")
     for row in result:

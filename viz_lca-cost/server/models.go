@@ -18,6 +18,7 @@ type LcaMessage struct {
 // LcaDataItem represents a single LCA data item
 type LcaDataItem struct {
 	Id           string  `json:"id"`            // Unique identifier for the item
+	Sequence     int     `json:"sequence"`      // The sequence number of the material in the element (STARTING FROM 0)
 	MaterialKbob string  `json:"mat_kbob"`      // KBOB material reference
 	GwpAbsolute  float32 `json:"gwp_absolute"`  // Global Warming Potential (absolute)
 	GwpRelative  float32 `json:"gwp_relative"`  // Global Warming Potential (relative)
@@ -44,9 +45,59 @@ type CostDataItem struct {
 	IsStructural bool    `json:"is_structural"` // Whether the element is structural (e.g. true or false)
 	FireRating   string  `json:"fire_rating"`   // The fire rating of the element (e.g. "A" or "B")
 	Ebkph        string  `json:"ebkph"`         // eBKP-H category (e.g., "C.02.95")
-	Ebkph1       string  `json:"-"`             // First component of eBKP-H (e.g., "C" from "C.02.95")
-	Ebkph2       string  `json:"-"`             // Second component of eBKP-H (e.g., "02" from "C.02.95")
-	Ebkph3       string  `json:"-"`             // Third component of eBKP-H (e.g., "95" from "C.02.95")
 	Cost         float32 `json:"cost"`          // Cost value
 	CostUnit     float32 `json:"cost_unit"`     // Cost unit
+}
+
+// TODO: will implement later when a pure element processing service is set up.
+// At that point we can remove the generic attributes from the cost messages
+type ElementMessage struct {
+	Project   string         `json:"project"`   // Project identifier
+	Filename  string         `json:"filename"`  // Filename (without path)
+	Timestamp string         `json:"timestamp"` // Message timestamp
+	Data      []CostDataItem `json:"data"`      // Array of cost data items
+	FileID    string         `json:"-"`         // Internal field containing "project/filename" as a unique identifier
+}
+
+// ElementDataItem represents a single element data item
+type ElementDataItem struct {
+	Id           string  `json:"id"`            // Unique identifier for the item
+	Category     string  `json:"category"`      // The element category (e.g. "walls" or "floors")
+	Level        string  `json:"level"`         // The level of the element (e.g. "wall" or "floor")
+	IsStructural bool    `json:"is_structural"` // Whether the element is structural (e.g. true or false)
+	FireRating   string  `json:"fire_rating"`   // The fire rating of the element (e.g. "A" or "B")
+	Ebkph        string  `json:"ebkph"`         // eBKP-H category (e.g., "C.02.95")
+	Cost         float32 `json:"cost"`          // Cost value
+	CostUnit     float32 `json:"cost_unit"`     // Cost unit
+}
+
+// EavElementDataItem represents a single EAV data item
+type EavElementDataItem struct {
+	Project           string   `json:"project"`             // Project identifier
+	Filename          string   `json:"filename"`            // Filename (without path)
+	FileID            string   `json:"fileid"`              // Internal field containing "project/filename" as a unique identifier
+	Timestamp         string   `json:"timestamp"`           // Message timestamp
+	Id                string   `json:"id"`                  // Unique identifier for the item
+	ParamName         string   `json:"param_name"`          // The name of the parameter
+	ParamValueString  *string  `json:"param_value_string"`  // The value of the parameter
+	ParamValueNumber  *float32 `json:"param_value_number"`  // The value of the parameter
+	ParamValueBoolean *bool    `json:"param_value_boolean"` // The value of the parameter
+	ParamValueDate    *string  `json:"param_value_date"`    // The value of the parameter
+	ParamType         string   `json:"param_type"`          // The type of the parameter (currently always "number")
+}
+
+// EavMaterialDataItem represents a single EAV data item
+type EavMaterialDataItem struct {
+	Project           string   `json:"project"`             // Project identifier
+	Filename          string   `json:"filename"`            // Filename (without path)
+	FileID            string   `json:"fileid"`              // Internal field containing "project/filename" as a unique identifier
+	Timestamp         string   `json:"timestamp"`           // Message timestamp
+	Id                string   `json:"id"`                  // Unique identifier for the item
+	Sequence          int      `json:"sequence"`            // The sequence number of the item
+	ParamName         string   `json:"param_name"`          // The name of the parameter
+	ParamValueString  *string  `json:"param_value_string"`  // The value of the parameter
+	ParamValueNumber  *float32 `json:"param_value_number"`  // The value of the parameter
+	ParamValueBoolean *bool    `json:"param_value_boolean"` // The value of the parameter
+	ParamValueDate    *string  `json:"param_value_date"`    // The value of the parameter
+	ParamType         string   `json:"param_type"`          // The type of the parameter (currently always "number")
 }

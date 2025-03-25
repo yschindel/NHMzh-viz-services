@@ -1,47 +1,56 @@
--- LCA data table
+-- EAV data table for elements (LCA and Cost)
 IF NOT EXISTS (SELECT *
 FROM sys.tables
-WHERE name = 'lca_data')
+WHERE name = 'data_eav_elements')
 BEGIN
-  CREATE TABLE [dbo].[lca_data]
+  CREATE TABLE [dbo].[data_eav_elements]
   (
     [project] VARCHAR(255) NOT NULL,
     [filename] VARCHAR(255) NOT NULL,
     [fileid] VARCHAR(255) NOT NULL,
     [timestamp] DATETIME2 NOT NULL,
     [id] VARCHAR(255) COLLATE Latin1_General_CS_AS NOT NULL,
-    [mat_kbob] VARCHAR(255),
-    [gwp_absolute] DECIMAL(18,2),
-    [gwp_relative] DECIMAL(18,2),
-    [penr_absolute] DECIMAL(18,2),
-    [penr_relative] DECIMAL(18,2),
-    [ubp_absolute] DECIMAL(18,2),
-    [ubp_relative] DECIMAL(18,2)
+    [param_name] VARCHAR(255) NOT NULL,
+    [param_value_string] NVARCHAR(MAX),
+    [param_value_number] DECIMAL(18,2),
+    [param_value_boolean] BIT,
+    [param_value_date] DATETIME2,
+    [param_type] VARCHAR(50) NOT NULL,
+    CONSTRAINT [PK_data_eav_elements] PRIMARY KEY 
+    ([project], [filename], [timestamp], [id], [param_name])
   );
+
+  -- Create indexes for common queries
+  CREATE INDEX [IX_data_eav_elements_project_fileid] ON [dbo].[data_eav_elements] ([project], [fileid]);
+  CREATE INDEX [IX_data_eav_elements_id] ON [dbo].[data_eav_elements] ([id]);
+  CREATE INDEX [IX_data_eav_elements_timestamp] ON [dbo].[data_eav_elements] ([timestamp]);
 END
 
--- Cost data table
+-- EAV data table for materials (LCA and Cost)
 IF NOT EXISTS (SELECT *
 FROM sys.tables
-WHERE name = 'cost_data')
+WHERE name = 'data_eav_materials')
 BEGIN
-  CREATE TABLE [dbo].[cost_data]
+  CREATE TABLE [dbo].[data_eav_materials]
   (
     [project] VARCHAR(255) NOT NULL,
     [filename] VARCHAR(255) NOT NULL,
     [fileid] VARCHAR(255) NOT NULL,
     [timestamp] DATETIME2 NOT NULL,
     [id] VARCHAR(255) COLLATE Latin1_General_CS_AS NOT NULL,
-    [category] VARCHAR(255),
-    [level] VARCHAR(255),
-    [is_structural] BIT,
-    [fire_rating] VARCHAR(255),
-    [ebkph] VARCHAR(255),
-    [ebkph_1] VARCHAR(255),
-    [ebkph_2] VARCHAR(255),
-    [ebkph_3] VARCHAR(255),
-    [cost] DECIMAL(18,2),
-    [cost_unit] DECIMAL(18,2),
-    CONSTRAINT [UQ_cost_data_id_filename_timestamp_project] UNIQUE ([id], [filename], [timestamp], [project])
+    [sequence] INT NOT NULL,
+    [param_name] VARCHAR(255) NOT NULL,
+    [param_value_string] NVARCHAR(MAX),
+    [param_value_number] DECIMAL(18,2),
+    [param_value_boolean] BIT,
+    [param_value_date] DATETIME2,
+    [param_type] VARCHAR(50) NOT NULL,
+    CONSTRAINT [PK_data_eav_materials] PRIMARY KEY 
+    ([project], [filename], [timestamp], [id], [sequence], [param_name])
   );
+
+  -- Create indexes for common queries
+  CREATE INDEX [IX_data_eav_materials_project_fileid] ON [dbo].[data_eav_materials] ([project], [fileid]);
+  CREATE INDEX [IX_data_eav_materials_id] ON [dbo].[data_eav_materials] ([id]);
+  CREATE INDEX [IX_data_eav_materials_timestamp] ON [dbo].[data_eav_materials] ([timestamp]);
 END

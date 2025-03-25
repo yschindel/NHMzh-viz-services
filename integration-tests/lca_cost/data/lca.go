@@ -24,7 +24,7 @@ type LcaMessage struct {
 // LcaDataItem represents an element in the LCA message
 type LcaDataItem struct {
 	Id           string  `json:"id"`
-	Category     string  `json:"ebkph"`
+	Sequence     int     `json:"sequence"`
 	MaterialKbob string  `json:"mat_kbob"`
 	GwpAbsolute  float32 `json:"gwp_absolute"`
 	GwpRelative  float32 `json:"gwp_relative"`
@@ -53,7 +53,7 @@ func newLcaData(dataItems []DataItem) []LcaDataItem {
 	for i, item := range dataItems {
 		elements[i] = LcaDataItem{
 			Id:           item.Id,
-			Category:     item.Category,
+			Sequence:     i,
 			MaterialKbob: MaterialKbob[rand.Intn(len(MaterialKbob))],
 			GwpAbsolute:  randFloat(),
 			GwpRelative:  randFloat(),

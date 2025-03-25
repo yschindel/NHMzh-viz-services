@@ -238,7 +238,7 @@ func (p *MessageProcessor) structToEavItemsMaterial(baseItem EavMaterialDataItem
 		value := v.Field(i)
 
 		// Skip the Id field as it's part of the base item
-		if field.Name == "Id" {
+		if field.Name == "Id" || field.Name == "Sequence" {
 			continue
 		}
 

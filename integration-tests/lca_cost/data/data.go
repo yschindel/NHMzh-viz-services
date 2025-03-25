@@ -7,8 +7,7 @@ import (
 )
 
 type DataItem struct {
-	Id       string `bson:"_id"`
-	Category string `bson:"ebkph"`
+	Id string `bson:"_id"`
 }
 
 func generate22CharGUID() (string, error) {
@@ -35,12 +34,29 @@ func randFloat() float32 {
 	return rand.Float32()*(100-5) + 5
 }
 
-// randCat picks a random category from a predefined list
-func randCat() string {
+var categories = [5]string{"walls", "floors", "ceilings", "doors", "windows"}
+
+func randCategory() string {
 	return categories[rand.Intn(len(categories))]
 }
 
-var categories = [10]string{"B.07.01", "C.01.01", "C.02.01", "C.03.01", "C.04.01", "C.05.01", "E.02.01", "E.03.01", "G.01.01", "G.02.01"}
+var epkph = [10]string{"B.07.01", "C.01.01", "C.02.01", "C.03.01", "C.04.01", "C.05.01", "E.02.01", "E.03.01", "G.01.01", "G.02.01"}
+
+func randEbkph() string {
+	return epkph[rand.Intn(len(epkph))]
+}
+
+var levels = [3]string{"Level 1", "Level 2", "Level 3"}
+
+func randLevel() string {
+	return levels[rand.Intn(len(levels))]
+}
+
+var fireRatings = [2]string{"A", "B"}
+
+func randFireRating() string {
+	return fireRatings[rand.Intn(len(fireRatings))]
+}
 
 func newDataItems(numElements int) []DataItem {
 	dataItems := make([]DataItem, numElements)
@@ -49,10 +65,8 @@ func newDataItems(numElements int) []DataItem {
 		if err != nil {
 			panic(err)
 		}
-		category := randCat()
 		dataItems[i] = DataItem{
-			Id:       id,
-			Category: category,
+			Id: id,
 		}
 	}
 	return dataItems

@@ -70,8 +70,8 @@ func (w *MessageWriter) writeEavElementMessageWithRetry(items []EavElementDataIt
 
 	// Prepare the INSERT statement for data_eav table
 	eavStmt, err := tx.PrepareContext(ctx, `
-			INSERT INTO data_eav (project, filename, fileid, timestamp, id, param_name, param_value_string, param_value_number, param_value_boolean, param_value_date)
-			VALUES (@p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9, @p10);`)
+			INSERT INTO data_eav_elements (project, filename, fileid, timestamp, id, param_name, param_value_string, param_value_number, param_value_boolean, param_value_date, param_type)
+			VALUES (@p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9, @p10, @p11);`)
 	if err != nil {
 		return fmt.Errorf("error preparing data_eav statement: %v", err)
 	}
@@ -90,9 +90,10 @@ func (w *MessageWriter) writeEavElementMessageWithRetry(items []EavElementDataIt
 			item.ParamValueNumber,  // @p8
 			item.ParamValueBoolean, // @p9
 			item.ParamValueDate,    // @p10
+			item.ParamType,         // @p11
 		)
 		if err != nil {
-			return fmt.Errorf("error inserting data_eav record: %v", err)
+			return fmt.Errorf("error inserting data_eav_elements record: %v", err)
 		}
 	}
 
@@ -116,8 +117,8 @@ func (w *MessageWriter) writeEavMaterialMessageWithRetry(items []EavMaterialData
 
 	// Prepare the INSERT statement for data_eav table
 	eavStmt, err := tx.PrepareContext(ctx, `
-			INSERT INTO data_eav (project, filename, fileid, timestamp, id, sequence, param_name, param_value_string, param_value_number, param_value_boolean, param_value_date)
-			VALUES (@p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9, @p10, @p11);`)
+			INSERT INTO data_eav_materials (project, filename, fileid, timestamp, id, sequence, param_name, param_value_string, param_value_number, param_value_boolean, param_value_date, param_type)
+			VALUES (@p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9, @p10, @p11, @p12);`)
 	if err != nil {
 		return fmt.Errorf("error preparing data_eav statement: %v", err)
 	}
@@ -137,9 +138,10 @@ func (w *MessageWriter) writeEavMaterialMessageWithRetry(items []EavMaterialData
 			item.ParamValueNumber,  // @p9
 			item.ParamValueBoolean, // @p10
 			item.ParamValueDate,    // @p11
+			item.ParamType,         // @p12
 		)
 		if err != nil {
-			return fmt.Errorf("error inserting data_eav record: %v", err)
+			return fmt.Errorf("error inserting data_eav_materials record: %v", err)
 		}
 	}
 

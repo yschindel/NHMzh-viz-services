@@ -79,8 +79,6 @@ services:
     depends_on:
       - minio
       - kafka
-    ports:
-      - "4242:4242"
     restart: on-failure
 
   viz_lca-cost:

@@ -25,7 +25,6 @@ var (
 	topic           string
 	ifcBucket       string
 	fragmentsBucket string
-	ifcApiPort      int
 	pbiServerPort   int
 	pbiServerUrl    string
 	messages        []TestFileData
@@ -45,7 +44,6 @@ func init() {
 	topic = getEnv("KAFKA_IFC_TOPIC", "ifc-files")
 	ifcBucket = getEnv("MINIO_IFC_BUCKET", "ifc-files")
 	fragmentsBucket = getEnv("MINIO_FRAGMENTS_BUCKET", "ifc-fragment-files")
-	ifcApiPort = getEnvAsInt("IFC_API_PORT", 4242)
 	pbiServerPort = getEnvAsInt("PBI_SERVER_PORT", 3000)
 	pbiServerUrl = "http://localhost:" + strconv.Itoa(pbiServerPort)
 
@@ -53,7 +51,6 @@ func init() {
 	log.Printf("KAFKA_BROKER: %s", kafkaBroker)
 	log.Printf("KAFKA_IFC_TOPIC: %s", topic)
 	log.Printf("MINIO_IFC_BUCKET: %s", ifcBucket)
-	log.Printf("IFC_API_PORT: %d", ifcApiPort)
 	log.Printf("MINIO_FRAGMENTS_BUCKET: %s", fragmentsBucket)
 	log.Printf("PBI_SERVER_PORT: %d", pbiServerPort)
 

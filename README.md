@@ -10,7 +10,6 @@ This repository contains the code for the Visualization Services of the NHMzh pr
 - Buckets:
   - `ifc-files` (the raw IFC files)
   - `ifc-fragment-files` (compressed counterparts to the IFC files, converted to 'fragments')
-  - `lca-cost-data` (data related to LCA and cost calculations)
 
 ### viz_ifc
 
@@ -19,7 +18,6 @@ Listens to a Kafka topic with links to IFC files:
 - Loads the IFC file from Minio
 - Converts to fragments, compresses
 - Saves compressed fragments back to Minio
-- TODO: update 'fragments-files' Kafka topic
 
 Uses the @ThatOpen Companies library.
 
@@ -34,8 +32,7 @@ This consumer listens to the cost and LCA Kafka topics and writes data to Azure 
 
 Serves the Power BI integration:
 
-- Provides an API for accessing data stored in Minio
-- Enables Power BI to display the latest visualization data
+- Provides an API for accessing fragment files stored in Minio
 
 ## Additional Services Needed:
 

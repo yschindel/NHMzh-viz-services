@@ -50,26 +50,25 @@ services:
       MINIO_IFC_BUCKET: ${MINIO_IFC_BUCKET:-ifc-files}
       KAFKA_BROKER: kafka:9093
       KAFKA_IFC_TOPIC: ${KAFKA_IFC_TOPIC:-ifc-files}
-      # This is used by the integration tests, keep it for now until I change the integration tests
-      IFC_API_PORT: ${IFC_API_PORT:-4242}
-      # This is used by the integration tests, keep it for now until I change the integration tests
-      VIZ_KAFKA_IFC_PRODUCER_ID: ${VIZ_KAFKA_IFC_PRODUCER_ID:-viz-ifc-producer}
     depends_on:
       - minio
       - kafka
-    ports:
-      - "4242:4242"
 
-  # nhmzh-viz-services_lca-cost:
-  #   image: yschindel/nhmzh-viz-services_lca-cost:latest
-  #   environment:
-  #     KAFKA_BROKER: kafka:9093
-  #     KAFKA_LCA_TOPIC: lca-data
-  #     KAFKA_COST_TOPIC: cost-data
-  #     VIZ_KAFKA_DATA_GROUP_ID: viz-data
-  #   depends_on:
-  #     - minio
-  #     - kafka
+  nhmzh-viz-services_lca-cost:
+    image: yschindel/nhmzh-viz-services_lca-cost:latest
+    environment:
+      KAFKA_BROKER: kafka:9093
+      KAFKA_LCA_TOPIC: lca-data
+      KAFKA_COST_TOPIC: cost-data
+      VIZ_KAFKA_DATA_GROUP_ID: viz-data
+      AZURE_DB_SERVER: ${AZURE_DB_SERVER:-example.database.windows.net}
+      AZURE_DB_PORT: ${AZURE_DB_PORT:-1433}
+      AZURE_DB_USER: ${AZURE_DB_USER:-userName}
+      AZURE_DB_PASSWORD: ${AZURE_DB_PASSWORD:-thisIsNotMyPassword}
+      AZURE_DB_DATABASE: ${AZURE_DB_DATABASE:-nhmzh-viz-services-localdev}
+    depends_on:
+      - minio # This will be replaced with an API endpoint of another service in the future. It will depend on that services instead.
+      - kafka
 
   nhmzh-viz-services_pbi-server:
     image: yschindel/nhmzh-viz-services_pbi-server:latest
@@ -82,6 +81,7 @@ services:
       MINIO_FRAGMENTS_BUCKET: ${MINIO_FRAGMENTS_BUCKET:-ifc-fragment-files}
       MINIO_IFC_BUCKET: ${MINIO_IFC_BUCKET:-ifc-files}
       PBI_SERVER_PORT: ${PBI_SERVER_PORT:-3000}
+      PBI_SRV_API_KEY: ${PBI_SRV_API_KEY:-thisIsNotMyApiKey}
     depends_on:
       - minio
     ports:

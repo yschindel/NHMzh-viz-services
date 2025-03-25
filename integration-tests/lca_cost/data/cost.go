@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math/rand"
 	"time"
 
 	"github.com/segmentio/kafka-go"
@@ -22,10 +23,14 @@ type CostMessage struct {
 
 // costElement represents an element in the cost message
 type CostDataItem struct {
-	Id       string  `json:"id"`
-	Category string  `json:"ebkph"`
-	Cost     float32 `json:"cost"`
-	CostUnit float32 `json:"cost_unit"`
+	Id           string  `json:"id"`
+	Category     string  `json:"category"`
+	Level        string  `json:"level"`
+	IsStructural bool    `json:"is_structural"`
+	FireRating   string  `json:"fire_rating"`
+	Ebkph        string  `json:"ebkph"`
+	Cost         float32 `json:"cost"`
+	CostUnit     float32 `json:"cost_unit"`
 }
 
 // newMessage creates a new costMessage
@@ -44,10 +49,14 @@ func newCostData(dataItems []DataItem) []CostDataItem {
 	elements := make([]CostDataItem, len(dataItems))
 	for i, item := range dataItems {
 		elements[i] = CostDataItem{
-			Id:       item.Id,
-			Category: item.Category,
-			Cost:     randFloat(),
-			CostUnit: 200,
+			Id:           item.Id,
+			Category:     randEbkph(),
+			Level:        randLevel(),
+			IsStructural: rand.Intn(2) == 0,
+			FireRating:   randFireRating(),
+			Ebkph:        randEbkph(),
+			Cost:         randFloat(),
+			CostUnit:     200,
 		}
 	}
 	return elements

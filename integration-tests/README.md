@@ -4,10 +4,10 @@
 
 - Docker
 - Docker Compose
-- Go 1.23.2 (or higher)
-- You have followed the instructions to set up the .env file in the [main README](../README.md)
+- Go 1.20 or higher
+- You have followed the instructions to set up the `.env` and `.env.dev` files in the [main README](../README.md)
 
-### Install dependencies
+### Install Dependencies
 
 Open a terminal in the `integration-tests/lca_cost` directory.
 
@@ -25,38 +25,30 @@ go mod tidy
 
 ## Test Setup
 
-### Start the Azure SQL Server Emulator
+### Start the Azure SQL Server
 
-Use the 'mssql' extension in VSCode to start the Azure SQL Server Emulator.
-Follow the instructions in this video closely: https://www.youtube.com/watch?v=3XgepwpBJP8
+The integration tests use the SQL Server container defined in the docker-compose.yml file. There's no need to use the Azure SQL Server Emulator in VSCode for running the integration tests.
 
-Basic steps:
-Go to the Database Projects section of the 'mssql' extension in VSCode.
-Right click on the project and select 'Build'. >> follow the video tutorial
-Right click on the project and select 'Publish'. >> follow the video tutorial
-
-Switch to the 'SQL Server' tab in VSCode.
-Connect to the Azure SQL Server Emulator. Skip all optionals inputs, use 'sa' as the username and provide a password.
-
-Open the project_data.sql file.
-In the bottom right corner of VSCode where it says 'Disconnect', click on it and connect to the emulator. make sure to select the 'sa' user and later the right 'database' or whatever it is called. Choose (nhmzh-viz-services-localdev) as the database.
-Run 'project_data.sql' to create the database table.
+### Start the Services
 
 Open a new terminal window in the `integration-tests` directory:
 
 ```bash
 cd integration-tests
-```
-
-### Start the services
-
-Run the following command to start the services:
-
-```bash
 docker compose up --build -d
 ```
 
-You should now have one container running for the Azure SQL Server Emulator and a contaier group (or however that is called) running for all the integration tests services.
+This will start all the necessary services:
+
+- MinIO (object storage)
+- Kafka and Zookeeper (message broker)
+- SQL Server (database)
+- SQL Server initialization (creates the required database)
+- viz_ifc (IFC processing service)
+- viz_lca-cost (cost and LCA data service)
+- viz_pbi-server (Power BI integration server)
+
+You should now see all the containers running for the integration tests services.
 
 ## Running the IFC Integration Tests
 
@@ -64,13 +56,11 @@ You should now have one container running for the Azure SQL Server Emulator and 
 
 In your browser, go to `localhost:9001` to see the MinIO console.
 
-- Login using the credentials you specified in the .env ( [main README](../README.md) )
-- Delete all items in the `ifc-files` bucket.
-- Delete the `ifc-files` bucket.
-- Delete all items in the `ifc-fragment-files` bucket.
-- Delete the `ifc-fragment-files` bucket.
-- Delete all items in the `lca-cost-data` bucket.
-- Delete the `lca-cost-data` bucket.
+- Login using the credentials you specified in the `.env` file (default: ROOTUSER/CHANGEME123)
+- Before running tests, you may want to delete any existing data:
+  - Delete all items in the `ifc-files` bucket and the bucket itself
+  - Delete all items in the `ifc-fragment-files` bucket and the bucket itself
+  - Delete all items in the `lca-cost-data` bucket and the bucket itself
 
 ### Add Content to the IFC Kafka Topic
 
@@ -97,7 +87,7 @@ Check the output of the test.ts in the terminal. It should say: "Pass: Fragments
 
 ## Running the LCA and Cost Integration Tests
 
-### Add content to the LCA and Cost Kafka topic
+### Add Content to the LCA and Cost Kafka Topic
 
 Open a terminal in the `integration-tests/lca_cost` directory and run:
 
@@ -107,4 +97,39 @@ go run main.go
 
 **Verify the content was added correctly:**
 
-In the (VS Code) environment where you set up the Azure SQL Server Emulator, go to the SQL Server Explorer.
+Connect to the SQL Server and check that the data has been added. You can use:
+
+1. The SQL Server tab in VSCode:
+
+   - Connect to `localhost,1433` with username `sa` and password `P@ssw0rd`
+   - Navigate to the `nhmzh-viz-services-localdev` database
+   - Check that the tables have been created and populated
+
+2. Or use a SQL client like SQL Server Management Studio or Azure Data Studio:
+   - Connect to `localhost,1433` with username `sa` and password `P@ssw0rd`
+   - Run a query to verify the data: `SELECT TOP 10 * FROM [nhmzh-viz-services-localdev].[dbo].[LcaData]`
+
+## Troubleshooting
+
+### SQL Server Connection Issues
+
+If you have issues connecting to SQL Server:
+
+- Ensure the SQL Server container is running (`docker ps`)
+- Check if the database was created successfully in the logs (`docker logs sqlserver-init`)
+- Verify you're using the correct connection string parameters
+
+### Kafka Issues
+
+If you have issues with Kafka:
+
+- Check if the Kafka container is running (`docker ps`)
+- Verify the topics are created (`docker exec -it viz-test-kafka-container kafka-topics.sh --list --bootstrap-server kafka:9093`)
+
+### MinIO Issues
+
+If you have issues with MinIO:
+
+- Check if the MinIO container is running (`docker ps`)
+- Verify you can access the MinIO console at http://localhost:9001
+- Check if buckets are created and accessible

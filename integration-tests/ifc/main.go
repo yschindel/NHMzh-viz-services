@@ -2,11 +2,10 @@ package main
 
 import (
 	"bytes"
-	"encoding/json"
+	"context"
 	"fmt"
 	"io"
 	"log"
-	"mime/multipart"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -14,7 +13,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/joho/godotenv"
+	"github.com/minio/minio-go/v7"
+	"github.com/minio/minio-go/v7/pkg/credentials"
+	"github.com/segmentio/kafka-go"
 )
 
 var (
@@ -22,10 +25,10 @@ var (
 	topic           string
 	ifcBucket       string
 	fragmentsBucket string
-	ifcApiPort      int
 	pbiServerPort   int
 	pbiServerUrl    string
-	messages        []Message
+	messages        []TestFileData
+	minioClient     *minio.Client
 )
 
 func init() {
@@ -41,7 +44,6 @@ func init() {
 	topic = getEnv("KAFKA_IFC_TOPIC", "ifc-files")
 	ifcBucket = getEnv("MINIO_IFC_BUCKET", "ifc-files")
 	fragmentsBucket = getEnv("MINIO_FRAGMENTS_BUCKET", "ifc-fragment-files")
-	ifcApiPort = getEnvAsInt("IFC_API_PORT", 4242)
 	pbiServerPort = getEnvAsInt("PBI_SERVER_PORT", 3000)
 	pbiServerUrl = "http://localhost:" + strconv.Itoa(pbiServerPort)
 
@@ -49,122 +51,173 @@ func init() {
 	log.Printf("KAFKA_BROKER: %s", kafkaBroker)
 	log.Printf("KAFKA_IFC_TOPIC: %s", topic)
 	log.Printf("MINIO_IFC_BUCKET: %s", ifcBucket)
-	log.Printf("IFC_API_PORT: %d", ifcApiPort)
 	log.Printf("MINIO_FRAGMENTS_BUCKET: %s", fragmentsBucket)
 	log.Printf("PBI_SERVER_PORT: %d", pbiServerPort)
 
 	// Initialize messages
-	messages = []Message{
-		newMessage("project1", "file1.ifc"),
-		newMessage("project2", "file2.ifc"),
-		newMessage("project1", "file3.ifc"),
+	messages = []TestFileData{
+		newTestFileData("project1", "file1.ifc"),
+		newTestFileData("project2", "file2.ifc"),
+		newTestFileData("project1", "file3.ifc"),
 	}
 
+	// Initialize MinIO client
+	minioEndpoint := "localhost:9000"
+	accessKeyID := getEnv("MINIO_ACCESS_KEY", "ROOTUSER")
+	secretAccessKey := getEnv("MINIO_SECRET_KEY", "CHANGEME123")
+	useSSL := getEnv("MINIO_USE_SSL", "false") == "true"
+
+	// Split endpoint and port if needed
+	endpoint := minioEndpoint
+	if !strings.Contains(endpoint, ":") {
+		port := "9000"
+		endpoint = fmt.Sprintf("%s:%s", endpoint, port)
+	}
+
+	var err error
+	minioClient, err = minio.New(endpoint, &minio.Options{
+		Creds:  credentials.NewStaticV4(accessKeyID, secretAccessKey, ""),
+		Secure: useSSL,
+	})
+	if err != nil {
+		log.Fatalf("Error initializing MinIO client: %v", err)
+	}
 }
 
-type Message struct {
-	Project   string `json:"project"`
-	Filename  string `json:"filename"`
-	Location  string `json:"location"`
-	Timestamp string `json:"timestamp"`
+type TestFileData struct {
+	Project          string
+	FilenameOriginal string
+	FileNameUUID     string
+	Timestamp        string
 }
 
-func newMessage(project, filename string) Message {
+func newTestFileData(project, filename string) TestFileData {
 	timestamp := time.Now().UTC().Format(time.RFC3339Nano)
 	log.Println(timestamp)
-	return Message{
-		Project:   project,
-		Filename:  filename,
-		Location:  newFilename(project, filename, timestamp),
-		Timestamp: timestamp,
+	fileUUID := uuid.New().String()
+	return TestFileData{
+		Project:          project,
+		FilenameOriginal: filename,
+		FileNameUUID:     fileUUID + ".ifc",
+		Timestamp:        timestamp,
 	}
 }
 
-func newFilename(project, filename, timestamp string) string {
-	ext := filepath.Ext(filename)
-	name := strings.TrimSuffix(filename, ext)
-	fileTimestamp := timestamp
-	return fmt.Sprintf("%s/%s_%s%s", project, name, fileTimestamp, ext)
+// Minio client configuration is already defined, but let's ensure the MinIO bucket exists
+func ensureMinIOBucketExists() error {
+	ctx := context.Background()
+	exists, err := minioClient.BucketExists(ctx, ifcBucket)
+	if err != nil {
+		return fmt.Errorf("failed to check if bucket exists: %w", err)
+	}
+
+	if !exists {
+		err = minioClient.MakeBucket(ctx, ifcBucket, minio.MakeBucketOptions{})
+		if err != nil {
+			return fmt.Errorf("failed to create bucket: %w", err)
+		}
+		log.Printf("Created bucket: %s", ifcBucket)
+	}
+
+	return nil
 }
 
-func addIfcFilesToMinio() error {
+// Add Kafka helper function to create a writer
+func newKafkaWriter() *kafka.Writer {
+	return &kafka.Writer{
+		Addr:     kafka.TCP(kafkaBroker),
+		Topic:    topic,
+		Balancer: &kafka.LeastBytes{},
+	}
+}
+
+func addIfcFilesToMinioDirectly() error {
+	// Ensure the bucket exists
+	if err := ensureMinIOBucketExists(); err != nil {
+		return err
+	}
+
 	// Read the test file content
 	content, err := os.ReadFile(filepath.Join("..", "assets", "test.ifc"))
 	if err != nil {
 		return fmt.Errorf("failed to read test.ifc file: %w", err)
 	}
 
-	// Create a new HTTP client
-	client := &http.Client{}
+	// Initialize Kafka writer
+	kafkaWriter := newKafkaWriter()
+	defer kafkaWriter.Close()
 
 	for _, msg := range messages {
-		// Create a new multipart form buffer
-		body := &bytes.Buffer{}
-		writer := multipart.NewWriter(body)
+		// Upload file to MinIO with metadata
+		contentReader := bytes.NewReader(content)
 
-		// Add the file
-		part, err := writer.CreateFormFile("file", msg.Filename)
+		// Create metadata similar to the API route
+		userMetadata := map[string]string{
+			"X-Amz-Meta-Project-Name": msg.Project,
+			"X-Amz-Meta-Filename":     msg.FilenameOriginal,
+			"X-Amz-Meta-Created-At":   msg.Timestamp,
+		}
+
+		objectInfo, err := minioClient.PutObject(
+			context.Background(),
+			ifcBucket,
+			msg.FileNameUUID,
+			contentReader,
+			int64(len(content)),
+			minio.PutObjectOptions{
+				ContentType:  "application/octet-stream",
+				UserMetadata: userMetadata,
+			},
+		)
 		if err != nil {
-			return fmt.Errorf("failed to create form file: %w", err)
-		}
-		if _, err := part.Write(content); err != nil {
-			return fmt.Errorf("failed to write file content: %w", err)
+			return fmt.Errorf("failed to upload file to MinIO: %w", err)
 		}
 
-		// Add the project field
-		if err := writer.WriteField("project", msg.Project); err != nil {
-			return fmt.Errorf("failed to write project field: %w", err)
-		}
+		log.Printf("Uploaded file to MinIO: %s, size: %d with metadata", objectInfo.Key, objectInfo.Size)
 
-		// Add the timestamp field
-		if err := writer.WriteField("timestamp", msg.Timestamp); err != nil {
-			return fmt.Errorf("failed to write timestamp field: %w", err)
-		}
+		// Create a simple download link message
+		// Format: http://minio:9000/bucket-name/object-path
+		minioEndpoint := getEnv("MINIO_HOST", "minio")
+		minioPort := getEnv("MINIO_PORT", "9000")
+		downloadLink := fmt.Sprintf("http://%s:%s/%s/%s",
+			minioEndpoint,
+			minioPort,
+			ifcBucket,
+			msg.FileNameUUID)
 
-		// Close the writer
-		writer.Close()
+		log.Printf("Created download link: %s", downloadLink)
 
-		// Create the request
-		url := fmt.Sprintf("http://localhost:%d/api/upload", ifcApiPort)
-		req, err := http.NewRequest("POST", url, body)
+		// Send simple message to Kafka with just the download link
+		err = kafkaWriter.WriteMessages(context.Background(),
+			kafka.Message{
+				Key:   []byte(msg.Project),
+				Value: []byte(downloadLink),
+			},
+		)
 		if err != nil {
-			return fmt.Errorf("failed to create request: %w", err)
+			return fmt.Errorf("failed to send message to Kafka: %w", err)
 		}
 
-		// Set the content type
-		req.Header.Set("Content-Type", writer.FormDataContentType())
-
-		// Send the request
-		resp, err := client.Do(req)
-		if err != nil {
-			return fmt.Errorf("failed to send request: %w", err)
-		}
-		defer resp.Body.Close()
-
-		// Check the response
-		if resp.StatusCode != http.StatusOK {
-			bodyBytes, _ := io.ReadAll(resp.Body)
-			return fmt.Errorf("unexpected status code: %d, body: %s", resp.StatusCode, string(bodyBytes))
-		}
-
-		// Parse the response to get the location
-		var response struct {
-			Location string `json:"location"`
-		}
-		if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
-			return fmt.Errorf("failed to decode response: %w", err)
-		}
-
-		// Update the message location with the one returned from the API
-		log.Printf("Uploaded file to API: %s\n", response.Location)
+		log.Printf("Sent message to Kafka topic '%s': %s", topic, downloadLink)
 	}
 
 	return nil
 }
 
 func getFileFromPbiServer(url string, location string) ([]byte, error) {
-	// Make HTTP request to /fragments endpoint with id parameter
-	resp, err := http.Get(url + "/fragments?id=" + location)
+	// Create a new request
+	req, err := http.NewRequest("GET", url+"/fragments?id="+location, nil)
+	if err != nil {
+		return nil, fmt.Errorf("error creating request: %v", err)
+	}
+
+	// Add API key to header
+	req.Header.Set("X-API-Key", "123") // Using API key from .env file
+
+	// Make the request
+	log.Printf("Getting fragments file from PBI server: %s\n", req.URL.String())
+	client := &http.Client{}
+	resp, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("error making HTTP request to PBI server: %v", err)
 	}
@@ -185,24 +238,25 @@ func getFileFromPbiServer(url string, location string) ([]byte, error) {
 }
 
 func main() {
-	log.Println("Adding IFC files to MinIO...")
-	if err := addIfcFilesToMinio(); err != nil {
-		log.Fatalf("Error adding IFC files to MinIO: %v", err)
+	log.Println("Adding IFC files to MinIO directly and sending Kafka messages...")
+	if err := addIfcFilesToMinioDirectly(); err != nil {
+		log.Fatalf("Error adding IFC files to MinIO and sending Kafka messages: %v", err)
 	}
 
 	log.Println("Waiting for IFC consumer to convert ifc to gz and write back to MinIO...")
-	time.Sleep(30 * time.Second)
+	time.Sleep(15 * time.Second)
 
 	log.Println("Getting fragments files...")
 	for _, msg := range messages {
 		// split the file name by the last underscore and take the first part
-		name := strings.Split(msg.Location, "_")[0]
-		_, err := getFileFromPbiServer(pbiServerUrl, name)
+		fileName := strings.Split(msg.FilenameOriginal, ".")[0]
+		fileId := msg.Project + "/" + fileName
+		_, err := getFileFromPbiServer(pbiServerUrl, fileId)
 		if err != nil {
 			log.Fatalf("Error getting fragments files: %v", err)
 		}
 
-		log.Printf("Received fragments file: %s\n", msg.Location)
+		log.Printf("Received fragments file: %s\n", fileId)
 	}
 
 	log.Println("IFC test completed successfully")

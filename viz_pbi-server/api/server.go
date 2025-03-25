@@ -19,22 +19,80 @@ import (
 
 var fragmentsBucket string
 var lcaCostDataBucket string
+var apiKey string
 
 func init() {
 	fragmentsBucket = getEnv("MINIO_FRAGMENTS_BUCKET", "ifc-fragment-files")
 	lcaCostDataBucket = getEnv("MINIO_LCA_COST_DATA_BUCKET", "lca-cost-data")
+	apiKey = getEnv("PBI_SRV_API_KEY", "")
+
+	if apiKey == "" {
+		log.Println("WARNING: No API key set. API endpoints are not secured!")
+	}
 }
 
 type Server struct {
-	*mux.Router
+	http.Handler
+}
+
+// Proxy-aware middleware to handle X-Forwarded headers
+func proxyHeadersMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// If X-Forwarded-Proto is set and is https, update the request scheme
+		if r.Header.Get("X-Forwarded-Proto") == "https" {
+			r.URL.Scheme = "https"
+		}
+
+		// If X-Forwarded-Host is set, update the request host
+		if forwardedHost := r.Header.Get("X-Forwarded-Host"); forwardedHost != "" {
+			r.Host = forwardedHost
+		}
+
+		// Pass to the next handler
+		next.ServeHTTP(w, r)
+	})
+}
+
+// API key middleware to secure all endpoints
+func apiKeyMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Get API key from request header
+		key := r.Header.Get("X-API-Key")
+
+		// Check if API key is valid
+		if key == "" || key != apiKey {
+			w.WriteHeader(http.StatusUnauthorized)
+			json.NewEncoder(w).Encode(map[string]string{"error": "Unauthorized: Invalid or missing API key"})
+			return
+		}
+
+		// Call the next handler if API key is valid
+		next.ServeHTTP(w, r)
+	})
 }
 
 func NewServer() *Server {
-	s := &Server{
-		Router: mux.NewRouter(),
-	}
+	// Create a new router
+	router := mux.NewRouter()
 
-	s.routes()
+	// Register routes
+	router.HandleFunc("/fragments", getFragmentsFile()).Methods("GET")
+	router.HandleFunc("/fragments/list", getFragmentFileNames()).Methods("GET")
+	router.HandleFunc("/data", getDataFile()).Methods("GET")
+	router.HandleFunc("/data/list", getDataFileNames()).Methods("GET")
+	router.HandleFunc("/gltf", getGltfFile()).Methods("GET")
+
+	// Create middleware chain
+	var handler http.Handler = router
+
+	// Add proxy headers middleware
+	handler = proxyHeadersMiddleware(handler)
+
+	// Apply API key middleware if API key is set
+	if apiKey != "" {
+		log.Println("API key authentication enabled")
+		handler = apiKeyMiddleware(handler)
+	}
 
 	// Enable CORS
 	c := cors.New(cors.Options{
@@ -43,18 +101,14 @@ func NewServer() *Server {
 		AllowedHeaders:   []string{"*"},
 		AllowCredentials: true,
 	})
-	s.Router.Use(c.Handler)
-	return s
+
+	// Apply CORS middleware
+	handler = c.Handler(handler)
+
+	return &Server{Handler: handler}
 }
 
-func (s *Server) routes() {
-	s.HandleFunc("/fragments", s.getFragmentsFile()).Methods("GET")
-	s.HandleFunc("/fragments/list", s.getFragmentFileNames()).Methods("GET")
-	s.HandleFunc("/data", s.getDataFile()).Methods("GET")
-	s.HandleFunc("/data/list", s.getDataFileNames()).Methods("GET")
-}
-
-func (s *Server) getFragmentsFile() http.HandlerFunc {
+func getFragmentsFile() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := r.URL.Query().Get("id")
 		if id == "" {
@@ -96,7 +150,7 @@ func (s *Server) getFragmentsFile() http.HandlerFunc {
 }
 
 // get all file names in the ifc-fragment-files bucket
-func (s *Server) getFragmentFileNames() http.HandlerFunc {
+func getFragmentFileNames() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		files, err := minio.ListAllFiles(fragmentsBucket)
 		if err != nil {
@@ -115,7 +169,7 @@ func (s *Server) getFragmentFileNames() http.HandlerFunc {
 }
 
 // get a data file from the lca-cost-data bucket
-func (s *Server) getDataFile() http.HandlerFunc {
+func getDataFile() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		name := r.URL.Query().Get("name")
 		if name == "" {
@@ -152,7 +206,7 @@ func (s *Server) getDataFile() http.HandlerFunc {
 }
 
 // get all projects in the lca-cost-data bucket
-func (s *Server) getDataFileNames() http.HandlerFunc {
+func getDataFileNames() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		files, err := minio.ListAllFiles(lcaCostDataBucket)
@@ -168,6 +222,27 @@ func (s *Server) getDataFileNames() http.HandlerFunc {
 		// return list of files
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(files)
+	}
+}
+
+func getGltfFile() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		id := r.URL.Query().Get("id")
+		if id == "" {
+			http.Error(w, "Missing 'id' query parameter", http.StatusBadRequest)
+			return
+		}
+
+		// Fetch the file from MinIO
+		file, err := minio.GetFile("gltf-files", id)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("Failed to fetch file from MinIO: %v", err), http.StatusInternalServerError)
+			return
+		}
+
+		// Set the appropriate headers and return the file content
+		w.Header().Set("Content-Type", "application/octet-stream")
+		w.Write(file)
 	}
 }
 

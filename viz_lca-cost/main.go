@@ -36,6 +36,12 @@ func main() {
 	}
 	defer azureDB.Close()
 
+	// Initialize database schema (create/update tables)
+	err = server.InitializeDatabase(azureDB)
+	if err != nil {
+		log.Fatalf("Failed to initialize database schema: %v", err)
+	}
+
 	// Create and start consumer
 	consumer := server.NewConsumer(
 		envBroker,

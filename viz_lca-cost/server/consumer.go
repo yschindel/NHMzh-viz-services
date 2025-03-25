@@ -5,19 +5,19 @@ import (
 	"database/sql"
 	"encoding/json"
 	"log"
-	"strings"
 
 	"github.com/segmentio/kafka-go"
 )
 
 type Consumer struct {
-	environmentalReader *kafka.Reader
-	costReader          *kafka.Reader
-	azureDB             *sql.DB
+	lcaReader  *kafka.Reader
+	costReader *kafka.Reader
+	processor  *MessageProcessor
+	writer     *MessageWriter
 }
 
 func NewConsumer(envBroker, envTopic, costBroker, costTopic, groupID string, azureDB *sql.DB) *Consumer {
-	environmentalReader := kafka.NewReader(kafka.ReaderConfig{
+	lcaReader := kafka.NewReader(kafka.ReaderConfig{
 		Brokers: []string{envBroker},
 		Topic:   envTopic,
 		GroupID: groupID + "-env",
@@ -33,25 +33,26 @@ func NewConsumer(envBroker, envTopic, costBroker, costTopic, groupID string, azu
 	log.Printf("cost consumer created for topic: %s", costTopic)
 
 	return &Consumer{
-		environmentalReader: environmentalReader,
-		costReader:          costReader,
-		azureDB:             azureDB,
+		lcaReader:  lcaReader,
+		costReader: costReader,
+		processor:  NewMessageProcessor(),
+		writer:     NewMessageWriter(azureDB),
 	}
 }
 
 func (c *Consumer) StartConsuming(ctx context.Context) {
 	// Start both consumers in separate goroutines
-	go c.consumeEnvironmental(ctx)
+	go c.consumeLca(ctx)
 	go c.consumeCost(ctx)
 
 	// Keep the main goroutine alive
 	<-ctx.Done()
 }
 
-func (c *Consumer) consumeEnvironmental(ctx context.Context) {
+func (c *Consumer) consumeLca(ctx context.Context) {
 	log.Printf("Starting environmental consumer...")
 	for {
-		m, err := c.environmentalReader.ReadMessage(ctx)
+		m, err := c.lcaReader.ReadMessage(ctx)
 		if err != nil {
 			log.Printf("could not read environmental message: %v", err)
 			continue
@@ -77,6 +78,9 @@ func (c *Consumer) consumeCost(ctx context.Context) {
 func (c *Consumer) handleEnvironmentalMessage(m kafka.Message) {
 	log.Printf("received environmental message: %s", string(m.Key))
 
+	// Step 1: Receive - already done via Kafka consumer
+
+	// Step 2: Process message
 	var message LcaMessage
 	err := json.Unmarshal(m.Value, &message)
 	if err != nil {
@@ -84,9 +88,17 @@ func (c *Consumer) handleEnvironmentalMessage(m kafka.Message) {
 		return
 	}
 
-	message.Filename = strings.TrimSuffix(message.Filename, ".ifc")
+	// Process the message (apply transformations, validations, etc.)
+	eavItems, err := c.processor.ProcessLcaMessage(&message)
+	if err != nil {
+		log.Printf("could not process lca message: %v", err)
+		return
+	}
 
-	err = WriteLcaMessage(c.azureDB, message)
+	// Step 3: Write to database
+	// This could be separated into another service
+	// In that case we would POST to an API endpoint here.
+	err = c.writer.WriteLcaMessage(eavItems)
 	if err != nil {
 		log.Printf("could not write lca message: %v", err)
 		return
@@ -96,6 +108,9 @@ func (c *Consumer) handleEnvironmentalMessage(m kafka.Message) {
 func (c *Consumer) handleCostMessage(m kafka.Message) {
 	log.Printf("received cost message: %s", string(m.Key))
 
+	// Step 1: Receive - already done via Kafka consumer
+
+	// Step 2: Process message
 	var message CostMessage
 	err := json.Unmarshal(m.Value, &message)
 	if err != nil {
@@ -103,9 +118,15 @@ func (c *Consumer) handleCostMessage(m kafka.Message) {
 		return
 	}
 
-	message.Filename = strings.TrimSuffix(message.Filename, ".ifc")
+	// Process the message (apply transformations, validations, etc.)
+	eavItems, err := c.processor.ProcessCostMessage(&message)
+	if err != nil {
+		log.Printf("could not process cost message: %v", err)
+		return
+	}
 
-	err = WriteCostMessage(c.azureDB, message)
+	// Step 3: Write to database
+	err = c.writer.WriteCostMessage(eavItems)
 	if err != nil {
 		log.Printf("could not write cost message: %v", err)
 		return

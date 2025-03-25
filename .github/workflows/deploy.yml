@@ -96,20 +96,12 @@ jobs:
       #           "value": "viz-ifc-consumer"
       #         },
       #         {
-      #           "name": "VIZ_KAFKA_IFC_PRODUCER_ID",
-      #           "value": "viz-ifc-producer"
-      #         },
-      #         {
       #           "name": "VIZ_KAFKA_IFC_GROUP_ID",
       #           "value": "viz-ifc"
       #         },
       #         {
       #           "name": "VIZ_KAFKA_DATA_GROUP_ID",
       #           "value": "viz-data"
-      #         },
-      #         {
-      #           "name": "IFC_API_PORT",
-      #           "value": "4242"
       #         },
       #         {
       #           "name": "KAFKA_BROKER",

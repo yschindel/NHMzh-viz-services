@@ -132,3 +132,7 @@ dist
 .env
 .env.dev
 .DS_Store
+integration-tests/.DS_Store
+
+*.ifc
+*.glb

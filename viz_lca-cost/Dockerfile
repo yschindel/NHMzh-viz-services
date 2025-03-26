@@ -9,7 +9,7 @@ COPY go.mod go.sum ./
 # Download dependencies
 RUN go mod download
 
-# Copy source code
+# Copy source code and SQL files
 COPY . .
 
 # Build the application
@@ -27,6 +27,8 @@ WORKDIR /app
 
 # Copy the binary from builder
 COPY --from=builder /app/main .
+# Copy SQL files from builder stage
+COPY --from=builder /app/sql/ /app/sql/
 
 # Run the application
 CMD ["./main"]

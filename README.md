@@ -63,7 +63,7 @@ MINIO_PORT=9000
 MINIO_USE_SSL=false
 
 MINIO_IFC_BUCKET=ifc-files
-MINIO_FRAGMENTS_BUCKET=ifc-fragment-files
+VIZ_FRAGMENTS_BUCKET=ifc-fragment-files
 MINIO_LCA_COST_DATA_BUCKET=lca-cost-data
 
 VIZ_KAFKA_IFC_CONSUMER_ID=viz-ifc-consumer

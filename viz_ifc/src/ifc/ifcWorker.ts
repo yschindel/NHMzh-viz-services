@@ -14,7 +14,7 @@ import { sendFileToStorage } from "../storage";
 import { log } from "../utils/logger";
 import { getEnv } from "../utils/env";
 
-const FRAGMENTS_BUCKET_NAME = getEnv("MINIO_IFC_FRAGMENTS_BUCKET");
+const FRAGMENTS_BUCKET_NAME = getEnv("VIZ_IFC_FRAGMENTS_BUCKET");
 
 export interface WorkerResult {
 	success: boolean;
@@ -76,7 +76,7 @@ if (parentPort) {
 			// because the errors that @thanOpen loader.load is throwing
 			// would emit messages to the parent port too early
 			const newFileName = createFileName(workerData.project, workerData.filename, workerData.timestamp, ".gz");
-			sendFileToStorage(result.fragments, FRAGMENTS_BUCKET_NAME, newFileName);
+			sendFileToStorage(result.fragments, newFileName);
 		} else {
 			log.warn(`No fragments to send to storage for file ${workerData.fileName}`);
 		}

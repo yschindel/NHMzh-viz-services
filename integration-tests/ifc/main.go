@@ -1,3 +1,8 @@
+// Package main implements integration tests for IFC file processing.
+// It is designed to perform a full end-to-end test of the IFC file processing pipeline.
+// It adds IFC files to MinIO directly and sends them to the Kafka topic.
+// Then it waits for the IFC consumer to convert the IFC files to fragments and save them to MinIO.
+// Finally it gets the fragments files from the PBI server and verifies the processing pipeline.
 package main
 
 import (
@@ -21,14 +26,13 @@ import (
 )
 
 var (
-	kafkaBroker     = "localhost:9092" // has to be hardcoded for the test because the .env uses 'docker-compose' service name
-	topic           string
-	ifcBucket       string
-	fragmentsBucket string
-	pbiServerPort   int
-	pbiServerUrl    string
-	messages        []TestFileData
-	minioClient     *minio.Client
+	kafkaBroker   = "localhost:9092" // has to be hardcoded for the test because the .env uses 'docker-compose' service name
+	topic         string
+	ifcBucket     string
+	pbiServerPort int
+	pbiServerUrl  string
+	messages      []TestFileData
+	minioClient   *minio.Client
 )
 
 func init() {
@@ -43,7 +47,6 @@ func init() {
 
 	topic = getEnv("KAFKA_IFC_TOPIC", "ifc-files")
 	ifcBucket = getEnv("MINIO_IFC_BUCKET", "ifc-files")
-	fragmentsBucket = getEnv("MINIO_FRAGMENTS_BUCKET", "ifc-fragment-files")
 	pbiServerPort = getEnvAsInt("PBI_SERVER_PORT", 3000)
 	pbiServerUrl = "http://localhost:" + strconv.Itoa(pbiServerPort)
 
@@ -51,7 +54,6 @@ func init() {
 	log.Printf("KAFKA_BROKER: %s", kafkaBroker)
 	log.Printf("KAFKA_IFC_TOPIC: %s", topic)
 	log.Printf("MINIO_IFC_BUCKET: %s", ifcBucket)
-	log.Printf("MINIO_FRAGMENTS_BUCKET: %s", fragmentsBucket)
 	log.Printf("PBI_SERVER_PORT: %d", pbiServerPort)
 
 	// Initialize messages
@@ -204,15 +206,18 @@ func addIfcFilesToMinioDirectly() error {
 	return nil
 }
 
-func getFileFromPbiServer(url string, location string) ([]byte, error) {
+func getFileFromPbiServer(baseUrl string, filename string) ([]byte, error) {
+	url := fmt.Sprintf("%s/files?file=%s", baseUrl, filename)
+
 	// Create a new request
-	req, err := http.NewRequest("GET", url+"/fragments?id="+location, nil)
+	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("error creating request: %v", err)
 	}
 
 	// Add API key to header
-	req.Header.Set("X-API-Key", "123") // Using API key from .env file
+	apiKey := getEnv("PBI_API_KEY", "123")
+	req.Header.Set("X-API-Key", apiKey)
 
 	// Make the request
 	log.Printf("Getting fragments file from PBI server: %s\n", req.URL.String())
@@ -247,16 +252,16 @@ func main() {
 	time.Sleep(15 * time.Second)
 
 	log.Println("Getting fragments files...")
+
 	for _, msg := range messages {
-		// split the file name by the last underscore and take the first part
 		fileName := strings.Split(msg.FilenameOriginal, ".")[0]
-		fileId := msg.Project + "/" + fileName
-		_, err := getFileFromPbiServer(pbiServerUrl, fileId)
+		file := msg.Project + "/" + fileName + "_" + msg.Timestamp + ".gz"
+		_, err := getFileFromPbiServer(pbiServerUrl, file)
 		if err != nil {
 			log.Fatalf("Error getting fragments files: %v", err)
 		}
 
-		log.Printf("Received fragments file: %s\n", fileId)
+		log.Printf("Received fragments file: %s\n", file)
 	}
 
 	log.Println("IFC test completed successfully")

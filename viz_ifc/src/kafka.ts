@@ -16,11 +16,29 @@ import { log } from "./utils/logger";
  */
 export async function setupKafkaConsumer(): Promise<Consumer> {
 	const kafka = new Kafka({
-		clientId: getEnv("VIZ_KAFKA_IFC_CONSUMER_ID"),
+		clientId: "viz-ifc-consumer",
 		brokers: [getEnv("KAFKA_BROKER")],
+
+		// Custom log creator to log Kafka messages to align with the logger in this service
+		logCreator:
+			() =>
+			({ namespace, level, label, log }) => {
+				const logLevel = String(level).toLowerCase();
+				log.log = { namespace, label, ...log };
+				log.logger?.includes("kafkajs") && log.message && log.log;
+				if (logLevel === "error") {
+					log.error(log.message, log.log);
+				} else if (logLevel === "warn") {
+					log.warn(log.message, log.log);
+				} else if (logLevel === "info") {
+					log.info(log.message, log.log);
+				} else if (logLevel === "debug") {
+					log.debug(log.message, log.log);
+				}
+			},
 	});
 
-	const consumer = kafka.consumer({ groupId: getEnv("VIZ_KAFKA_IFC_GROUP_ID") });
+	const consumer = kafka.consumer({ groupId: "viz-ifc-consumer-group" });
 
 	try {
 		log.debug("Connecting to Kafka");

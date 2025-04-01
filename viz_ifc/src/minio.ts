@@ -1,3 +1,12 @@
+/**
+ * MinIO client integration module
+ *
+ * This module provides functionality for interacting with the MinIO storage service
+ * for files that are closely related with the core platform.
+ *
+ * @module minio
+ */
+
 import { Client as MinioClient } from "minio";
 import { log } from "./utils/logger";
 import { getEnv } from "./utils/env";

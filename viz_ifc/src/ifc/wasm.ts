@@ -1,8 +1,24 @@
-export const wasmDir = "src/ifc/";
-const wasmFile = "web-ifc-node.wasm";
-export const wasmPath = wasmDir + wasmFile;
+/**
+ * WASM file integration module
+ *
+ * This module provides functionality for downloading and ensuring the WASM file for parsing IFC files exists.
+ *
+ * @module wasm
+ */
+
 import fs from "fs";
 import { log } from "../utils/logger";
+
+/**
+ * The directory of the WASM file
+ */
+export const wasmDir = "src/ifc/";
+
+/**
+ * The file name of the WASM file
+ */
+const wasmFile = "web-ifc-node.wasm";
+export const wasmPath = wasmDir + wasmFile;
 
 /**
  * Ensure the wasm file for parsing IFC files exists

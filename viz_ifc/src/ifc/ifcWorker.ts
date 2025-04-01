@@ -1,3 +1,11 @@
+/**
+ * IFC worker module
+ *
+ * This module provides functionality for parsing IFC files into fragments using Web Workers.
+ *
+ * @module ifcWorker
+ */
+
 import { parentPort, workerData } from "worker_threads";
 import pako from "pako";
 import * as OBC from "@thatopen/components";

@@ -1,3 +1,16 @@
+/**
+ * Storage service integration module
+ *
+ * This module provides functionality for interacting with the external storage service,
+ * including methods for uploading files to specified buckets/containers.
+ * This is not integrating with the MinIO storage service on purpose,
+ * because we want to keep the storage service for long term storage agnostic.
+ * This is helpful if the client requires a proprietary storage service like Microsoft Azure Blob Storage.
+ *
+ * @module storage
+ * @fileoverview Handles file storage operations through the storage service API
+ */
+
 import { log } from "./utils/logger";
 
 /**

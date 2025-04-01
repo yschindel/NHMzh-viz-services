@@ -1,3 +1,11 @@
+/**
+ * IFC consumer module
+ *
+ * This module is the entry point for the IFC consumer.
+ *
+ * @module index
+ */
+
 import { runIfcToGzWorker } from "./ifc/ifcParser";
 import { ensureWasmFile } from "./ifc/wasm";
 import { setupKafkaConsumer, startKafkaConsumer } from "./kafka";

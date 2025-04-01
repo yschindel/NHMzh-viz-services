@@ -1,3 +1,11 @@
+/**
+ * Kafka consumer integration module
+ *
+ * This module provides functionality for setting up and starting a Kafka consumer.
+ *
+ * @module kafka
+ */
+
 import { Kafka, Consumer } from "kafkajs";
 import { getEnv } from "./utils/env";
 import { log } from "./utils/logger";

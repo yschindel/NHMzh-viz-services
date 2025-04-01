@@ -1,3 +1,11 @@
+/**
+ * IFC parser module
+ *
+ * This module provides functionality for running Web Workers to parse IFC files into fragments.
+ *
+ * @module ifcParser
+ */
+
 import { Worker } from "worker_threads";
 import path from "path";
 import { log } from "../utils/logger";

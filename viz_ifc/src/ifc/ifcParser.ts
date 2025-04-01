@@ -1,5 +1,6 @@
 import { Worker } from "worker_threads";
 import path from "path";
+import { log } from "../utils/logger";
 
 /**
  * Runs a worker thread to process the given ifc file into a compressed 'fragments' file.
@@ -12,6 +13,7 @@ import path from "path";
  * @throws If the worker stops with a non-zero exit code.
  */
 export function runIfcToGzWorker(file: Buffer, location: string, timestamp: string, project: string, filename: string): Promise<void> {
+	log.debug(`Running ifc to gz worker for file ${filename}`);
 	return new Promise((resolve, reject) => {
 		const workerPath = path.resolve(__dirname, "ifcWorker.js");
 		const worker = new Worker(workerPath, {

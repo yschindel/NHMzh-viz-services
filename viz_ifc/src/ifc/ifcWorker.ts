@@ -1,10 +1,12 @@
 import { parentPort, workerData } from "worker_threads";
 import pako from "pako";
 import * as OBC from "@thatopen/components";
-import { minioClient, saveToMinIO } from "../minio";
 import { wasmDir } from "./wasm";
+import { sendFileToStorage } from "../storage";
+import { log } from "../utils/logger";
+import { getEnv } from "../utils/env";
 
-const FRAGMENTS_BUCKET_NAME = process.env.MINIO_IFC_FRAGMENTS_BUCKET || "ifc-fragment-files";
+const FRAGMENTS_BUCKET_NAME = getEnv("MINIO_IFC_FRAGMENTS_BUCKET");
 
 export interface WorkerResult {
 	success: boolean;
@@ -18,6 +20,7 @@ export interface WorkerResult {
  * @returns The result of the worker
  */
 async function ifcToFragments(file: Buffer, fileName: string): Promise<WorkerResult> {
+	log.info(`Converting IFC file ${fileName} to fragments`);
 	const dataArray = new Uint8Array(file);
 	const components = new OBC.Components();
 	const fragments = components.get(OBC.FragmentsManager);
@@ -28,52 +31,48 @@ async function ifcToFragments(file: Buffer, fileName: string): Promise<WorkerRes
 		absolute: true,
 	};
 
+	log.debug(`Loader setup with WASM path: ${wasmDir}`);
+
+	log.debug(`Loading IFC file ${fileName}`);
 	const startTime = Date.now();
 
+	// Suppress console.log output from @thanOpen
 	const originalConsoleLog = console.log;
 	console.log = () => {};
 
 	await loader.load(dataArray);
 
+	// Restore console.log output
 	console.log = originalConsoleLog;
-	log(fileName, "IfcLoader loaded in: " + (Date.now() - startTime) + "ms");
+	log.debug(`IfcLoader loaded in: ${Date.now() - startTime}ms`);
 
 	const group = Array.from(fragments.groups.values())[0];
 	const fragmentData = fragments.export(group);
+
+	log.debug(`Compressing fragments`);
 	const compressedFrags = Buffer.from(pako.deflate(fragmentData));
 
 	let result: WorkerResult = { success: false };
 	if (compressedFrags.length > 0) {
 		result = { success: true, fragments: compressedFrags };
 	}
+	log.info(`Worker finished for file ${fileName}`);
 	return result;
 }
 
 // Main worker execution
 if (parentPort) {
-	log(workerData.fileName, "Starting worker");
 	ifcToFragments(workerData.file, workerData.fileName).then((result) => {
-		log(workerData.fileName, "Worker finished");
 		if (result.fragments) {
 			// We have to save to minio in this worker thread,
 			// because the errors that @thanOpen loader.load is throwing
-			// would emit messages to the parent port too earch
+			// would emit messages to the parent port too early
 			const newFileName = createFileName(workerData.project, workerData.filename, workerData.timestamp, ".gz");
-			log(newFileName, "Saving fragments to MinIO");
-			saveToMinIO(minioClient, FRAGMENTS_BUCKET_NAME, newFileName, result.fragments);
+			sendFileToStorage(result.fragments, FRAGMENTS_BUCKET_NAME, newFileName);
 		} else {
-			log(workerData.fileName, "No fragments to save");
+			log.warn(`No fragments to send to storage for file ${workerData.fileName}`);
 		}
 	});
-}
-
-/**
- * Utility function to log messages with the filename nicely
- * @param fileName The filename
- * @param message The message to log
- */
-function log(fileName: string, message: string) {
-	console.log(`[${fileName}] ${message}`);
 }
 
 /**

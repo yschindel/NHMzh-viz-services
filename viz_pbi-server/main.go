@@ -13,9 +13,12 @@ func main() {
 		port = "3000" // Default port if not specified
 	}
 
-	srv := api.NewServer()
-
 	log.Printf("Starting server on port %s", port)
+	srv, err := api.NewServer()
+	if err != nil {
+		log.Fatalf("Failed to create server: %v", err)
+	}
+
 	log.Printf("Server is designed to run behind a reverse proxy for HTTPS termination")
-	log.Fatal(http.ListenAndServe(":"+port, srv))
+	log.Fatal(http.ListenAndServe(":"+port, srv.Handler))
 }

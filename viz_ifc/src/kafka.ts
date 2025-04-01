@@ -1,4 +1,6 @@
 import { Kafka, Consumer } from "kafkajs";
+import { getEnv } from "./utils/env";
+import { log } from "./utils/logger";
 
 /**
  * Setup the Kafka consumer
@@ -6,18 +8,21 @@ import { Kafka, Consumer } from "kafkajs";
  */
 export async function setupKafkaConsumer(): Promise<Consumer> {
 	const kafka = new Kafka({
-		clientId: process.env.VIZ_KAFKA_IFC_CONSUMER_ID || "viz-ifc-consumer",
-		brokers: [process.env.KAFKA_BROKER || "kafka:9093"],
+		clientId: getEnv("VIZ_KAFKA_IFC_CONSUMER_ID"),
+		brokers: [getEnv("KAFKA_BROKER")],
 	});
 
-	const consumer = kafka.consumer({ groupId: process.env.VIZ_KAFKA_IFC_GROUP_ID || "viz-ifc-consumers" });
+	const consumer = kafka.consumer({ groupId: getEnv("VIZ_KAFKA_IFC_GROUP_ID") });
 
 	try {
+		log.debug("Connecting to Kafka");
 		await consumer.connect();
-		await consumer.subscribe({ topic: process.env.KAFKA_IFC_TOPIC || "ifc-files", fromBeginning: true });
+		log.debug("Subscribing to Kafka topic");
+		await consumer.subscribe({ topic: getEnv("KAFKA_IFC_TOPIC"), fromBeginning: true });
+		log.debug("Kafka consumer connected and subscribed to topic");
 		return consumer;
-	} catch (error) {
-		console.error("Failed to connect to Kafka:", error);
+	} catch (error: any) {
+		log.error("Failed to connect to Kafka:", error);
 		// Exit with a non-zero code to trigger restart
 		process.exit(1);
 	}
@@ -32,12 +37,12 @@ export async function startKafkaConsumer(consumer: Consumer, messageHandler: (me
 	try {
 		await consumer.run({
 			eachMessage: async ({ topic, partition, message }) => {
-				console.log(`Received message from topic ${topic}, partition ${partition}, offset ${message.offset}`);
+				log.debug(`Received message from topic ${topic}, partition ${partition}, offset ${message.offset}`);
 				await messageHandler(message);
 			},
 		});
-	} catch (error) {
-		console.error("Error running Kafka consumer:", error);
+	} catch (error: any) {
+		log.error("Error running Kafka consumer:", error);
 		// Exit with a non-zero code to trigger restart
 		process.exit(1);
 	}

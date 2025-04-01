@@ -6,24 +6,17 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"sort"
-	"strings"
 
 	"github.com/gorilla/mux"
 	"github.com/rs/cors"
 
-	"viz_pbi-server/minio"
-
-	_ "github.com/marcboeker/go-duckdb"
+	"viz_pbi-server/storage"
+	"viz_pbi-server/storage/azure"
 )
 
-var fragmentsBucket string
-var lcaCostDataBucket string
 var apiKey string
 
 func init() {
-	fragmentsBucket = getEnv("MINIO_FRAGMENTS_BUCKET", "ifc-fragment-files")
-	lcaCostDataBucket = getEnv("MINIO_LCA_COST_DATA_BUCKET", "lca-cost-data")
 	apiKey = getEnv("PBI_SRV_API_KEY", "")
 
 	if apiKey == "" {
@@ -33,6 +26,7 @@ func init() {
 
 type Server struct {
 	http.Handler
+	storage storage.StorageProvider
 }
 
 // Proxy-aware middleware to handle X-Forwarded headers
@@ -71,178 +65,86 @@ func apiKeyMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-func NewServer() *Server {
-	// Create a new router
+func NewServer() (*Server, error) {
+	// Initialize Azure storage
+	config := azure.NewConfig()
+	storageProvider, err := azure.NewBlobStorage(config)
+	if err != nil {
+		return nil, err
+	}
+
+	server := &Server{
+		storage: storageProvider,
+		Handler: nil,
+	}
+
+	// Create router
 	router := mux.NewRouter()
 
 	// Register routes
-	router.HandleFunc("/fragments", getFragmentsFile()).Methods("GET")
-	router.HandleFunc("/fragments/list", getFragmentFileNames()).Methods("GET")
-	router.HandleFunc("/data", getDataFile()).Methods("GET")
-	router.HandleFunc("/data/list", getDataFileNames()).Methods("GET")
-	router.HandleFunc("/gltf", getGltfFile()).Methods("GET")
+	router.HandleFunc("/files/{container}/{filename}", server.handleGetFile()).Methods("GET")
+	router.HandleFunc("/files/{container}/{filename}", server.handleUploadFile()).Methods("POST")
 
-	// Create middleware chain
+	// Add middleware
 	var handler http.Handler = router
-
-	// Add proxy headers middleware
 	handler = proxyHeadersMiddleware(handler)
-
-	// Apply API key middleware if API key is set
 	if apiKey != "" {
 		log.Println("API key authentication enabled")
 		handler = apiKeyMiddleware(handler)
 	}
 
 	// Enable CORS
+	// This is required by PowerBI
 	c := cors.New(cors.Options{
-		AllowedOrigins:   []string{"*"}, // Allow all origins
-		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE"},
+		AllowedOrigins:   []string{"*"},
+		AllowedMethods:   []string{"GET", "POST"},
 		AllowedHeaders:   []string{"*"},
 		AllowCredentials: true,
 	})
 
-	// Apply CORS middleware
 	handler = c.Handler(handler)
+	server.Handler = handler
 
-	return &Server{Handler: handler}
+	return server, nil
 }
 
-func getFragmentsFile() http.HandlerFunc {
+func (s *Server) handleGetFile() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		id := r.URL.Query().Get("id")
-		if id == "" {
-			http.Error(w, "Missing 'id' query parameter", http.StatusBadRequest)
-			return
-		}
+		vars := mux.Vars(r)
+		container := vars["container"]
+		filename := vars["filename"]
 
-		log.Printf("getting fragments files with id: %s", id)
-
-		files, err := minio.ListAllFiles(fragmentsBucket)
+		file, err := s.storage.GetFile(r.Context(), container, filename)
 		if err != nil {
-			http.Error(w, fmt.Sprintf("Failed to list all files from MinIO: %v", err), http.StatusInternalServerError)
+			http.Error(w, fmt.Sprintf("Failed to fetch file: %v", err), http.StatusInternalServerError)
 			return
 		}
 
-		// find the file name that matches the id
-		var fileNames []string
-		for _, file := range files {
-			if strings.Contains(file, id) {
-				fileNames = append(fileNames, file)
-			}
-		}
-
-		// get the file with the latest timestamp
-		sort.Strings(fileNames)
-		name := fileNames[len(fileNames)-1]
-
-		// Fetch the file from MinIO
-		file, err := minio.GetFile(fragmentsBucket, name)
-		if err != nil {
-			http.Error(w, fmt.Sprintf("Failed to fetch file from MinIO: %v", err), http.StatusInternalServerError)
-			return
-		}
-
-		// Set the appropriate headers and return the file content
 		w.Header().Set("Content-Type", "application/octet-stream")
 		w.Write(file)
 	}
 }
 
-// get all file names in the ifc-fragment-files bucket
-func getFragmentFileNames() http.HandlerFunc {
+func (s *Server) handleUploadFile() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		files, err := minio.ListAllFiles(fragmentsBucket)
+		vars := mux.Vars(r)
+		container := vars["container"]
+		filename := vars["filename"]
+
+		// Limit the file size to 1GB, just for safety
+		r.Body = http.MaxBytesReader(w, r.Body, 1<<30)
+
+		err := s.storage.UploadFile(r.Context(), container, filename, r.Body)
 		if err != nil {
-			http.Error(w, fmt.Sprintf("Failed to list all files from MinIO: %v", err), http.StatusInternalServerError)
+			http.Error(w, fmt.Sprintf("Failed to upload file: %v", err), http.StatusInternalServerError)
 			return
 		}
 
-		for _, file := range files {
-			log.Printf("fragments file: %s", file)
-		}
-
-		// return list of files
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(files)
-	}
-}
-
-// get a data file from the lca-cost-data bucket
-func getDataFile() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		name := r.URL.Query().Get("name")
-		if name == "" {
-			http.Error(w, "Missing 'name' query parameter", http.StatusBadRequest)
-			return
-		}
-
-		project := r.URL.Query().Get("project")
-		if project == "" {
-			http.Error(w, "Missing 'project' query parameter", http.StatusBadRequest)
-			return
-		}
-
-		fileName := project + "/" + name
-
-		// Check if the file name is valid
-		passed, msg := checkDataFileName(fileName)
-		if !passed {
-			http.Error(w, msg, http.StatusBadRequest)
-			return
-		}
-
-		// Fetch the file from MinIO
-		file, err := minio.GetFile(lcaCostDataBucket, fileName)
-		if err != nil {
-			http.Error(w, fmt.Sprintf("Failed to fetch file from MinIO: %v", err), http.StatusInternalServerError)
-			return
-		}
-
-		// Set the appropriate headers and return the file content
-		w.Header().Set("Content-Type", "application/octet-stream")
-		w.Write(file)
-	}
-}
-
-// get all projects in the lca-cost-data bucket
-func getDataFileNames() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-
-		files, err := minio.ListAllFiles(lcaCostDataBucket)
-		if err != nil {
-			http.Error(w, fmt.Sprintf("Failed to list all files from MinIO: %v", err), http.StatusInternalServerError)
-			return
-		}
-
-		for _, file := range files {
-			log.Printf("data file: %s", file)
-		}
-
-		// return list of files
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(files)
-	}
-}
-
-func getGltfFile() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		id := r.URL.Query().Get("id")
-		if id == "" {
-			http.Error(w, "Missing 'id' query parameter", http.StatusBadRequest)
-			return
-		}
-
-		// Fetch the file from MinIO
-		file, err := minio.GetFile("gltf-files", id)
-		if err != nil {
-			http.Error(w, fmt.Sprintf("Failed to fetch file from MinIO: %v", err), http.StatusInternalServerError)
-			return
-		}
-
-		// Set the appropriate headers and return the file content
-		w.Header().Set("Content-Type", "application/octet-stream")
-		w.Write(file)
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]string{
+			"message": "File uploaded successfully",
+			"file":    filename,
+		})
 	}
 }
 
@@ -252,21 +154,4 @@ func getEnv(key, fallback string) string {
 		return fallback
 	}
 	return value
-}
-
-func checkDataFileName(name string) (bool, string) {
-	// check if file ends with .gz
-	if !strings.HasSuffix(name, ".parquet") {
-		return false, "file name does not end with .parquet"
-	}
-
-	pattern := "project/filename.parquet"
-
-	// check if file name follows the pattern: project/filename.parquet
-	parts := strings.Split(name, "/")
-	if len(parts) != 2 {
-		return false, pattern
-	}
-
-	return true, "File name is valid"
 }

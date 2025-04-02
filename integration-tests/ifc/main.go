@@ -254,14 +254,15 @@ func main() {
 	log.Println("Getting fragments files...")
 
 	for _, msg := range messages {
-		fileName := strings.Split(msg.FilenameOriginal, ".")[0]
-		file := msg.Project + "/" + fileName + "_" + msg.Timestamp + ".gz"
-		_, err := getFileFromPbiServer(pbiServerUrl, file)
+		fileID := strings.Split(msg.FileNameUUID, ".")[0]
+		fileIDgz := fileID + ".gz"
+
+		_, err := getFileFromPbiServer(pbiServerUrl, fileIDgz)
 		if err != nil {
 			log.Fatalf("Error getting fragments files: %v", err)
 		}
 
-		log.Printf("Received fragments file: %s\n", file)
+		log.Printf("Received fragments file: %s\n", fileIDgz)
 	}
 
 	log.Println("IFC test completed successfully")

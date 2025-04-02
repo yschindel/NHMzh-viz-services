@@ -1,4 +1,4 @@
-package server
+package azure
 
 import (
 	"context"
@@ -39,14 +39,14 @@ func InitializeDatabase(db *sql.DB) error {
 	defer tx.Rollback()
 
 	// Read and execute SQL files
-	sqlFiles := []string{"/app/sql/create_tables.sql", "/app/sql/add_columns.sql"}
+	sqlFiles := []string{"/app/storage/azure/sql/create_tables.sql", "/app/storage/azure/sql/add_columns.sql"}
 	for _, filePath := range sqlFiles {
 		log.Printf("Attempting to read SQL file: %s", filePath)
 		sqlContent, err := ReadSQLFile(filePath)
 		if err != nil {
 			// Try the fallback path if the Docker path fails
 			log.Printf("Failed to read from Docker path, trying relative path: %v", err)
-			relativePath := fmt.Sprintf("./sql/%s", filePath[len("/app/sql/"):])
+			relativePath := fmt.Sprintf("./storage/azure/sql/%s", filePath[len("/app/storage/azure/sql/"):])
 			sqlContent, err = ReadSQLFile(relativePath)
 			if err != nil {
 				return fmt.Errorf("error reading SQL file (both Docker and relative paths): %v", err)

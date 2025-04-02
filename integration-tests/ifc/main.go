@@ -206,8 +206,8 @@ func addIfcFilesToMinioDirectly() error {
 	return nil
 }
 
-func getFileFromPbiServer(baseUrl string, filename string) ([]byte, error) {
-	url := fmt.Sprintf("%s/files?file=%s", baseUrl, filename)
+func getFileFromPbiServer(baseUrl string, blobID string) ([]byte, error) {
+	url := fmt.Sprintf("%s/blob?blobID=%s", baseUrl, blobID)
 
 	// Create a new request
 	req, err := http.NewRequest("GET", url, nil)

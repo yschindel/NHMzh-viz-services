@@ -34,15 +34,15 @@ export const minioClient = new MinioClient({
 
 /**
  * Get a file from MinIO
- * @param location - The location of the file in the bucket
+ * @param fileID - The ID of the file object in the bucket
  * @param bucketName - The bucket name
  * @param client - MinioClient
  * @returns The file as a Buffer
  * @throws Error if the file cannot be retrieved
  */
-export async function getFile(location: string, bucketName: string, client: MinioClient): Promise<Buffer> {
-	log.debug(`Getting file from ${bucketName} at ${location} in MinIO`);
-	const stream = await client.getObject(bucketName, location);
+export async function getFile(fileID: string, bucketName: string, client: MinioClient): Promise<Buffer> {
+	log.debug(`Getting file from ${bucketName} at ${fileID} in MinIO`);
+	const stream = await client.getObject(bucketName, fileID);
 	const chunks: Buffer[] = [];
 	return new Promise((resolve, reject) => {
 		stream.on("data", (chunk) => chunks.push(chunk));
@@ -53,14 +53,14 @@ export async function getFile(location: string, bucketName: string, client: Mini
 
 /**
  * Get the metadata of a file
- * @param location - The location of the file in the bucket
+ * @param fileID - The ID of the file object in the bucket
  * @param bucketName - The bucket name
  * @param client - MinioClient
  * @returns The metadata of the file as an object
  */
-export async function getFileMetadata(location: string, bucketName: string, client: MinioClient): Promise<FileMetadata> {
-	log.debug(`Getting metadata for file from ${bucketName} at ${location} in MinIO`);
-	const statObject = await client.statObject(bucketName, location);
+export async function getFileMetadata(fileID: string, bucketName: string, client: MinioClient): Promise<FileMetadata> {
+	log.debug(`Getting metadata for file from ${bucketName} at ${fileID} in MinIO`);
+	const statObject = await client.statObject(bucketName, fileID);
 	return {
 		timestamp: statObject.metaData["created-at"], // Ensure proper casing
 		project: statObject.metaData["project-name"], // Match MinIO key

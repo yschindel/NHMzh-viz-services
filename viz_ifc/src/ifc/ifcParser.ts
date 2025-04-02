@@ -20,12 +20,12 @@ import { log } from "../utils/logger";
  * @param project - The project name.
  * @throws If the worker stops with a non-zero exit code.
  */
-export function runIfcToGzWorker(file: Buffer, location: string, timestamp: string, project: string, filename: string): Promise<void> {
-	log.debug(`Running ifc to gz worker for file ${filename}`);
+export function runIfcToGzWorker(ifcData: IFCData): Promise<void> {
+	log.debug(`Running ifc to gz worker for file ${ifcData.Filename}`);
 	return new Promise((resolve, reject) => {
 		const workerPath = path.resolve(__dirname, "ifcWorker.js");
 		const worker = new Worker(workerPath, {
-			workerData: { file, location, timestamp, project, filename },
+			workerData: ifcData,
 		});
 
 		worker.on("message", resolve);

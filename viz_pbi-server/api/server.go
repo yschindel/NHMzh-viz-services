@@ -1,15 +1,18 @@
 package api
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/gorilla/mux"
 	"github.com/rs/cors"
 
 	"viz_pbi-server/env"
 	"viz_pbi-server/logger"
+	"viz_pbi-server/models"
 	"viz_pbi-server/storage"
 	"viz_pbi-server/storage/azure"
 )
@@ -23,8 +26,10 @@ func init() {
 
 type Server struct {
 	http.Handler
-	storage storage.StorageProvider
-	logger  *logger.Logger
+	storage   storage.StorageProvider
+	logger    *logger.Logger
+	db        *sql.DB
+	sqlWriter *azure.SqlWriter
 }
 
 // Proxy-aware middleware to handle X-Forwarded headers
@@ -93,26 +98,66 @@ func NewServer() (*Server, error) {
 		return nil, fmt.Errorf("failed to initialize Azure storage: %v", err)
 	}
 
+	dbConfig := azure.DBConfig{
+		Server:   env.Get("AZURE_DB_SERVER"),
+		Port:     StringToInt(env.Get("AZURE_DB_PORT")),
+		User:     env.Get("AZURE_DB_USER"),
+		Password: env.Get("AZURE_DB_PASSWORD"),
+		Database: env.Get("AZURE_DB_DATABASE"),
+	}
+
+	db, err := azure.ConnectDB(dbConfig)
+	if err != nil {
+		log.Error("Failed to connect to Azure SQL database: %v", err)
+		return nil, fmt.Errorf("failed to connect to Azure SQL database: %v", err)
+	}
+
+	// Initialize database schema
+	err = azure.InitializeDatabase(db)
+	if err != nil {
+		log.Error("Failed to initialize database schema: %v", err)
+		return nil, fmt.Errorf("failed to initialize database schema: %v", err)
+	}
+
 	server := &Server{
-		storage: storageProvider,
-		Handler: nil,
-		logger:  logger.New(),
+		storage:   storageProvider,
+		Handler:   nil,
+		logger:    logger.New(),
+		db:        db,
+		sqlWriter: azure.NewSqlWriter(db),
 	}
 
 	// Create router
 	router := mux.NewRouter()
 
+	blobEndpoint := env.Get("STORAGE_FILE_ENDPOINT")
+	if !strings.HasPrefix(blobEndpoint, "/") {
+		blobEndpoint = "/" + blobEndpoint
+	}
+
+	lcaEndpoint := env.Get("STORAGE_DATA_LCA_ENDPOINT")
+	if !strings.HasPrefix(lcaEndpoint, "/") {
+		lcaEndpoint = "/" + lcaEndpoint
+	}
+
+	costEndpoint := env.Get("STORAGE_DATA_COST_ENDPOINT")
+	if !strings.HasPrefix(costEndpoint, "/") {
+		costEndpoint = "/" + costEndpoint
+	}
+
 	// Register routes with query parameters for container
-	router.HandleFunc("/files", server.handleGetFile()).Methods("GET")
-	router.HandleFunc("/files", server.handleUploadFile()).Methods("POST")
+	router.HandleFunc(blobEndpoint, server.handleGetBlob()).Methods("GET")
+	router.HandleFunc(blobEndpoint, server.handleUploadBlob()).Methods("POST")
+	router.HandleFunc(lcaEndpoint, server.handlePostLcaData()).Methods("POST")
+	router.HandleFunc(costEndpoint, server.handlePostCostData()).Methods("POST")
 
 	// Add middleware
 	var handler http.Handler = router
 	handler = server.requestLoggingMiddleware(handler) // Use server's logger
 	handler = proxyHeadersMiddleware(handler)
 	if apiKey != "" {
-		log.Info("API key authentication enabled")
 		handler = apiKeyMiddleware(handler)
+		log.Info("API key authentication enabled")
 	}
 
 	// Enable CORS
@@ -131,26 +176,26 @@ func NewServer() (*Server, error) {
 	return server, nil
 }
 
-func (s *Server) handleGetFile() http.HandlerFunc {
+func (s *Server) handleGetBlob() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Get container and file from query parameters
 		container := r.URL.Query().Get("container")
 		if container == "" {
 			container = s.storage.Container() // Use default container if not specified
 		}
-		file := r.URL.Query().Get("file")
-		if file == "" {
-			http.Error(w, "file parameter is required", http.StatusBadRequest)
+		blobID := r.URL.Query().Get("blobID")
+		if blobID == "" {
+			http.Error(w, "blobID parameter is required", http.StatusBadRequest)
 			return
 		}
 
-		s.logger.Debug("Handling file download request: container=%s, file=%s",
-			container, file)
+		s.logger.Debug("Handling file download request: container=%s, blobID=%s",
+			container, blobID)
 
-		fileData, err := s.storage.GetFile(r.Context(), container, file)
+		fileData, err := s.storage.GetBlob(r.Context(), container, blobID)
 		if err != nil {
-			s.logger.Error("Failed to fetch file: container=%s, file=%s, error=%v",
-				container, file, err)
+			s.logger.Error("Failed to fetch file: container=%s, blobID=%s, error=%v",
+				container, blobID, err)
 			http.Error(w, fmt.Sprintf("Failed to fetch file: %v", err), http.StatusInternalServerError)
 			return
 		}
@@ -158,46 +203,150 @@ func (s *Server) handleGetFile() http.HandlerFunc {
 		w.Header().Set("Content-Type", "application/octet-stream")
 		w.Write(fileData)
 
-		s.logger.Info("File downloaded successfully: container=%s, file=%s",
-			container, file)
+		s.logger.Info("File downloaded successfully: container=%s, blobID=%s",
+			container, blobID)
 	}
 }
 
-func (s *Server) handleUploadFile() http.HandlerFunc {
+func (s *Server) handleUploadBlob() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// Get container and file from query parameters
-		container := r.URL.Query().Get("container")
-		if container == "" {
-			container = s.storage.Container() // Use default container if not specified
+		// Limit the file size to 1GB
+		if err := r.ParseMultipartForm(1 << 30); err != nil {
+			http.Error(w, fmt.Sprintf("Failed to parse form: %v", err), http.StatusBadRequest)
+			return
 		}
-		file := r.URL.Query().Get("file")
-		if file == "" {
-			http.Error(w, "file parameter is required", http.StatusBadRequest)
+		defer r.MultipartForm.RemoveAll()
+
+		// Get the file
+		file, _, err := r.FormFile("file")
+		if err != nil {
+			http.Error(w, "file is required", http.StatusBadRequest)
+			return
+		}
+		defer file.Close()
+
+		// use the fileID from the form and internally call the varialbe blobID
+		// to match the azure blob storage naming convention
+		blobID := r.FormValue("fileID")
+		if blobID == "" {
+			http.Error(w, "fileID is required", http.StatusBadRequest)
 			return
 		}
 
-		s.logger.Debug("Handling file upload request: container=%s, file=%s",
-			container, file)
+		// Get metadata from form fields
+		// this will be used to set the blob metadata
+		fileName := r.FormValue("fileName")
+		if fileName == "" {
+			http.Error(w, "fileName (original filename) is required", http.StatusBadRequest)
+			return
+		}
 
-		// Limit the file size to 1GB, just for safety
-		r.Body = http.MaxBytesReader(w, r.Body, 1<<30)
+		projectName := r.FormValue("projectName")
+		if projectName == "" {
+			http.Error(w, "projectName is required", http.StatusBadRequest)
+			return
+		}
 
-		err := s.storage.UploadFile(r.Context(), container, file, r.Body)
+		timestamp := r.FormValue("timestamp")
+		if timestamp == "" {
+			http.Error(w, "timestamp is required", http.StatusBadRequest)
+			return
+		}
+
+		// get the optional container from the form
+		container := r.FormValue("container")
+		if container == "" {
+			container = s.storage.Container()
+		}
+
+		blobData := models.BlobData{
+			Container: container,
+			Project:   projectName,
+			Filename:  fileName,
+			Timestamp: timestamp,
+			BlobID:    blobID,
+			Blob:      file,
+		}
+
+		s.logger.Debug("Handling file upload request: container=%s, fileName=%s, projectName=%s",
+			container, fileName, projectName)
+
+		// upload the file to Azure Blob Storage
+		blobID, err = s.storage.UploadBlob(r.Context(), blobData)
 		if err != nil {
-			s.logger.Error("Failed to upload file: container=%s, file=%s, error=%v",
-				container, file, err)
+			s.logger.Error("Failed to upload file: container=%s, fileName=%s, projectName=%s, error=%v",
+				container, fileName, projectName, err)
 			http.Error(w, fmt.Sprintf("Failed to upload file: %v", err), http.StatusInternalServerError)
 			return
 		}
 
-		s.logger.Info("File uploaded successfully: container=%s, file=%s",
-			container, file)
+		// update the data_updates table with the new blobID
+		blobData.BlobID = blobID
+		err = s.sqlWriter.WriteBlobData(blobData)
+		if err != nil {
+			s.logger.Error("Failed to write blob upload message: %v", err)
+			http.Error(w, fmt.Sprintf("Failed to write blob upload message: %v", err), http.StatusInternalServerError)
+			return
+		}
+
+		s.logger.Info("File uploaded successfully: container=%s, fileName=%s, projectName=%s",
+			container, fileName, projectName)
 
 		w.WriteHeader(http.StatusCreated)
 		json.NewEncoder(w).Encode(map[string]string{
 			"message":   "File uploaded successfully",
-			"file":      file,
+			"blobID":    blobID,
 			"container": container,
 		})
+	}
+}
+
+func (s *Server) handlePostLcaData() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var lcaData []models.EavMaterialDataItem
+		err := json.NewDecoder(r.Body).Decode(&lcaData)
+		if err != nil {
+			s.logger.Error("Failed to decode request body: %v", err)
+			http.Error(w, fmt.Sprintf("Failed to decode request body: %v", err), http.StatusBadRequest)
+			return
+		}
+
+		err = s.sqlWriter.WriteMaterials(lcaData)
+		if err != nil {
+			s.logger.Error("Failed to write LCA data: %v", err)
+			http.Error(w, fmt.Sprintf("Failed to write LCA data: %v", err), http.StatusInternalServerError)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(map[string]string{
+			"message": "LCA data written successfully",
+		})
+		s.logger.Info("LCA data written successfully")
+	}
+}
+
+func (s *Server) handlePostCostData() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var costData []models.EavElementDataItem
+		err := json.NewDecoder(r.Body).Decode(&costData)
+		if err != nil {
+			s.logger.Error("Failed to decode request body: %v", err)
+			http.Error(w, fmt.Sprintf("Failed to decode request body: %v", err), http.StatusBadRequest)
+			return
+		}
+
+		err = s.sqlWriter.WriteElements(costData)
+		if err != nil {
+			s.logger.Error("Failed to write cost data: %v", err)
+			http.Error(w, fmt.Sprintf("Failed to write cost data: %v", err), http.StatusInternalServerError)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(map[string]string{
+			"message": "Cost data written successfully",
+		})
+		s.logger.Info("Cost data written successfully")
 	}
 }

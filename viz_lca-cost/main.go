@@ -15,33 +15,6 @@ func main() {
 	costTopic := getEnv("KAFKA_COST_TOPIC", "cost-data")
 	groupID := getEnv("VIZ_KAFKA_DATA_GROUP_ID", "lca-consumer-group")
 
-	// Azure configuration
-	azureServer := getEnv("AZURE_DB_SERVER", "")
-	azurePort := getEnv("AZURE_DB_PORT", "")
-	azureUser := getEnv("AZURE_DB_USER", "")
-	azurePassword := getEnv("AZURE_DB_PASSWORD", "")
-	azureDatabase := getEnv("AZURE_DB_DATABASE", "")
-
-	config := server.DBConfig{
-		Server:   azureServer,
-		Port:     StringToInt(azurePort),
-		User:     azureUser,
-		Password: azurePassword,
-		Database: azureDatabase,
-	}
-
-	azureDB, err := server.ConnectDB(config)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer azureDB.Close()
-
-	// Initialize database schema (create/update tables)
-	err = server.InitializeDatabase(azureDB)
-	if err != nil {
-		log.Fatalf("Failed to initialize database schema: %v", err)
-	}
-
 	// Create and start consumer
 	consumer := server.NewConsumer(
 		envBroker,
@@ -49,7 +22,6 @@ func main() {
 		envBroker, // Using same broker for both topics
 		costTopic,
 		groupID,
-		azureDB,
 	)
 
 	ctx := context.Background()

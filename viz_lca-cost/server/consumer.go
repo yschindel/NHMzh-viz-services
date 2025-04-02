@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"log"
 
@@ -16,7 +15,7 @@ type Consumer struct {
 	writer     *MessageWriter
 }
 
-func NewConsumer(envBroker, envTopic, costBroker, costTopic, groupID string, azureDB *sql.DB) *Consumer {
+func NewConsumer(envBroker, envTopic, costBroker, costTopic, groupID string) *Consumer {
 	lcaReader := kafka.NewReader(kafka.ReaderConfig{
 		Brokers: []string{envBroker},
 		Topic:   envTopic,
@@ -36,7 +35,7 @@ func NewConsumer(envBroker, envTopic, costBroker, costTopic, groupID string, azu
 		lcaReader:  lcaReader,
 		costReader: costReader,
 		processor:  NewMessageProcessor(),
-		writer:     NewMessageWriter(azureDB),
+		writer:     NewMessageWriter(),
 	}
 }
 

@@ -35,14 +35,19 @@ async function main() {
 		if (message.value) {
 			try {
 				const donwloadLink = message.value.toString();
-				const location = donwloadLink.split("/").pop();
+				const fileID = donwloadLink.split("/").pop();
 
-				const file = await getFile(location, IFC_BUCKET_NAME, minioClient);
-
-				const metadata = await getFileMetadata(location, IFC_BUCKET_NAME, minioClient);
+				const metadata = await getFileMetadata(fileID, IFC_BUCKET_NAME, minioClient);
+				const ifcData: IFCData = {
+					Project: metadata.project,
+					Filename: metadata.filename,
+					Timestamp: metadata.timestamp,
+					File: await getFile(fileID, IFC_BUCKET_NAME, minioClient),
+					FileID: fileID,
+				};
 
 				// Parse the IFC file to fragments and save to minio in a worker thread - no need to await
-				runIfcToGzWorker(file, location, metadata.timestamp, metadata.project, metadata.filename);
+				runIfcToGzWorker(ifcData);
 			} catch (error: any) {
 				log.error("Error processing Kafka message:", error);
 			}

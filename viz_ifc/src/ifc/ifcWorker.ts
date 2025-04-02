@@ -12,9 +12,6 @@ import * as OBC from "@thatopen/components";
 import { wasmDir } from "./wasm";
 import { sendFileToStorage } from "../storage";
 import { log } from "../utils/logger";
-import { getEnv } from "../utils/env";
-
-const FRAGMENTS_BUCKET_NAME = getEnv("VIZ_IFC_FRAGMENTS_BUCKET");
 
 export interface WorkerResult {
 	success: boolean;
@@ -27,9 +24,9 @@ export interface WorkerResult {
  * @param file The IFC file
  * @returns The result of the worker
  */
-async function ifcToFragments(file: Buffer, fileName: string): Promise<WorkerResult> {
-	log.info(`Converting IFC file ${fileName} to fragments`);
-	const dataArray = new Uint8Array(file);
+async function ifcToFragments(ifcData: IFCData): Promise<WorkerResult> {
+	log.info(`Converting IFC file ${ifcData.Filename} to fragments`);
+	const dataArray = new Uint8Array(ifcData.File);
 	const components = new OBC.Components();
 	const fragments = components.get(OBC.FragmentsManager);
 	const loader = components.get(OBC.IfcLoader);
@@ -41,7 +38,7 @@ async function ifcToFragments(file: Buffer, fileName: string): Promise<WorkerRes
 
 	log.debug(`Loader setup with WASM path: ${wasmDir}`);
 
-	log.debug(`Loading IFC file ${fileName}`);
+	log.debug(`Loading IFC file ${ifcData.Filename}`);
 	const startTime = Date.now();
 
 	// Suppress console.log output from @thanOpen
@@ -64,40 +61,28 @@ async function ifcToFragments(file: Buffer, fileName: string): Promise<WorkerRes
 	if (compressedFrags.length > 0) {
 		result = { success: true, fragments: compressedFrags };
 	}
-	log.info(`Worker finished for file ${fileName}`);
+	log.info(`Worker finished for file ${ifcData.Filename}`);
 	return result;
 }
 
 // Main worker execution
 if (parentPort) {
-	ifcToFragments(workerData.file, workerData.fileName).then((result) => {
+	ifcToFragments(workerData).then((result) => {
 		if (result.fragments) {
 			// We have to save to minio in this worker thread,
 			// because the errors that @thanOpen loader.load is throwing
 			// would emit messages to the parent port too early
-			const newFileName = createFileName(workerData.project, workerData.filename, workerData.timestamp, ".gz");
-			sendFileToStorage(result.fragments, newFileName);
+			const blobInfo: FileData = {
+				Project: workerData.Project,
+				Filename: workerData.Filename,
+				Timestamp: workerData.Timestamp,
+				File: result.fragments,
+				FileID: workerData.FileID,
+			};
+
+			sendFileToStorage(blobInfo);
 		} else {
 			log.warn(`No fragments to send to storage for file ${workerData.fileName}`);
 		}
 	});
-}
-
-/**
- * Creates a new file name with the given project, filename, timestamp, and extension.
- * @param project - The project name
- * @param filename - The name of the file, including extension (e.g. "file.ifc")
- * @param timestamp - Timestamp for the filename (in ISO 8601 format)
- * @param extension - The extension of the file (e.g. ".gz")
- * @returns The full filename of the saved object
- */
-function createFileName(project: string, filename: string, timestamp: string, extension: string): string {
-	project = sanitizeString(project);
-	filename = sanitizeString(filename.replace(".ifc", ""));
-	const fileTimestamp = timestamp || new Date().toISOString();
-	return `${project}/${filename}_${fileTimestamp}${extension}`;
-}
-
-function sanitizeString(str: string): string {
-	return str.replace(/[^a-zA-Z0-9]/g, "_");
 }

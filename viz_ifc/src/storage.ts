@@ -16,27 +16,58 @@ import { getEnv } from "./utils/env";
 
 /**
  * Sends a POST request to the storage service to upload a file
- * @param file - The file to upload
- * @param filename - The name of the file to upload
+ * @param file - The file content as Buffer
+ * @param fileName - The original name of the file
+ * @param projectName - The project identifier
  */
-export async function sendFileToStorage(file: Buffer, filename: string) {
+export async function sendFileToStorage(blobInfo: FileData) {
 	const storageServiceUrl = getEnv("STORAGE_SERVICE_URL");
-	const apiKey = getEnv("STORAGE_API_KEY");
-	const url = `${storageServiceUrl}/files?file=${encodeURIComponent(filename)}`;
+	const fileEndpoint = getEnv("STORAGE_FILE_ENDPOINT");
 
-	log.debug(`Sending file to storage service at ${url}`);
+	let url: string;
+
+	if (!storageServiceUrl.endsWith("/") && !fileEndpoint.startsWith("/")) {
+		url = `${storageServiceUrl}/${fileEndpoint}`;
+	} else {
+		url = `${storageServiceUrl}${fileEndpoint}`;
+	}
+
+	// Create form data
+	const formData = new FormData();
+
+	// Add the file as a Blob
+	formData.append("file", new Blob([blobInfo.File]), blobInfo.Filename);
+	formData.append("fileID", blobInfo.FileID);
+
+	// Add metadata
+	// This needs to match up with the api definition in the storage service
+	formData.append("fileName", blobInfo.Filename);
+	formData.append("projectName", blobInfo.Project);
+	formData.append("timestamp", new Date().toISOString());
+
+	log.debug(`Sending file ${blobInfo.Filename} to storage service at ${url}`);
+
+	const apiKey = getEnv("STORAGE_API_KEY");
+
 	const response = await fetch(url, {
 		method: "POST",
-		body: file,
+		body: formData,
 		headers: {
-			"Content-Type": "application/octet-stream",
 			"X-API-Key": apiKey,
 		},
 	});
 
 	if (!response.ok) {
-		log.error(`Failed to upload file to storage: ${response.statusText}`);
-	} else {
-		log.debug(`File ${filename} uploaded to storage service`);
+		const errorText = await response.text();
+		log.error(`Failed to upload file to storage: ${response.statusText}`, {
+			status: response.status,
+			error: errorText,
+		});
+		throw new Error(`Failed to upload file: ${response.statusText}`);
 	}
+
+	const result = await response.json();
+	log.debug(`File ${blobInfo.Filename} uploaded to storage service`, { blobId: result.blobID });
+
+	return result;
 }

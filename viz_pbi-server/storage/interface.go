@@ -2,7 +2,7 @@ package storage
 
 import (
 	"context"
-	"io"
+	"viz_pbi-server/models"
 )
 
 // StorageProvider defines the interface for storage operations
@@ -10,9 +10,9 @@ type StorageProvider interface {
 	// Container returns the default container name
 	Container() string
 
-	// UploadFile uploads a file to the specified container
-	UploadFile(ctx context.Context, containerName string, fileName string, data io.Reader) error
+	// UploadBlob uploads a file to the specified container
+	UploadBlob(ctx context.Context, blobData models.BlobData) (string, error)
 
 	// GetFile retrieves a file from the specified container
-	GetFile(ctx context.Context, containerName string, fileName string) ([]byte, error)
+	GetBlob(ctx context.Context, containerName string, fileName string) ([]byte, error)
 }

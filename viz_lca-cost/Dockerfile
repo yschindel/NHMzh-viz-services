@@ -27,8 +27,7 @@ WORKDIR /app
 
 # Copy the binary from builder
 COPY --from=builder /app/main .
-# Copy SQL files from builder stage
-COPY --from=builder /app/sql/ /app/sql/
+
 
 # Run the application
 CMD ["./main"]

@@ -18,10 +18,10 @@ import (
 )
 
 var apiKey string
-var log = logger.WithFields(logger.Fields{"component": "api"})
+var log = logger.WithFields(logger.Fields{"component": "api/server.go"})
 
 func init() {
-	apiKey = env.Get("PBI_SRV_API_KEY")
+	apiKey = env.Get("API_KEY")
 }
 
 type Server struct {
@@ -46,9 +46,11 @@ func proxyHeadersMiddleware(next http.Handler) http.Handler {
 		}
 
 		// Pass to the next handler
-		log.Debug("Proxy headers detected: proto=%s, host=%s",
-			r.Header.Get("X-Forwarded-Proto"),
-			r.Header.Get("X-Forwarded-Host"))
+		reqLogger := log.WithFields(logger.Fields{
+			"proto": r.Header.Get("X-Forwarded-Proto"),
+			"host":  r.Header.Get("X-Forwarded-Host"),
+		})
+		reqLogger.Debug("Proxy headers detected")
 		next.ServeHTTP(w, r)
 	})
 }
@@ -61,12 +63,20 @@ func apiKeyMiddleware(next http.Handler) http.Handler {
 
 		// Check if API key is valid
 		if key == "" || key != apiKey {
-			log.Warn("Unauthorized access attempt: remote=%s, path=%s", r.RemoteAddr, r.URL.Path)
+			reqLogger := log.WithFields(logger.Fields{
+				"remote_addr": r.RemoteAddr,
+				"path":        r.URL.Path,
+			})
+			reqLogger.Warn("Unauthorized access attempt")
 			w.WriteHeader(http.StatusUnauthorized)
 			json.NewEncoder(w).Encode(map[string]string{"error": "Unauthorized: Invalid or missing API key"})
 			return
 		} else {
-			log.Debug("API key authentication successful: remote=%s, path=%s", r.RemoteAddr, r.URL.Path)
+			reqLogger := log.WithFields(logger.Fields{
+				"remote_addr": r.RemoteAddr,
+				"path":        r.URL.Path,
+			})
+			reqLogger.Debug("API key authentication successful")
 		}
 
 		// Call the next handler if API key is valid
@@ -77,12 +87,13 @@ func apiKeyMiddleware(next http.Handler) http.Handler {
 // Request logging middleware
 func (s *Server) requestLoggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		s.logger.Logger.Debug().
-			Str("method", r.Method).
-			Str("path", r.URL.Path).
-			Str("remote_addr", r.RemoteAddr).
-			Str("user_agent", r.UserAgent()).
-			Msg("Incoming request")
+		reqLogger := s.logger.WithFields(logger.Fields{
+			"method":      r.Method,
+			"path":        r.URL.Path,
+			"remote_addr": r.RemoteAddr,
+			"user_agent":  r.UserAgent(),
+		})
+		reqLogger.Debug("Incoming request")
 		next.ServeHTTP(w, r)
 	})
 }
@@ -94,7 +105,7 @@ func NewServer() (*Server, error) {
 	config := azure.NewConfig()
 	storageProvider, err := azure.NewBlobStorage(config)
 	if err != nil {
-		log.Error("Failed to initialize Azure storage: %v", err)
+		log.WithFields(logger.Fields{"error": err}).Error("Failed to initialize Azure storage")
 		return nil, fmt.Errorf("failed to initialize Azure storage: %v", err)
 	}
 
@@ -108,14 +119,14 @@ func NewServer() (*Server, error) {
 
 	db, err := azure.ConnectDB(dbConfig)
 	if err != nil {
-		log.Error("Failed to connect to Azure SQL database: %v", err)
+		log.WithFields(logger.Fields{"error": err}).Error("Failed to connect to Azure SQL database")
 		return nil, fmt.Errorf("failed to connect to Azure SQL database: %v", err)
 	}
 
 	// Initialize database schema
 	err = azure.InitializeDatabase(db)
 	if err != nil {
-		log.Error("Failed to initialize database schema: %v", err)
+		log.WithFields(logger.Fields{"error": err}).Error("Failed to initialize database schema")
 		return nil, fmt.Errorf("failed to initialize database schema: %v", err)
 	}
 
@@ -189,13 +200,15 @@ func (s *Server) handleGetBlob() http.HandlerFunc {
 			return
 		}
 
-		s.logger.Debug("Handling file download request: container=%s, blobID=%s",
-			container, blobID)
+		reqLogger := s.logger.WithFields(logger.Fields{
+			"container": container,
+			"blobID":    blobID,
+		})
+		reqLogger.Debug("Handling file download request")
 
 		fileData, err := s.storage.GetBlob(r.Context(), container, blobID)
 		if err != nil {
-			s.logger.Error("Failed to fetch file: container=%s, blobID=%s, error=%v",
-				container, blobID, err)
+			reqLogger.WithFields(logger.Fields{"error": err}).Error("Failed to fetch file")
 			http.Error(w, fmt.Sprintf("Failed to fetch file: %v", err), http.StatusInternalServerError)
 			return
 		}
@@ -203,8 +216,7 @@ func (s *Server) handleGetBlob() http.HandlerFunc {
 		w.Header().Set("Content-Type", "application/octet-stream")
 		w.Write(fileData)
 
-		s.logger.Info("File downloaded successfully: container=%s, blobID=%s",
-			container, blobID)
+		reqLogger.Info("File downloaded successfully")
 	}
 }
 
@@ -212,6 +224,7 @@ func (s *Server) handleUploadBlob() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Limit the file size to 1GB
 		if err := r.ParseMultipartForm(1 << 30); err != nil {
+			s.logger.WithFields(logger.Fields{"error": err}).Error("Failed to parse form")
 			http.Error(w, fmt.Sprintf("Failed to parse form: %v", err), http.StatusBadRequest)
 			return
 		}
@@ -220,6 +233,7 @@ func (s *Server) handleUploadBlob() http.HandlerFunc {
 		// Get the file
 		file, _, err := r.FormFile("file")
 		if err != nil {
+			s.logger.WithFields(logger.Fields{"error": err}).Error("File is required")
 			http.Error(w, "file is required", http.StatusBadRequest)
 			return
 		}
@@ -229,6 +243,7 @@ func (s *Server) handleUploadBlob() http.HandlerFunc {
 		// to match the azure blob storage naming convention
 		blobID := r.FormValue("fileID")
 		if blobID == "" {
+			s.logger.Error("fileID is required")
 			http.Error(w, "fileID is required", http.StatusBadRequest)
 			return
 		}
@@ -237,23 +252,26 @@ func (s *Server) handleUploadBlob() http.HandlerFunc {
 		// this will be used to set the blob metadata
 		fileName := r.FormValue("fileName")
 		if fileName == "" {
+			s.logger.Error("fileName is required")
 			http.Error(w, "fileName (original filename) is required", http.StatusBadRequest)
 			return
 		}
 
 		projectName := r.FormValue("projectName")
 		if projectName == "" {
+			s.logger.Error("projectName is required")
 			http.Error(w, "projectName is required", http.StatusBadRequest)
 			return
 		}
 
 		timestamp := r.FormValue("timestamp")
 		if timestamp == "" {
+			s.logger.Error("timestamp is required")
 			http.Error(w, "timestamp is required", http.StatusBadRequest)
 			return
 		}
 
-		// get the optional container from the form
+		// Get container from form or use default
 		container := r.FormValue("container")
 		if container == "" {
 			container = s.storage.Container()
@@ -268,29 +286,31 @@ func (s *Server) handleUploadBlob() http.HandlerFunc {
 			Blob:      file,
 		}
 
-		s.logger.Debug("Handling file upload request: container=%s, fileName=%s, projectName=%s",
-			container, fileName, projectName)
+		// Create a logger with upload context
+		uploadLogger := s.logger.WithFields(logger.Fields{
+			"container":   blobData.Container,
+			"fileName":    blobData.Filename,
+			"projectName": blobData.Project,
+		})
 
-		// upload the file to Azure Blob Storage
-		blobID, err = s.storage.UploadBlob(r.Context(), blobData)
+		uploadLogger.Debug("Starting file upload")
+
+		blobData, err = s.storage.UploadBlob(r.Context(), blobData)
 		if err != nil {
-			s.logger.Error("Failed to upload file: container=%s, fileName=%s, projectName=%s, error=%v",
-				container, fileName, projectName, err)
+			uploadLogger.WithFields(logger.Fields{"error": err}).Error("Failed to upload file")
 			http.Error(w, fmt.Sprintf("Failed to upload file: %v", err), http.StatusInternalServerError)
 			return
 		}
 
-		// update the data_updates table with the new blobID
-		blobData.BlobID = blobID
+		// Update the data_updates table with the new blobID
 		err = s.sqlWriter.WriteBlobData(blobData)
 		if err != nil {
-			s.logger.Error("Failed to write blob upload message: %v", err)
+			uploadLogger.WithFields(logger.Fields{"error": err}).Error("Failed to write blob upload message")
 			http.Error(w, fmt.Sprintf("Failed to write blob upload message: %v", err), http.StatusInternalServerError)
 			return
 		}
 
-		s.logger.Info("File uploaded successfully: container=%s, fileName=%s, projectName=%s",
-			container, fileName, projectName)
+		uploadLogger.Info("File uploaded successfully")
 
 		w.WriteHeader(http.StatusCreated)
 		json.NewEncoder(w).Encode(map[string]string{
@@ -303,50 +323,54 @@ func (s *Server) handleUploadBlob() http.HandlerFunc {
 
 func (s *Server) handlePostLcaData() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		reqLogger := s.logger.WithFields(logger.Fields{
+			"endpoint": "lca",
+		})
+
 		var lcaData []models.EavMaterialDataItem
-		err := json.NewDecoder(r.Body).Decode(&lcaData)
-		if err != nil {
-			s.logger.Error("Failed to decode request body: %v", err)
+		if err := json.NewDecoder(r.Body).Decode(&lcaData); err != nil {
+			reqLogger.WithFields(logger.Fields{"error": err}).Error("Failed to decode request body")
 			http.Error(w, fmt.Sprintf("Failed to decode request body: %v", err), http.StatusBadRequest)
 			return
 		}
 
-		err = s.sqlWriter.WriteMaterials(lcaData)
-		if err != nil {
-			s.logger.Error("Failed to write LCA data: %v", err)
+		if err := s.sqlWriter.WriteMaterials(lcaData); err != nil {
+			reqLogger.WithFields(logger.Fields{"error": err}).Error("Failed to write LCA data")
 			http.Error(w, fmt.Sprintf("Failed to write LCA data: %v", err), http.StatusInternalServerError)
 			return
 		}
 
+		reqLogger.Info("LCA data written successfully")
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(map[string]string{
 			"message": "LCA data written successfully",
 		})
-		s.logger.Info("LCA data written successfully")
 	}
 }
 
 func (s *Server) handlePostCostData() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		reqLogger := s.logger.WithFields(logger.Fields{
+			"endpoint": "cost",
+		})
+
 		var costData []models.EavElementDataItem
-		err := json.NewDecoder(r.Body).Decode(&costData)
-		if err != nil {
-			s.logger.Error("Failed to decode request body: %v", err)
+		if err := json.NewDecoder(r.Body).Decode(&costData); err != nil {
+			reqLogger.WithFields(logger.Fields{"error": err}).Error("Failed to decode request body")
 			http.Error(w, fmt.Sprintf("Failed to decode request body: %v", err), http.StatusBadRequest)
 			return
 		}
 
-		err = s.sqlWriter.WriteElements(costData)
-		if err != nil {
-			s.logger.Error("Failed to write cost data: %v", err)
+		if err := s.sqlWriter.WriteElements(costData); err != nil {
+			reqLogger.WithFields(logger.Fields{"error": err}).Error("Failed to write cost data")
 			http.Error(w, fmt.Sprintf("Failed to write cost data: %v", err), http.StatusInternalServerError)
 			return
 		}
 
+		reqLogger.Info("Cost data written successfully")
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(map[string]string{
 			"message": "Cost data written successfully",
 		})
-		s.logger.Info("Cost data written successfully")
 	}
 }

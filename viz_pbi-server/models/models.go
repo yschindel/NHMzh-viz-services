@@ -34,10 +34,11 @@ type EavMaterialDataItem struct {
 }
 
 type BlobData struct {
-	Container string         // Container name
-	Project   string         // Project identifier
-	Filename  string         // Filename (without path)
-	Timestamp string         // Message timestamp
-	BlobID    string         // Internal field containing "project/filename" as a unique identifier
-	Blob      multipart.File // The blob data
+	Container         string         // Container name
+	Project           string         // Project identifier
+	Filename          string         // Filename (without path)
+	Timestamp         string         // Message timestamp
+	StorageServiceURL string         // The storage URL of the blob
+	BlobID            string         // Internal field containing "project/filename" as a unique identifier
+	Blob              multipart.File // The blob data
 }

@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   minio:
     image: minio/minio
@@ -74,7 +72,7 @@ services:
       context: ../viz_ifc
       dockerfile: Dockerfile
     environment:
-      - NODE_ENV=development
+      - NODE_ENV=development 
       - STORAGE_SERVICE_API_KEY=123
       - STORAGE_SERVICE_URL=http://viz_pbi-server:3000
       - STORAGE_FILE_ENDPOINT=/blob
@@ -96,19 +94,15 @@ services:
       context: ../viz_lca-cost
       dockerfile: Dockerfile
     depends_on:
-      - sqlserver-init
       - kafka
-      - minio
     environment:
       - KAFKA_BROKER=kafka:9093
       - KAFKA_LCA_TOPIC=lca-data
       - KAFKA_COST_TOPIC=cost-data
-      - STORAGE_API_KEY=123
       - STORAGE_SERVICE_API_KEY=123
       - STORAGE_SERVICE_URL=http://viz_pbi-server:3000
       - STORAGE_DATA_LCA_ENDPOINT=/data/lca
       - STORAGE_DATA_COST_ENDPOINT=/data/cost
-      - AZURE_DB_SERVER=sqlserver # Override to connect to the Docker service instead of host.docker.internal
     volumes:
       - ../viz_lca-cost/sql:/app/sql
     restart: on-failure
@@ -118,17 +112,23 @@ services:
       context: ../viz_pbi-server
       dockerfile: Dockerfile
     environment:
-      - ENVIRONMENT=development
-      - PBI_SRV_API_KEY=123
+      - ENVIRONMENT=development # set this to something else (not null) for production (will surpress debug logs)
+      - API_KEY=123
       - STORAGE_FILE_ENDPOINT=/blob
       - STORAGE_DATA_LCA_ENDPOINT=/data/lca
       - STORAGE_DATA_COST_ENDPOINT=/data/cost
       - AZURE_STORAGE_ACCOUNT=devstoreaccount1
       - AZURE_STORAGE_KEY=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==
       - AZURE_STORAGE_URL=http://azurite:10000/devstoreaccount1
+      - AZURE_DB_PORT=1433
+      - AZURE_DB_USER=sa
+      - AZURE_DB_PASSWORD=P@ssw0rd
+      - AZURE_DB_DATABASE=nhmzh-viz-services-localdev
+      - AZURE_DB_SERVER=sqlserver # Override to connect to the Docker service instead of host.docker.internal
       - VIZ_IFC_FRAGMENTS_BUCKET=ifc-fragment-files
     depends_on:
       - azurite
+      - sqlserver-init
     ports:
       - "3000:3000"
 

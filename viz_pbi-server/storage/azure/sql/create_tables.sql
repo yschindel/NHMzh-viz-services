@@ -71,7 +71,9 @@ BEGIN
     -- timestamp of the data update. This has to match the timestamp in the data_eav tables.
     [timestamp] DATETIME2 NOT NULL,
     -- id of the 3d model object in the object store
-    [model_blob_url] VARCHAR(255) NOT NULL,
+    [model_blob_storage_url] VARCHAR(255) NOT NULL,
+    [model_blob_storage_container] VARCHAR(255) NOT NULL,
+    [model_blob_id] VARCHAR(255) NOT NULL,
     CONSTRAINT [PK_data_updates] PRIMARY KEY 
     ([id])
   )

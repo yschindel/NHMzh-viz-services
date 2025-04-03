@@ -1,37 +1,61 @@
 /**
  * IFC parser module
  *
- * This module provides functionality for running Web Workers to parse IFC files into fragments.
+ * This module provides functionality for parsing IFC files into fragments.
  *
  * @module ifcParser
  */
 
-import { Worker } from "worker_threads";
-import path from "path";
+import * as OBC from "@thatopen/components";
+import pako from "pako";
+import { wasmDir } from "./wasm";
+import { sendFileToStorage } from "../storage";
 import { log } from "../utils/logger";
 
 /**
- * Runs a worker thread to process the given ifc file into a compressed 'fragments' file.
- * Saves the compressed file to MinIO.
+ * Processes an IFC file into fragments and saves the compressed file to storage.
  *
- * @param file - The file buffer to be processed by the worker.
- * @param location - The location of the file in the bucket.
- * @param timestamp - The timestamp of the file.
- * @param project - The project name.
- * @throws If the worker stops with a non-zero exit code.
+ * @param ifcData - The IFC file data and metadata
+ * @throws If the processing fails
  */
-export function runIfcToGzWorker(ifcData: IFCData): Promise<void> {
-	log.debug(`Running ifc to gz worker for file ${ifcData.Filename}`);
-	return new Promise((resolve, reject) => {
-		const workerPath = path.resolve(__dirname, "ifcWorker.js");
-		const worker = new Worker(workerPath, {
-			workerData: ifcData,
-		});
+export async function processIfcToFragments(ifcData: IFCData): Promise<void> {
+	log.info(`Converting IFC file ${ifcData.Filename} to fragments`);
 
-		worker.on("message", resolve);
-		worker.on("error", reject);
-		worker.on("exit", (code) => {
-			if (code !== 0) reject(new Error(`Worker stopped with exit code ${code}`));
-		});
-	});
+	try {
+		const dataArray = new Uint8Array(ifcData.File);
+		const components = new OBC.Components();
+		const fragments = components.get(OBC.FragmentsManager);
+		const loader = components.get(OBC.IfcLoader);
+
+		loader.settings.wasm = {
+			path: wasmDir,
+			absolute: true,
+		};
+
+		const startTime = Date.now();
+		const group = await loader.load(dataArray);
+		log.info(`IfcLoader loaded in: ${Date.now() - startTime}ms`);
+
+		const fragmentData = fragments.export(group);
+		const compressedFrags = Buffer.from(pako.deflate(fragmentData));
+		// create new fileId, remove .ifc extension and add .gz extension
+		const newFileID = ifcData.FileID.replace(".ifc", ".gz");
+
+		const blobInfo: FileData = {
+			Project: ifcData.Project,
+			Filename: ifcData.Filename,
+			Timestamp: ifcData.Timestamp,
+			File: compressedFrags,
+			FileID: newFileID,
+		};
+
+		await sendFileToStorage(blobInfo);
+		log.info(`Successfully processed and stored fragments for ${blobInfo.Filename}`);
+	} catch (error: any) {
+		log.error(`Error processing IFC file: ${error.message}`);
+		if (error.stack) {
+			log.error(`Error stack: ${error.stack}`);
+		}
+		throw error;
+	}
 }

@@ -9,7 +9,7 @@ interface FileData {
 
 // Interface to carry data about the IFC file
 interface IFCData {
-	File: Buffer<ArrayBufferLike>;
+	File: Buffer;
 	Project: string;
 	Filename: string;
 	Timestamp: string;

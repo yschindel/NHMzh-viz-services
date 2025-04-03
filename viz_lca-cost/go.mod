@@ -7,6 +7,7 @@ godebug x509negativeserial=1
 toolchain go1.23.2
 
 require (
+	github.com/lmittmann/tint v1.0.7
 	github.com/rs/zerolog v1.34.0
 	github.com/segmentio/kafka-go v0.4.47
 )

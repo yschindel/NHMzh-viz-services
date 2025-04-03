@@ -11,10 +11,11 @@ func Get(key string) string {
 	value, exists := os.LookupEnv(key)
 
 	if !exists {
-		logger.Error("Environment variable not set: %s", key)
-		os.Exit(1)
+		logger.Error("Environment variable not set", "env_var", key)
+		// exit without restarting the container
+		os.Exit(0)
 	} else {
-		logger.Debug("Environment variable loaded: %s", key)
+		logger.Debug("Environment variable loaded", "env_var", key)
 	}
 	return value
 }

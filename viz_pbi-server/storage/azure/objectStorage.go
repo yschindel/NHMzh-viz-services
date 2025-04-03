@@ -38,40 +38,49 @@ func NewBlobStorage(config *Config) (*BlobStorage, error) {
 
 	return &BlobStorage{
 		serviceURL: azblob.NewServiceURL(*serviceURL, pipeline),
-		logger:     logger.WithFields(logger.Fields{"component": "azure_storage"}),
+		logger:     logger.WithFields(logger.Fields{"component": "storage/azure/objectStorage.go"}),
 		config:     config,
 	}, nil
 }
 
 // CreateContainerIfNotExists creates a container if it doesn't exist
 func (b *BlobStorage) CreateContainerIfNotExists(ctx context.Context, containerName string) error {
-	b.logger.Debug("Checking if container exists: %s", containerName)
+	b.logger.WithFields(logger.Fields{"container": containerName}).Debug("Checking if container exists")
 
 	containerURL := b.serviceURL.NewContainerURL(containerName)
 	_, err := containerURL.Create(ctx, azblob.Metadata{}, azblob.PublicAccessNone)
 	if err != nil {
 		if strings.Contains(err.Error(), "ContainerAlreadyExists") {
-			b.logger.Debug("Container already exists: %s", containerName)
+			b.logger.WithFields(logger.Fields{"container": containerName}).Debug("Container already exists")
 			return nil
 		}
-		b.logger.Error("Failed to create container %s: %v", containerName, err)
+		b.logger.WithFields(logger.Fields{
+			"container": containerName,
+			"error":     err,
+		}).Error("Failed to create container")
 		return fmt.Errorf("failed to create container: %v", err)
 	}
 
-	b.logger.Debug("Container created successfully: %s", containerName)
+	b.logger.WithFields(logger.Fields{"container": containerName}).Debug("Container created successfully")
 	return nil
 }
 
 // UploadFile uploads a file to Azure Blob Storage
-func (b *BlobStorage) UploadBlob(ctx context.Context, blobData models.BlobData) (string, error) {
-	b.logger.Debug("Starting file upload: container=%s, blobInfo=%s", blobData.Container, blobData.Filename)
+func (b *BlobStorage) UploadBlob(ctx context.Context, blobData models.BlobData) (models.BlobData, error) {
+	b.logger.WithFields(logger.Fields{
+		"container":   blobData.Container,
+		"filename":    blobData.Filename,
+		"projectName": blobData.Project,
+	}).Debug("Starting file upload")
 
 	// Create container if it doesn't exist
 	if err := b.CreateContainerIfNotExists(ctx, blobData.Container); err != nil {
-		return "", err
+		return blobData, err
 	}
-
 	containerURL := b.serviceURL.NewContainerURL(blobData.Container)
+
+	// add the service URL to the blob data so it can be used in the sql writer
+	blobData.StorageServiceURL = b.serviceURL.String()
 
 	// generate a guid for the blob if it doesn't exist
 	if blobData.BlobID == "" {
@@ -90,25 +99,41 @@ func (b *BlobStorage) UploadBlob(ctx context.Context, blobData models.BlobData) 
 		Metadata: blobMetadata,
 	})
 	if err != nil {
-		b.logger.Error("Failed to upload file: container=%s, blobID=%s, metadata=%v, error=%v", blobData.Container, blobData.BlobID, blobMetadata, err)
-		return "", fmt.Errorf("failed to upload file: %v", err)
+		b.logger.WithFields(logger.Fields{
+			"container": blobData.Container,
+			"blobID":    blobData.BlobID,
+			"metadata":  blobMetadata,
+			"error":     err,
+		}).Error("Failed to upload file")
+		return blobData, fmt.Errorf("failed to upload file: %v", err)
 	}
 
-	b.logger.Info("File uploaded successfully: container=%s, blobID=%s, metadata=%v", blobData.Container, blobData.BlobID, blobMetadata)
+	b.logger.WithFields(logger.Fields{
+		"container": blobData.Container,
+		"blobID":    blobData.BlobID,
+		"metadata":  blobMetadata,
+	}).Info("File uploaded successfully")
 
-	return blobData.BlobID, nil
+	return blobData, nil
 }
 
 // GetFile gets a file from Azure Blob Storage
 func (b *BlobStorage) GetBlob(ctx context.Context, containerName string, fileName string) ([]byte, error) {
-	b.logger.Debug("Starting file download: container=%s, file=%s", containerName, fileName)
+	b.logger.WithFields(logger.Fields{
+		"container": containerName,
+		"file":      fileName,
+	}).Debug("Starting file download")
 
 	containerURL := b.serviceURL.NewContainerURL(containerName)
 	blobURL := containerURL.NewBlockBlobURL(fileName)
 
 	response, err := blobURL.Download(ctx, 0, azblob.CountToEnd, azblob.BlobAccessConditions{}, false, azblob.ClientProvidedKeyOptions{})
 	if err != nil {
-		b.logger.Error("Failed to download file: container=%s, file=%s, error=%v", containerName, fileName, err)
+		b.logger.WithFields(logger.Fields{
+			"container": containerName,
+			"file":      fileName,
+			"error":     err,
+		}).Error("Failed to download file")
 		return nil, fmt.Errorf("failed to download file: %v", err)
 	}
 
@@ -117,11 +142,18 @@ func (b *BlobStorage) GetBlob(ctx context.Context, containerName string, fileNam
 
 	data, err := io.ReadAll(bodyStream)
 	if err != nil {
-		b.logger.Error("Failed to read file data: container=%s, file=%s, error=%v", containerName, fileName, err)
+		b.logger.WithFields(logger.Fields{
+			"container": containerName,
+			"file":      fileName,
+			"error":     err,
+		}).Error("Failed to read file data")
 		return nil, fmt.Errorf("failed to read file data: %v", err)
 	}
 
-	b.logger.Info("File downloaded successfully: container=%s, file=%s", containerName, fileName)
+	b.logger.WithFields(logger.Fields{
+		"container": containerName,
+		"file":      fileName,
+	}).Info("File downloaded successfully")
 	return data, nil
 }
 

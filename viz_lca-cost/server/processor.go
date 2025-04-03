@@ -1,18 +1,24 @@
 package server
 
 import (
-	"log"
 	"reflect"
 	"strings"
 	"time"
+	"viz_lca-cost/logger"
 )
 
 // MessageProcessor handles the processing of incoming messages
-type MessageProcessor struct{}
+type MessageProcessor struct {
+	logger *logger.Logger
+}
 
 // NewMessageProcessor creates a new message processor
 func NewMessageProcessor() *MessageProcessor {
-	return &MessageProcessor{}
+	return &MessageProcessor{
+		logger: logger.New().WithFields(logger.Fields{
+			"operation": "message_processor",
+		}),
+	}
 }
 
 // GenerateFileID creates a file ID by concatenating project and filename with a '/' separator.
@@ -68,25 +74,34 @@ func (p *MessageProcessor) SplitEbkphCode(ebkphCode string) [3]string {
 // ProcessLcaMessage processes an LCA message before it's written to the database
 // It handles any transformations or validations needed
 func (p *MessageProcessor) ProcessLcaMessage(message *LcaMessage) ([]EavMaterialDataItem, error) {
-	log.Printf("Processing LCA message for project: %s, filename: %s", message.Project, message.Filename)
+	log := p.logger.WithFields(logger.Fields{
+		"operation": "process_lca_message",
+		"project":   message.Project,
+		"filename":  message.Filename,
+	})
+	log.Info("Processing LCA message")
 
 	// Clean the filename by removing .ifc extension if present
 	message.Filename = strings.TrimSuffix(message.Filename, ".ifc")
 
 	// Validate required fields
 	if message.Project == "" {
+		log.Error("Missing project field")
 		return nil, ErrMissingProject
 	}
 
 	if message.Filename == "" {
+		log.Error("Missing filename field")
 		return nil, ErrMissingFilename
 	}
 
 	if message.Timestamp == "" {
+		log.Error("Missing timestamp field")
 		return nil, ErrMissingTimestamp
 	}
 
 	if len(message.Data) == 0 {
+		log.Error("Empty data field")
 		return nil, ErrEmptyData
 	}
 
@@ -110,31 +125,43 @@ func (p *MessageProcessor) ProcessLcaMessage(message *LcaMessage) ([]EavMaterial
 		eavItems = append(eavItems, p.structToEavItemsMaterial(baseItem, item)...)
 	}
 
+	log.Info("Successfully processed LCA items", logger.Fields{
+		"count": len(eavItems),
+	})
 	return eavItems, nil
 }
 
 // ProcessCostMessage processes a Cost message before it's written to the database
 // It handles any transformations or validations needed
 func (p *MessageProcessor) ProcessCostMessage(message *CostMessage) ([]EavElementDataItem, error) {
-	log.Printf("Processing Cost message for project: %s, filename: %s", message.Project, message.Filename)
+	log := p.logger.WithFields(logger.Fields{
+		"operation": "process_cost_message",
+		"project":   message.Project,
+		"filename":  message.Filename,
+	})
+	log.Info("Processing Cost message")
 
 	// Clean the filename by removing .ifc extension if present
 	message.Filename = strings.TrimSuffix(message.Filename, ".ifc")
 
 	// Validate required fields
 	if message.Project == "" {
+		log.Error("Missing project field")
 		return nil, ErrMissingProject
 	}
 
 	if message.Filename == "" {
+		log.Error("Missing filename field")
 		return nil, ErrMissingFilename
 	}
 
 	if message.Timestamp == "" {
+		log.Error("Missing timestamp field")
 		return nil, ErrMissingTimestamp
 	}
 
 	if len(message.Data) == 0 {
+		log.Error("Empty data field")
 		return nil, ErrEmptyData
 	}
 
@@ -157,6 +184,9 @@ func (p *MessageProcessor) ProcessCostMessage(message *CostMessage) ([]EavElemen
 		eavItems = append(eavItems, p.structToEavItemsElement(baseItem, item)...)
 	}
 
+	log.Info("Successfully processed Cost items", logger.Fields{
+		"count": len(eavItems),
+	})
 	return eavItems, nil
 }
 

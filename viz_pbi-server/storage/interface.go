@@ -11,7 +11,7 @@ type StorageProvider interface {
 	Container() string
 
 	// UploadBlob uploads a file to the specified container
-	UploadBlob(ctx context.Context, blobData models.BlobData) (string, error)
+	UploadBlob(ctx context.Context, blobData models.BlobData) (models.BlobData, error)
 
 	// GetFile retrieves a file from the specified container
 	GetBlob(ctx context.Context, containerName string, fileName string) ([]byte, error)

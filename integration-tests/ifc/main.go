@@ -249,7 +249,7 @@ func main() {
 	}
 
 	log.Println("Waiting for IFC consumer to convert ifc to gz and write back to MinIO...")
-	time.Sleep(15 * time.Second)
+	time.Sleep(45 * time.Second)
 
 	log.Println("Getting fragments files...")
 
@@ -265,7 +265,7 @@ func main() {
 		log.Printf("Received fragments file: %s\n", fileIDgz)
 	}
 
-	log.Println("IFC test completed successfully")
+	log.Println("IFC blob test completed successfully. Now go and check the updates table in the database to see if the data about the blob has been written.")
 }
 
 // Helper functions for environment variables

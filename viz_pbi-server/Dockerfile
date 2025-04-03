@@ -29,6 +29,8 @@ WORKDIR /app
 
 # Copy the Pre-built binary file from the previous stage
 COPY --from=builder /app/main .
+# Copy SQL files from builder stage
+COPY --from=builder /app/storage/azure/sql/ /app/storage/azure/sql/
 
 ENV PBI_SERVER_PORT=3000
 

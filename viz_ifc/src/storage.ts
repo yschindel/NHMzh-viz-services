@@ -14,6 +14,14 @@
 import { log } from "./utils/logger";
 import { getEnv } from "./utils/env";
 
+// Get the env variables early to check if they are set
+// This makes it easier to debug the containers
+const storageServiceUrl = getEnv("STORAGE_SERVICE_URL");
+const fileEndpoint = getEnv("STORAGE_FILE_ENDPOINT");
+const apiKey = getEnv("STORAGE_SERVICE_API_KEY");
+const url = `${storageServiceUrl}${fileEndpoint}`;
+log.info(`Storage service endpoint full URL: ${url}`);
+
 /**
  * Sends a POST request to the storage service to upload a file
  * @param file - The file content as Buffer
@@ -21,17 +29,6 @@ import { getEnv } from "./utils/env";
  * @param projectName - The project identifier
  */
 export async function sendFileToStorage(blobInfo: FileData) {
-	const storageServiceUrl = getEnv("STORAGE_SERVICE_URL");
-	const fileEndpoint = getEnv("STORAGE_FILE_ENDPOINT");
-
-	let url: string;
-
-	if (!storageServiceUrl.endsWith("/") && !fileEndpoint.startsWith("/")) {
-		url = `${storageServiceUrl}/${fileEndpoint}`;
-	} else {
-		url = `${storageServiceUrl}${fileEndpoint}`;
-	}
-
 	// Create form data
 	const formData = new FormData();
 
@@ -46,8 +43,6 @@ export async function sendFileToStorage(blobInfo: FileData) {
 	formData.append("timestamp", new Date().toISOString());
 
 	log.debug(`Sending file ${blobInfo.Filename} to storage service at ${url}`);
-
-	const apiKey = getEnv("STORAGE_API_KEY");
 
 	const response = await fetch(url, {
 		method: "POST",

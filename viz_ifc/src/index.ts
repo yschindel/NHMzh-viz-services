@@ -7,7 +7,8 @@
  */
 
 import { processIfcToFragments } from "./ifc/ifcParser";
-import { ensureWasmFile } from "./ifc/wasm";
+import { processIfcProperties } from "./ifc/ifcProperties";
+import { ensureWasmFile, wasmDir } from "./ifc/wasm";
 import { setupKafkaConsumer, startKafkaConsumer } from "./kafka";
 import { getFile, getFileMetadata, minioClient } from "./minio";
 import { log } from "./utils/logger";
@@ -52,7 +53,8 @@ async function main() {
 					FileID: fileID,
 				};
 
-				await processIfcToFragments(ifcData);
+				// Process fragments and properties in parallel
+				await Promise.all([processIfcToFragments(ifcData, wasmDir), processIfcProperties(ifcData, wasmDir)]);
 			} catch (error: any) {
 				log.error("Error processing Kafka message:", error);
 			}

@@ -8,7 +8,6 @@
 
 import * as OBC from "@thatopen/components";
 import pako from "pako";
-import { wasmDir } from "./wasm";
 import { sendFileToStorage } from "../storage";
 import { log } from "../utils/logger";
 
@@ -18,7 +17,7 @@ import { log } from "../utils/logger";
  * @param ifcData - The IFC file data and metadata
  * @throws If the processing fails
  */
-export async function processIfcToFragments(ifcData: IFCData): Promise<void> {
+export async function processIfcToFragments(ifcData: IFCData, wasmPath: string): Promise<void> {
 	log.info(`Converting IFC file ${ifcData.Filename} to fragments`);
 
 	try {
@@ -28,7 +27,7 @@ export async function processIfcToFragments(ifcData: IFCData): Promise<void> {
 		const loader = components.get(OBC.IfcLoader);
 
 		loader.settings.wasm = {
-			path: wasmDir,
+			path: wasmPath,
 			absolute: true,
 		};
 

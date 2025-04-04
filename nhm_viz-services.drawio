@@ -190,7 +190,7 @@
         <mxCell id="Vq2dGUa9BZO8m15hglH4-48" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;" vertex="1" parent="1">
           <mxGeometry x="60" y="225" width="20" height="20" as="geometry" />
         </mxCell>
-        <mxCell id="Vq2dGUa9BZO8m15hglH4-49" value="From Docker Hub" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=0" vertex="1" parent="1">
+        <mxCell id="Vq2dGUa9BZO8m15hglH4-49" value="From Docker Hub (for testing)" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=0" vertex="1" parent="1">
           <mxGeometry x="90" y="220" width="210" height="30" as="geometry" />
         </mxCell>
         <mxCell id="Vq2dGUa9BZO8m15hglH4-53" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=1;entryDx=0;entryDy=0;strokeColor=#212121;dashed=1;dashPattern=1 4;" edge="1" parent="1" source="Vq2dGUa9BZO8m15hglH4-52" target="Vq2dGUa9BZO8m15hglH4-50">
@@ -263,6 +263,9 @@
         </mxCell>
         <mxCell id="Vq2dGUa9BZO8m15hglH4-72" value="Remove MinIO SDK?&lt;br&gt;-&amp;gt; Just download&amp;nbsp;" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=0;fontColor=#FF8000;" vertex="1" parent="1">
           <mxGeometry x="750" y="450" width="210" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="Vq2dGUa9BZO8m15hglH4-73" value="To go from local dev to online dev switch DB credentials in docker-compose" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=1;fontColor=#FF8000;" vertex="1" parent="1">
+          <mxGeometry x="1240" y="480" width="210" height="30" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>

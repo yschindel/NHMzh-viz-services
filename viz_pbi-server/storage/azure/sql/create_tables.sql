@@ -7,7 +7,6 @@ BEGIN
   (
     [project] VARCHAR(255) NOT NULL,
     [filename] VARCHAR(255) NOT NULL,
-    [fileid] VARCHAR(255) NOT NULL,
     [timestamp] DATETIME2 NOT NULL,
     [id] VARCHAR(255) COLLATE Latin1_General_CS_AS NOT NULL,
     [param_name] VARCHAR(255) NOT NULL,
@@ -21,7 +20,7 @@ BEGIN
   );
 
   -- Create indexes for common queries
-  CREATE INDEX [IX_data_eav_elements_project_fileid] ON [dbo].[data_eav_elements] ([project], [fileid]);
+  CREATE INDEX [IX_data_eav_elements_project_fileid] ON [dbo].[data_eav_elements] ([project], [filename]);
   CREATE INDEX [IX_data_eav_elements_id] ON [dbo].[data_eav_elements] ([id]);
   CREATE INDEX [IX_data_eav_elements_timestamp] ON [dbo].[data_eav_elements] ([timestamp]);
 END
@@ -35,7 +34,6 @@ BEGIN
   (
     [project] VARCHAR(255) NOT NULL,
     [filename] VARCHAR(255) NOT NULL,
-    [fileid] VARCHAR(255) NOT NULL,
     [timestamp] DATETIME2 NOT NULL,
     -- the id is the id of the element that this material 'layer' belongs to.
     [id] VARCHAR(255) COLLATE Latin1_General_CS_AS NOT NULL,
@@ -52,7 +50,7 @@ BEGIN
   );
 
   -- Create indexes for common queries
-  CREATE INDEX [IX_data_eav_materials_project_fileid] ON [dbo].[data_eav_materials] ([project], [fileid]);
+  CREATE INDEX [IX_data_eav_materials_project_fileid] ON [dbo].[data_eav_materials] ([project], [filename]);
   CREATE INDEX [IX_data_eav_materials_id] ON [dbo].[data_eav_materials] ([id]);
   CREATE INDEX [IX_data_eav_materials_timestamp] ON [dbo].[data_eav_materials] ([timestamp]);
 END

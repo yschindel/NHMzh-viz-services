@@ -78,8 +78,8 @@ func (w *SqlWriter) writeElementsWithRetry(items []models.EavElementDataItem) er
 
 	// Prepare the INSERT statement for data_eav table
 	eavStmt, err := tx.PrepareContext(ctx, `
-			INSERT INTO data_eav_elements (project, filename, fileid, timestamp, id, param_name, param_value_string, param_value_number, param_value_boolean, param_value_date, param_type)
-			VALUES (@p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9, @p10, @p11);`)
+			INSERT INTO data_eav_elements (project, filename, timestamp, id, param_name, param_value_string, param_value_number, param_value_boolean, param_value_date, param_type)
+			VALUES (@p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9, @p10);`)
 	if err != nil {
 		log.Error("Error preparing data_eav statement: %v", err)
 		return fmt.Errorf("error preparing data_eav statement: %v", err)
@@ -91,15 +91,14 @@ func (w *SqlWriter) writeElementsWithRetry(items []models.EavElementDataItem) er
 		_, err = eavStmt.ExecContext(ctx,
 			item.Project,           // @p1
 			item.Filename,          // @p2
-			item.FileID,            // @p3
-			item.Timestamp,         // @p4
-			item.Id,                // @p5
-			item.ParamName,         // @p6
-			item.ParamValueString,  // @p7
-			item.ParamValueNumber,  // @p8
-			item.ParamValueBoolean, // @p9
-			item.ParamValueDate,    // @p10
-			item.ParamType,         // @p11
+			item.Timestamp,         // @p3
+			item.Id,                // @p4
+			item.ParamName,         // @p5
+			item.ParamValueString,  // @p6
+			item.ParamValueNumber,  // @p7
+			item.ParamValueBoolean, // @p8
+			item.ParamValueDate,    // @p9
+			item.ParamType,         // @p10
 		)
 		if err != nil {
 			log.Error("Error inserting data_eav_elements record: %v", err)
@@ -134,8 +133,8 @@ func (w *SqlWriter) writeMaterialsWithRetry(items []models.EavMaterialDataItem) 
 
 	// Prepare the INSERT statement for data_eav table
 	eavStmt, err := tx.PrepareContext(ctx, `
-			INSERT INTO data_eav_materials (project, filename, fileid, timestamp, id, sequence, param_name, param_value_string, param_value_number, param_value_boolean, param_value_date, param_type)
-			VALUES (@p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9, @p10, @p11, @p12);`)
+			INSERT INTO data_eav_materials (project, filename, timestamp, id, sequence, param_name, param_value_string, param_value_number, param_value_boolean, param_value_date, param_type)
+			VALUES (@p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9, @p10, @p11);`)
 	if err != nil {
 		log.Error("Error preparing data_eav statement: %v", err)
 		return fmt.Errorf("error preparing data_eav statement: %v", err)
@@ -147,16 +146,15 @@ func (w *SqlWriter) writeMaterialsWithRetry(items []models.EavMaterialDataItem) 
 		_, err = eavStmt.ExecContext(ctx,
 			item.Project,           // @p1
 			item.Filename,          // @p2
-			item.FileID,            // @p3
-			item.Timestamp,         // @p4
-			item.Id,                // @p5
-			item.Sequence,          // @p6
-			item.ParamName,         // @p7
-			item.ParamValueString,  // @p8
-			item.ParamValueNumber,  // @p9
-			item.ParamValueBoolean, // @p10
-			item.ParamValueDate,    // @p11
-			item.ParamType,         // @p12
+			item.Timestamp,         // @p3
+			item.Id,                // @p4
+			item.Sequence,          // @p5
+			item.ParamName,         // @p6
+			item.ParamValueString,  // @p7
+			item.ParamValueNumber,  // @p8
+			item.ParamValueBoolean, // @p9
+			item.ParamValueDate,    // @p10
+			item.ParamType,         // @p11
 		)
 		if err != nil {
 			log.Error("Error inserting data_eav_materials record: %v", err)

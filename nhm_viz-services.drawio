@@ -1,6 +1,6 @@
 <mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36" version="26.2.5">
   <diagram name="Page-1" id="6YYniOfLmbzxSq2jSH8A">
-    <mxGraphModel dx="2516" dy="1412" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1920" pageHeight="1200" math="0" shadow="0">
+    <mxGraphModel dx="2097" dy="1177" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1920" pageHeight="1200" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -19,7 +19,7 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="Vq2dGUa9BZO8m15hglH4-36" value="Fetch IFC&lt;br&gt;(MinIO SDK)" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" parent="Vq2dGUa9BZO8m15hglH4-35" vertex="1" connectable="0">
+        <mxCell id="Vq2dGUa9BZO8m15hglH4-36" value="Fetch IFC&lt;br&gt;+ Metadata&lt;br&gt;(MinIO SDK)" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" parent="Vq2dGUa9BZO8m15hglH4-35" vertex="1" connectable="0">
           <mxGeometry x="0.12" y="-2" relative="1" as="geometry">
             <mxPoint x="129" y="-97" as="offset" />
           </mxGeometry>

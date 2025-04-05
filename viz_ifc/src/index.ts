@@ -13,6 +13,7 @@ import { setupKafkaConsumer, startKafkaConsumer } from "./kafka";
 import { getFile, getFileMetadata, minioClient } from "./minio";
 import { log } from "./utils/logger";
 import { getEnv } from "./utils/env";
+import { IFCData } from "./types";
 
 const IFC_BUCKET_NAME = getEnv("MINIO_IFC_BUCKET");
 
@@ -46,11 +47,11 @@ async function main() {
 
 				const metadata = await getFileMetadata(fileID, IFC_BUCKET_NAME, minioClient);
 				const ifcData: IFCData = {
-					Project: metadata.project,
-					Filename: metadata.filename,
-					Timestamp: metadata.timestamp,
-					File: file,
-					FileID: fileID,
+					project: metadata.project,
+					filename: metadata.filename,
+					timestamp: metadata.timestamp,
+					file: file,
+					fileId: fileID,
 				};
 
 				// Process fragments and properties in parallel

@@ -19,19 +19,19 @@ type MessageWriter struct {
 func NewMessageWriter() *MessageWriter {
 	url := env.Get("STORAGE_SERVICE_URL")
 	apiKey := env.Get("STORAGE_SERVICE_API_KEY")
-	epLca := url + env.Get("STORAGE_DATA_LCA_ENDPOINT")
-	epCost := url + env.Get("STORAGE_DATA_COST_ENDPOINT")
+	epMaterials := url + env.Get("STORAGE_ENDPOINT_DATA_MATERIALS")
+	epElements := url + env.Get("STORAGE_ENDPOINT_DATA_ELEMENTS")
 
 	log := logger.WithFields(logger.Fields{
-		"lca_endpoint":  epLca,
-		"cost_endpoint": epCost,
+		"lca_endpoint":  epMaterials,
+		"cost_endpoint": epElements,
 	})
 	log.Info("Initializing message writer")
 
 	return &MessageWriter{
 		url:          url,
-		endpointLca:  epLca,
-		endpointCost: epCost,
+		endpointLca:  epMaterials,
+		endpointCost: epElements,
 		apiKey:       apiKey,
 		logger:       log,
 	}

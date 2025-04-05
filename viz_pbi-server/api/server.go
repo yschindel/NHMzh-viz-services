@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/gorilla/mux"
@@ -141,26 +142,26 @@ func NewServer() (*Server, error) {
 	// Create router
 	router := mux.NewRouter()
 
-	blobEndpoint := env.Get("STORAGE_FILE_ENDPOINT")
+	blobEndpoint := env.Get("STORAGE_ENDPOINT_FILE")
 	if !strings.HasPrefix(blobEndpoint, "/") {
 		blobEndpoint = "/" + blobEndpoint
 	}
 
-	lcaEndpoint := env.Get("STORAGE_DATA_LCA_ENDPOINT")
-	if !strings.HasPrefix(lcaEndpoint, "/") {
-		lcaEndpoint = "/" + lcaEndpoint
+	materialsEndpoint := env.Get("STORAGE_ENDPOINT_DATA_MATERIALS")
+	if !strings.HasPrefix(materialsEndpoint, "/") {
+		materialsEndpoint = "/" + materialsEndpoint
 	}
 
-	costEndpoint := env.Get("STORAGE_DATA_COST_ENDPOINT")
-	if !strings.HasPrefix(costEndpoint, "/") {
-		costEndpoint = "/" + costEndpoint
+	elementsEndpoint := env.Get("STORAGE_ENDPOINT_DATA_ELEMENTS")
+	if !strings.HasPrefix(elementsEndpoint, "/") {
+		elementsEndpoint = "/" + elementsEndpoint
 	}
 
 	// Register routes with query parameters for container
 	router.HandleFunc(blobEndpoint, server.handleGetBlob()).Methods("GET")
 	router.HandleFunc(blobEndpoint, server.handleUploadBlob()).Methods("POST")
-	router.HandleFunc(lcaEndpoint, server.handlePostLcaData()).Methods("POST")
-	router.HandleFunc(costEndpoint, server.handlePostCostData()).Methods("POST")
+	router.HandleFunc(materialsEndpoint, server.handlePostMaterialData()).Methods("POST")
+	router.HandleFunc(elementsEndpoint, server.handlePostElementsData()).Methods("POST")
 
 	// Add middleware
 	var handler http.Handler = router
@@ -321,10 +322,10 @@ func (s *Server) handleUploadBlob() http.HandlerFunc {
 	}
 }
 
-func (s *Server) handlePostLcaData() http.HandlerFunc {
+func (s *Server) handlePostMaterialData() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		reqLogger := s.logger.WithFields(logger.Fields{
-			"endpoint": "lca",
+			"endpoint": "materials",
 		})
 
 		var lcaData []models.EavMaterialDataItem
@@ -348,29 +349,38 @@ func (s *Server) handlePostLcaData() http.HandlerFunc {
 	}
 }
 
-func (s *Server) handlePostCostData() http.HandlerFunc {
+func (s *Server) handlePostElementsData() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		reqLogger := s.logger.WithFields(logger.Fields{
-			"endpoint": "cost",
+			"endpoint": "elements",
 		})
 
-		var costData []models.EavElementDataItem
-		if err := json.NewDecoder(r.Body).Decode(&costData); err != nil {
+		var elementsData []models.EavElementDataItem
+		if err := json.NewDecoder(r.Body).Decode(&elementsData); err != nil {
 			reqLogger.WithFields(logger.Fields{"error": err}).Error("Failed to decode request body")
 			http.Error(w, fmt.Sprintf("Failed to decode request body: %v", err), http.StatusBadRequest)
 			return
 		}
 
-		if err := s.sqlWriter.WriteElements(costData); err != nil {
-			reqLogger.WithFields(logger.Fields{"error": err}).Error("Failed to write cost data")
-			http.Error(w, fmt.Sprintf("Failed to write cost data: %v", err), http.StatusInternalServerError)
+		// if debug mode, save the data to a file
+		if env.Get("ENVIRONMENT") == "development" {
+			prettyJSON, err := json.MarshalIndent(elementsData, "", "  ")
+			if err == nil {
+				os.WriteFile("elements_data.json", prettyJSON, 0644)
+				reqLogger.Debug("Elements data saved to elements_data.json")
+			}
+		}
+
+		if err := s.sqlWriter.WriteElements(elementsData); err != nil {
+			reqLogger.WithFields(logger.Fields{"error": err}).Error("Failed to write elements data")
+			http.Error(w, fmt.Sprintf("Failed to write elements data: %v", err), http.StatusInternalServerError)
 			return
 		}
 
-		reqLogger.Info("Cost data written successfully")
+		reqLogger.Info("Elements data written successfully")
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(map[string]string{
-			"message": "Cost data written successfully",
+			"message": "Elements data written successfully",
 		})
 	}
 }

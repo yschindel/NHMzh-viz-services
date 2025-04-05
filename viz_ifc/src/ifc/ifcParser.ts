@@ -10,6 +10,8 @@ import * as OBC from "@thatopen/components";
 import pako from "pako";
 import { sendFileToStorage } from "../storage";
 import { log } from "../utils/logger";
+import { FileData } from "../types";
+import { IFCData } from "../types";
 
 /**
  * Processes an IFC file into fragments and saves the compressed file to storage.
@@ -18,10 +20,10 @@ import { log } from "../utils/logger";
  * @throws If the processing fails
  */
 export async function processIfcToFragments(ifcData: IFCData, wasmPath: string): Promise<void> {
-	log.info(`Converting IFC file ${ifcData.Filename} to fragments`);
+	log.info(`Converting IFC file ${ifcData.filename} to fragments`);
 
 	try {
-		const dataArray = new Uint8Array(ifcData.File);
+		const dataArray = new Uint8Array(ifcData.file);
 		const components = new OBC.Components();
 		const fragments = components.get(OBC.FragmentsManager);
 		const loader = components.get(OBC.IfcLoader);
@@ -38,18 +40,18 @@ export async function processIfcToFragments(ifcData: IFCData, wasmPath: string):
 		const fragmentData = fragments.export(group);
 		const compressedFrags = Buffer.from(pako.deflate(fragmentData));
 		// create new fileId, remove .ifc extension and add .gz extension
-		const newFileID = ifcData.FileID.replace(".ifc", ".gz");
+		const newFileID = ifcData.fileId.replace(".ifc", ".gz");
 
 		const blobInfo: FileData = {
-			Project: ifcData.Project,
-			Filename: ifcData.Filename,
-			Timestamp: ifcData.Timestamp,
-			File: compressedFrags,
-			FileID: newFileID,
+			project: ifcData.project,
+			filename: ifcData.filename,
+			timestamp: ifcData.timestamp,
+			file: compressedFrags,
+			fileId: newFileID,
 		};
 
 		await sendFileToStorage(blobInfo);
-		log.info(`Successfully processed and stored fragments for ${blobInfo.Filename}`);
+		log.info(`Successfully processed and stored fragments for ${blobInfo.filename}`);
 	} catch (error: any) {
 		log.error(`Error processing IFC file: ${error.message}`);
 		if (error.stack) {

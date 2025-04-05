@@ -75,7 +75,8 @@ services:
       - NODE_ENV=development 
       - STORAGE_SERVICE_API_KEY=123
       - STORAGE_SERVICE_URL=http://viz_pbi-server:3000
-      - STORAGE_FILE_ENDPOINT=/blob
+      - STORAGE_ENDPOINT_FILE=/blob
+      - STORAGE_ENDPOINT_DATA_ELEMENTS=/data/elements
       - MINIO_ENDPOINT=minio
       - MINIO_PORT=9000
       - MINIO_ACCESS_KEY=ROOTUSER
@@ -84,6 +85,7 @@ services:
       - MINIO_IFC_BUCKET=ifc-files
       - KAFKA_BROKER=kafka:9093
       - KAFKA_IFC_TOPIC=ifc-files
+      - IFC_PROPERTIES_TO_INCLUDE=Reference,LoadBearing,FireRating,Name,category,level
     depends_on:
       - minio
       - kafka
@@ -101,8 +103,8 @@ services:
       - KAFKA_COST_TOPIC=cost-data
       - STORAGE_SERVICE_API_KEY=123
       - STORAGE_SERVICE_URL=http://viz_pbi-server:3000
-      - STORAGE_DATA_LCA_ENDPOINT=/data/lca
-      - STORAGE_DATA_COST_ENDPOINT=/data/cost
+      - STORAGE_ENDPOINT_DATA_MATERIALS=/data/materials
+      - STORAGE_ENDPOINT_DATA_ELEMENTS=/data/elements
     volumes:
       - ../viz_lca-cost/sql:/app/sql
     restart: on-failure
@@ -114,9 +116,9 @@ services:
     environment:
       - ENVIRONMENT=development # set this to something else (not null) for production (will surpress debug logs)
       - API_KEY=123
-      - STORAGE_FILE_ENDPOINT=/blob
-      - STORAGE_DATA_LCA_ENDPOINT=/data/lca
-      - STORAGE_DATA_COST_ENDPOINT=/data/cost
+      - STORAGE_ENDPOINT_FILE=/blob
+      - STORAGE_ENDPOINT_DATA_MATERIALS=/data/materials
+      - STORAGE_ENDPOINT_DATA_ELEMENTS=/data/elements
       - AZURE_STORAGE_ACCOUNT=devstoreaccount1
       - AZURE_STORAGE_KEY=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==
       - AZURE_STORAGE_URL=http://azurite:10000/devstoreaccount1

@@ -21,23 +21,6 @@ func NewMessageProcessor() *MessageProcessor {
 	}
 }
 
-// GenerateFileID creates a file ID by concatenating project and filename with a '/' separator.
-// This provides a unique identifier for files within projects that will be stored in the database.
-//
-// The fileid format is "project/filename" where:
-// - project: the project identifier
-// - filename: the filename with any .ifc extension removed
-//
-// For example, if project="building123" and filename="model.ifc",
-// the resulting fileid will be "building123/model"
-func (p *MessageProcessor) GenerateFileID(project, filename string) string {
-	// Remove any .ifc extension from the filename
-	cleanFilename := strings.TrimSuffix(filename, ".ifc")
-
-	// Concatenate project and filename with a '/' separator
-	return project + "/" + cleanFilename
-}
-
 // SplitEbkphCode splits an eBKP-H code (like "C.02.95") into its individual components.
 // The function returns the components in an array: [ebkph_1, ebkph_2, ebkph_3]
 // For example:
@@ -105,9 +88,6 @@ func (p *MessageProcessor) ProcessLcaMessage(message *LcaMessage) ([]EavMaterial
 		return nil, ErrEmptyData
 	}
 
-	// Add fileid to the message for easier use by the writer
-	message.FileID = p.GenerateFileID(message.Project, message.Filename)
-
 	// Convert the LcaDataItem to EavMaterialDataItem
 	eavItems := make([]EavMaterialDataItem, 0)
 	for _, item := range message.Data {
@@ -115,7 +95,6 @@ func (p *MessageProcessor) ProcessLcaMessage(message *LcaMessage) ([]EavMaterial
 		baseItem := EavMaterialDataItem{
 			Project:   message.Project,
 			Filename:  message.Filename,
-			FileID:    message.FileID,
 			Timestamp: message.Timestamp,
 			Id:        item.Id,
 			Sequence:  item.Sequence,
@@ -165,9 +144,6 @@ func (p *MessageProcessor) ProcessCostMessage(message *CostMessage) ([]EavElemen
 		return nil, ErrEmptyData
 	}
 
-	// Add fileid to the message for easier use by the writer
-	message.FileID = p.GenerateFileID(message.Project, message.Filename)
-
 	// Convert the CostDataItem to EavElementDataItem
 	eavItems := make([]EavElementDataItem, 0)
 	for _, item := range message.Data {
@@ -175,7 +151,6 @@ func (p *MessageProcessor) ProcessCostMessage(message *CostMessage) ([]EavElemen
 		baseItem := EavElementDataItem{
 			Project:   message.Project,
 			Filename:  message.Filename,
-			FileID:    message.FileID,
 			Timestamp: message.Timestamp,
 			Id:        item.Id,
 		}

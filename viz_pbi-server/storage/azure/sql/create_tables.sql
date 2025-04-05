@@ -20,7 +20,7 @@ BEGIN
   );
 
   -- Create indexes for common queries
-  CREATE INDEX [IX_data_eav_elements_project_fileid] ON [dbo].[data_eav_elements] ([project], [filename]);
+  CREATE INDEX [IX_data_eav_elements_project_filename] ON [dbo].[data_eav_elements] ([project], [filename]);
   CREATE INDEX [IX_data_eav_elements_id] ON [dbo].[data_eav_elements] ([id]);
   CREATE INDEX [IX_data_eav_elements_timestamp] ON [dbo].[data_eav_elements] ([timestamp]);
 END
@@ -50,7 +50,7 @@ BEGIN
   );
 
   -- Create indexes for common queries
-  CREATE INDEX [IX_data_eav_materials_project_fileid] ON [dbo].[data_eav_materials] ([project], [filename]);
+  CREATE INDEX [IX_data_eav_materials_project_filename] ON [dbo].[data_eav_materials] ([project], [filename]);
   CREATE INDEX [IX_data_eav_materials_id] ON [dbo].[data_eav_materials] ([id]);
   CREATE INDEX [IX_data_eav_materials_timestamp] ON [dbo].[data_eav_materials] ([timestamp]);
 END

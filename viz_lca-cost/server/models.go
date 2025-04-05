@@ -75,7 +75,6 @@ type ElementDataItem struct {
 type EavElementDataItem struct {
 	Project           string   `json:"project"`             // Project identifier
 	Filename          string   `json:"filename"`            // Filename (without path)
-	FileID            string   `json:"fileid"`              // Internal field containing "project/filename" as a unique identifier
 	Timestamp         string   `json:"timestamp"`           // Message timestamp
 	Id                string   `json:"id"`                  // Unique identifier for the item
 	ParamName         string   `json:"param_name"`          // The name of the parameter
@@ -90,7 +89,6 @@ type EavElementDataItem struct {
 type EavMaterialDataItem struct {
 	Project           string   `json:"project"`             // Project identifier
 	Filename          string   `json:"filename"`            // Filename (without path)
-	FileID            string   `json:"fileid"`              // Internal field containing "project/filename" as a unique identifier
 	Timestamp         string   `json:"timestamp"`           // Message timestamp
 	Id                string   `json:"id"`                  // Unique identifier for the item
 	Sequence          int      `json:"sequence"`            // The sequence number of the item

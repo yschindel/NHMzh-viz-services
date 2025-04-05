@@ -87,6 +87,10 @@ func (w *SqlWriter) writeElementsWithRetry(items []models.EavElementDataItem) er
 	defer eavStmt.Close()
 
 	for _, item := range items {
+		if item.ParamName == "" {
+			log.Warn("Skipping item with empty param_name: %v", item)
+			continue
+		}
 		// Write to data_eav table
 		_, err = eavStmt.ExecContext(ctx,
 			item.Project,           // @p1

@@ -1,0 +1,22 @@
+{
+	"engines": {
+		"node": ">=20.6.0"
+	},
+	"name": "mock_calc_lca-cost",
+	"main": "index.ts",
+	"private": true,
+	"scripts": {
+		"build": "tsc"
+	},
+	"devDependencies": {
+		"@types/node": "^20",
+		"typescript": "^5"
+	},
+	"dependencies": {
+		"dotenv": "^16.4.7",
+		"kafkajs": "^2.2.4",
+		"minio": "^8.0.5",
+		"web-ifc": "^0.0.59",
+		"winston": "^3.17.0"
+	}
+}

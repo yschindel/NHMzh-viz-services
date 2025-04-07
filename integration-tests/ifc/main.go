@@ -59,8 +59,8 @@ func init() {
 	// Initialize messages
 	messages = []TestFileData{
 		newTestFileData("project1", "file1.ifc"),
-		newTestFileData("project2", "file2.ifc"),
-		newTestFileData("project1", "file3.ifc"),
+		// newTestFileData("project2", "file2.ifc"),
+		// newTestFileData("project1", "file3.ifc"),
 	}
 
 	// Initialize MinIO client

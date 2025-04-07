@@ -4,7 +4,6 @@ import fs from "fs";
 import { sendDataToStorage } from "../storage";
 import { IFCData, FilePropertyData, PropertyData } from "../types";
 import { toEavElementDataItems } from "../data";
-import { getEnv } from "../utils/env";
 
 /**
  * Processes an IFC file to extract all properties

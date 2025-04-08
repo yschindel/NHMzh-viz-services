@@ -1,0 +1,24 @@
+# This file is used in the CI/CD pipeline to build and push the Docker images to Docker Hub.
+# It is not supposed to be used in the local development environment.
+
+services:
+
+  nhmzh-viz-services_ifc:
+    build: 
+      context: ./viz_ifc
+      dockerfile: Dockerfile
+    image: yschindel/nhmzh-viz-services_ifc:latest
+
+
+  nhmzh-viz-services_lca-cost:
+    build: 
+      context: ./viz_lca-cost
+      dockerfile: Dockerfile
+    image: yschindel/nhmzh-viz-services_lca-cost:latest
+
+
+  nhmzh-viz-services_pbi-server:
+    build: 
+      context: ./viz_pbi-server
+      dockerfile: Dockerfile
+    image: yschindel/nhmzh-viz-services_pbi-server:latest

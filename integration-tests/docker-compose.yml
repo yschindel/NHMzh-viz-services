@@ -134,6 +134,7 @@ services:
       - sqlserver-init
     ports:
       - "3000:3000"
+    restart: on-failure
 
   azurite:
     image: mcr.microsoft.com/azure-storage/azurite

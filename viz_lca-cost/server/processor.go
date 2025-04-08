@@ -21,42 +21,9 @@ func NewMessageProcessor() *MessageProcessor {
 	}
 }
 
-// SplitEbkphCode splits an eBKP-H code (like "C.02.95") into its individual components.
-// The function returns the components in an array: [ebkph_1, ebkph_2, ebkph_3]
-// For example:
-// - "C.02.95" would return ["C", "02", "95"]
-// - "D.12" would return ["D", "12", ""]
-// - "E" would return ["E", "", ""]
-// - "" or invalid input would return ["", "", ""]
-//
-// This function handles various edge cases:
-// - Input without dots
-// - Input with fewer than 3 components
-// - Empty or nil input
-func (p *MessageProcessor) SplitEbkphCode(ebkphCode string) [3]string {
-	// Initialize an empty array for the results
-	var components [3]string
-
-	// Return empty components if the input is empty
-	if len(strings.TrimSpace(ebkphCode)) == 0 {
-		return components
-	}
-
-	// Split the eBKP-H code by dots
-	parts := strings.Split(ebkphCode, ".")
-
-	// Assign the parts to the components array
-	// If a part exists, assign it, otherwise leave it as an empty string
-	for i := 0; i < len(parts) && i < 3; i++ {
-		components[i] = strings.TrimSpace(parts[i])
-	}
-
-	return components
-}
-
 // ProcessLcaMessage processes an LCA message before it's written to the database
 // It handles any transformations or validations needed
-func (p *MessageProcessor) ProcessLcaMessage(message *LcaMessage) ([]EavMaterialDataItem, error) {
+func (p *MessageProcessor) ProcessLcaMessage(message *LcaMessage) ([]EavMaterialRow, error) {
 	log := p.logger.WithFields(logger.Fields{
 		"operation": "process_lca_message",
 		"project":   message.Project,
@@ -89,10 +56,10 @@ func (p *MessageProcessor) ProcessLcaMessage(message *LcaMessage) ([]EavMaterial
 	}
 
 	// Convert the LcaDataItem to EavMaterialDataItem
-	eavItems := make([]EavMaterialDataItem, 0)
+	eavItems := make([]EavMaterialRow, 0)
 	for _, item := range message.Data {
 		// Create base item with common properties
-		baseItem := EavMaterialDataItem{
+		baseItem := EavMaterialRow{
 			Project:   message.Project,
 			Filename:  message.Filename,
 			Timestamp: message.Timestamp,
@@ -112,7 +79,7 @@ func (p *MessageProcessor) ProcessLcaMessage(message *LcaMessage) ([]EavMaterial
 
 // ProcessCostMessage processes a Cost message before it's written to the database
 // It handles any transformations or validations needed
-func (p *MessageProcessor) ProcessCostMessage(message *CostMessage) ([]EavElementDataItem, error) {
+func (p *MessageProcessor) ProcessCostMessage(message *CostMessage) ([]EavElementRow, error) {
 	log := p.logger.WithFields(logger.Fields{
 		"operation": "process_cost_message",
 		"project":   message.Project,
@@ -145,10 +112,10 @@ func (p *MessageProcessor) ProcessCostMessage(message *CostMessage) ([]EavElemen
 	}
 
 	// Convert the CostDataItem to EavElementDataItem
-	eavItems := make([]EavElementDataItem, 0)
+	eavItems := make([]EavElementRow, 0)
 	for _, item := range message.Data {
 		// Create base item with common properties
-		baseItem := EavElementDataItem{
+		baseItem := EavElementRow{
 			Project:   message.Project,
 			Filename:  message.Filename,
 			Timestamp: message.Timestamp,
@@ -171,8 +138,8 @@ type EavDataItem interface {
 }
 
 // this is super dump but I just could not figure out how to do this with generics
-func (p *MessageProcessor) structToEavItemsElement(baseItem EavElementDataItem, data interface{}) []EavElementDataItem {
-	items := make([]EavElementDataItem, 0)
+func (p *MessageProcessor) structToEavItemsElement(baseItem EavElementRow, data interface{}) []EavElementRow {
+	items := make([]EavElementRow, 0)
 	v := reflect.ValueOf(data)
 	t := v.Type()
 
@@ -232,8 +199,8 @@ func (p *MessageProcessor) structToEavItemsElement(baseItem EavElementDataItem, 
 }
 
 // this is super dump but I just could not figure out how to do this with generics
-func (p *MessageProcessor) structToEavItemsMaterial(baseItem EavMaterialDataItem, data interface{}) []EavMaterialDataItem {
-	items := make([]EavMaterialDataItem, 0)
+func (p *MessageProcessor) structToEavItemsMaterial(baseItem EavMaterialRow, data interface{}) []EavMaterialRow {
+	items := make([]EavMaterialRow, 0)
 	v := reflect.ValueOf(data)
 	t := v.Type()
 

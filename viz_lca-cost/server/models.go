@@ -1,22 +1,16 @@
 package server
 
-type CustomMinioCredentials struct {
-	Endpoint        string
-	AccessKeyID     string
-	SecretAccessKey string
-}
-
 // LcaMessage represents a message with Life Cycle Assessment data
 type LcaMessage struct {
-	Project   string        `json:"project"`   // Project identifier
-	Filename  string        `json:"filename"`  // Filename (without path)
-	Timestamp string        `json:"timestamp"` // Message timestamp
-	Data      []LcaDataItem `json:"data"`      // Array of LCA data items
-	FileID    string        `json:"-"`         // Internal field containing "project/filename" as a unique identifier
+	Project   string    `json:"project"`   // Project identifier
+	Filename  string    `json:"filename"`  // Filename (without path)
+	Timestamp string    `json:"timestamp"` // Message timestamp
+	Data      []LcaItem `json:"data"`      // Array of LCA data items
+	FileID    string    `json:"-"`         // Internal field containing "project/filename" as a unique identifier
 }
 
-// LcaDataItem represents a single LCA data item
-type LcaDataItem struct {
+// LcaItem represents a single LCA data item
+type LcaItem struct {
 	Id           string  `json:"id"`            // Unique identifier for the item
 	Sequence     int     `json:"sequence"`      // The sequence number of the material in the element (STARTING FROM 0)
 	MaterialKbob string  `json:"mat_kbob"`      // KBOB material reference
@@ -30,49 +24,22 @@ type LcaDataItem struct {
 
 // CostMessage represents a message with cost data
 type CostMessage struct {
-	Project   string         `json:"project"`   // Project identifier
-	Filename  string         `json:"filename"`  // Filename (without path)
-	Timestamp string         `json:"timestamp"` // Message timestamp
-	Data      []CostDataItem `json:"data"`      // Array of cost data items
-	FileID    string         `json:"-"`         // Internal field containing "project/filename" as a unique identifier
+	Project   string     `json:"project"`   // Project identifier
+	Filename  string     `json:"filename"`  // Filename (without path)
+	Timestamp string     `json:"timestamp"` // Message timestamp
+	Data      []CostItem `json:"data"`      // Array of cost data items
+	FileID    string     `json:"-"`         // Internal field containing "project/filename" as a unique identifier
 }
 
-// CostDataItem represents a single cost data item
-type CostDataItem struct {
-	Id           string  `json:"id"`            // Unique identifier for the item
-	Category     string  `json:"category"`      // The element category (e.g. "walls" or "floors")
-	Level        string  `json:"level"`         // The level of the element (e.g. "wall" or "floor")
-	IsStructural bool    `json:"is_structural"` // Whether the element is structural (e.g. true or false)
-	FireRating   string  `json:"fire_rating"`   // The fire rating of the element (e.g. "A" or "B")
-	Ebkph        string  `json:"ebkph"`         // eBKP-H category (e.g., "C.02.95")
-	Cost         float32 `json:"cost"`          // Cost value
-	CostUnit     float32 `json:"cost_unit"`     // Cost unit
+// CostItem represents a single cost data item
+type CostItem struct {
+	Id       string  `json:"id"`        // Unique identifier for the item
+	Cost     float32 `json:"cost"`      // Cost value
+	CostUnit float32 `json:"cost_unit"` // Cost unit
 }
 
-// TODO: will implement later when a pure element processing service is set up.
-// At that point we can remove the generic attributes from the cost messages
-type ElementMessage struct {
-	Project   string         `json:"project"`   // Project identifier
-	Filename  string         `json:"filename"`  // Filename (without path)
-	Timestamp string         `json:"timestamp"` // Message timestamp
-	Data      []CostDataItem `json:"data"`      // Array of cost data items
-	FileID    string         `json:"-"`         // Internal field containing "project/filename" as a unique identifier
-}
-
-// ElementDataItem represents a single element data item
-type ElementDataItem struct {
-	Id           string  `json:"id"`            // Unique identifier for the item
-	Category     string  `json:"category"`      // The element category (e.g. "walls" or "floors")
-	Level        string  `json:"level"`         // The level of the element (e.g. "wall" or "floor")
-	IsStructural bool    `json:"is_structural"` // Whether the element is structural (e.g. true or false)
-	FireRating   string  `json:"fire_rating"`   // The fire rating of the element (e.g. "A" or "B")
-	Ebkph        string  `json:"ebkph"`         // eBKP-H category (e.g., "C.02.95")
-	Cost         float32 `json:"cost"`          // Cost value
-	CostUnit     float32 `json:"cost_unit"`     // Cost unit
-}
-
-// EavElementDataItem represents a single EAV data item
-type EavElementDataItem struct {
+// EavElementRow represents a single EAV data item (in this case it's used for cost data)
+type EavElementRow struct {
 	Project           string   `json:"project"`             // Project identifier
 	Filename          string   `json:"filename"`            // Filename (without path)
 	Timestamp         string   `json:"timestamp"`           // Message timestamp
@@ -85,8 +52,8 @@ type EavElementDataItem struct {
 	ParamType         string   `json:"param_type"`          // The type of the parameter (currently always "number")
 }
 
-// EavMaterialDataItem represents a single EAV data item
-type EavMaterialDataItem struct {
+// EavMaterialRow represents a single EAV data item
+type EavMaterialRow struct {
 	Project           string   `json:"project"`             // Project identifier
 	Filename          string   `json:"filename"`            // Filename (without path)
 	Timestamp         string   `json:"timestamp"`           // Message timestamp

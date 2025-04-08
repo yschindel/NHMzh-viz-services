@@ -38,7 +38,7 @@ func NewMessageWriter() *MessageWriter {
 }
 
 // WriteLcaMessage writes a message to the LCA endpoint
-func (w *MessageWriter) WriteLcaMessage(message []EavMaterialDataItem) error {
+func (w *MessageWriter) WriteLcaMessage(message []EavMaterialRow) error {
 	log := w.logger.WithFields(logger.Fields{
 		"count": len(message),
 	})
@@ -55,7 +55,7 @@ func (w *MessageWriter) WriteLcaMessage(message []EavMaterialDataItem) error {
 }
 
 // WriteCostMessage writes a message to the cost endpoint
-func (w *MessageWriter) WriteCostMessage(message []EavElementDataItem) error {
+func (w *MessageWriter) WriteCostMessage(message []EavElementRow) error {
 	log := w.logger.WithFields(logger.Fields{
 		"count": len(message),
 	})

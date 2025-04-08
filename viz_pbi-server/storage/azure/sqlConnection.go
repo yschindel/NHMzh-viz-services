@@ -4,8 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"log"
 	"os"
+	"viz_pbi-server/logger"
 
 	_ "github.com/microsoft/go-mssqldb"
 )
@@ -33,7 +33,10 @@ func ConnectDB(config DBConfig) (*sql.DB, error) {
 			config.Server, config.User, config.Password, config.Port, config.Database)
 	}
 
-	log.Printf("Connecting to database in %s mode", environment)
+	logger.WithFields(logger.Fields{
+		"environment": environment,
+		"connString":  connString,
+	}).Info("Connecting to database")
 
 	// Create connection pool
 	db, err := sql.Open("sqlserver", connString)

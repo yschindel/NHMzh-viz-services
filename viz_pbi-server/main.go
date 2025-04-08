@@ -1,21 +1,39 @@
 package main
 
 import (
-	"log"
 	"net/http"
 	"os"
 	"viz_pbi-server/api"
+	"viz_pbi-server/logger"
 )
 
 func main() {
+	log := logger.New()
+
 	port := os.Getenv("PBI_SERVER_PORT")
 	if port == "" {
 		port = "3000" // Default port if not specified
 	}
 
-	srv := api.NewServer()
+	log.Info("Starting server on port", logger.Fields{
+		"port": port,
+	})
 
-	log.Printf("Starting server on port %s", port)
-	log.Printf("Server is designed to run behind a reverse proxy for HTTPS termination")
-	log.Fatal(http.ListenAndServe(":"+port, srv))
+	srv, err := api.NewServer()
+	if err != nil {
+		log.Error("Failed to create server", logger.Fields{
+			"error": err,
+		})
+		os.Exit(1)
+	}
+
+	log.Info("Server is designed to run behind a reverse proxy for HTTPS termination")
+
+	if err := http.ListenAndServe(":"+port, srv.Handler); err != nil {
+		log.Error("Server failed", logger.Fields{
+			"error": err,
+		})
+		os.Exit(1)
+	}
+
 }

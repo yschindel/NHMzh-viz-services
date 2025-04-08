@@ -1,3 +1,0 @@
-### get file
-
-Get http://localhost:3000/fragments?name=project1/file1_2024-10-25T16:36:04.986158Z.gz

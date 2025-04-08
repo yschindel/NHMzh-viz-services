@@ -1,49 +1,70 @@
-import { runIfcToGzWorker } from "./ifc/ifcParser";
-import { ensureWasmFile } from "./ifc/wasm";
-import { setupKafkaConsumer, startKafkaConsumer } from "./kafka";
-import { initializeMinio, getFile, getFileMetadata, minioClient } from "./minio";
+/**
+ * IFC consumer module
+ *
+ * This module is the entry point for the IFC consumer.
+ *
+ * @module index
+ */
 
-const FRAGMENTS_BUCKET_NAME = process.env.MINIO_IFC_FRAGMENTS_BUCKET || "ifc-fragment-files";
-const IFC_BUCKET_NAME = process.env.MINIO_IFC_BUCKET || "ifc-files";
+import { processIfcToFragments } from "./ifc/ifcParser";
+import { processIfcProperties } from "./ifc/ifcProperties";
+import { ensureWasmFile, wasmDir } from "./ifc/wasm";
+import { setupKafkaConsumer, startKafkaConsumer } from "./kafka";
+import { getFile, getFileMetadata, minioClient } from "./minio";
+import { log } from "./utils/logger";
+import { getEnv } from "./utils/env";
+import { IFCData } from "./types";
+
+const IFC_BUCKET_NAME = getEnv("MINIO_IFC_BUCKET");
 
 /**
  * Main function to start the IFC consumer
- * Initialize the Minio bucket and start the Kafka consumer
+ * Ensures the WASM file is downloaded
+ * Sets up the Kafka consumer
+ * Starts the Kafka consumer
  */
 async function main() {
+	log.info("Starting server...");
+
 	ensureWasmFile();
-	await initializeMinio([FRAGMENTS_BUCKET_NAME, IFC_BUCKET_NAME], minioClient);
 
+	log.info("Setting up Kafka consumer...");
 	const consumer = await setupKafkaConsumer();
-	console.log("IFC Consumer is running...");
+	log.info("Kafka consumer setup complete");
 
+	log.info("Starting Kafka consumer...");
 	await startKafkaConsumer(consumer, async (message: any) => {
 		if (message.value) {
 			try {
-				console.log("received message: ", message);
-				const donwloadLink = message.value.toString();
-				const location = donwloadLink.split("/").pop();
+				log.info("Processing Kafka message:", message.value);
+				const downloadLink = message.value.toString();
+				const fileID = downloadLink.split("/").pop();
+				const file = await getFile(fileID, IFC_BUCKET_NAME, minioClient);
+				if (!file) {
+					log.error(`File ${fileID} not found`);
+					return;
+				}
 
-				console.log("getting object from minio at: ", location);
-				const file = await getFile(location, IFC_BUCKET_NAME, minioClient);
+				const metadata = await getFileMetadata(fileID, IFC_BUCKET_NAME, minioClient);
+				const ifcData: IFCData = {
+					project: metadata.project,
+					filename: metadata.filename,
+					timestamp: metadata.timestamp,
+					file: file,
+					fileId: fileID,
+				};
 
-				console.log("getting metadata from minio at: ", location);
-				const metadata = await getFileMetadata(location, IFC_BUCKET_NAME, minioClient);
-
-				console.log("received metadata: ", metadata);
-
-				// Parse the IFC file to fragments and save to minio in a worker thread - no need to await
-				console.log("running ifc to gz worker");
-				runIfcToGzWorker(file, location, metadata.timestamp, metadata.project, metadata.filename);
-			} catch (error) {
-				console.error("Error processing Kafka message:", error);
+				// Process fragments and properties in parallel
+				await Promise.all([processIfcToFragments(ifcData, wasmDir), processIfcProperties(ifcData, wasmDir)]);
+			} catch (error: any) {
+				log.error("Error processing Kafka message:", error);
 			}
 		}
 	});
 
-	console.log("IFC Consumer is running...");
+	log.info("Kafka consumer started");
 }
 
 if (require.main === module) {
-	main().catch(console.error);
+	main().catch(log.error);
 }

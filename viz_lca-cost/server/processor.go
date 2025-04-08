@@ -1,106 +1,67 @@
 package server
 
 import (
-	"log"
 	"reflect"
 	"strings"
 	"time"
+	"viz_lca-cost/logger"
 )
 
 // MessageProcessor handles the processing of incoming messages
-type MessageProcessor struct{}
+type MessageProcessor struct {
+	logger *logger.Logger
+}
 
 // NewMessageProcessor creates a new message processor
 func NewMessageProcessor() *MessageProcessor {
-	return &MessageProcessor{}
-}
-
-// GenerateFileID creates a file ID by concatenating project and filename with a '/' separator.
-// This provides a unique identifier for files within projects that will be stored in the database.
-//
-// The fileid format is "project/filename" where:
-// - project: the project identifier
-// - filename: the filename with any .ifc extension removed
-//
-// For example, if project="building123" and filename="model.ifc",
-// the resulting fileid will be "building123/model"
-func (p *MessageProcessor) GenerateFileID(project, filename string) string {
-	// Remove any .ifc extension from the filename
-	cleanFilename := strings.TrimSuffix(filename, ".ifc")
-
-	// Concatenate project and filename with a '/' separator
-	return project + "/" + cleanFilename
-}
-
-// SplitEbkphCode splits an eBKP-H code (like "C.02.95") into its individual components.
-// The function returns the components in an array: [ebkph_1, ebkph_2, ebkph_3]
-// For example:
-// - "C.02.95" would return ["C", "02", "95"]
-// - "D.12" would return ["D", "12", ""]
-// - "E" would return ["E", "", ""]
-// - "" or invalid input would return ["", "", ""]
-//
-// This function handles various edge cases:
-// - Input without dots
-// - Input with fewer than 3 components
-// - Empty or nil input
-func (p *MessageProcessor) SplitEbkphCode(ebkphCode string) [3]string {
-	// Initialize an empty array for the results
-	var components [3]string
-
-	// Return empty components if the input is empty
-	if len(strings.TrimSpace(ebkphCode)) == 0 {
-		return components
+	return &MessageProcessor{
+		logger: logger.New().WithFields(logger.Fields{
+			"operation": "message_processor",
+		}),
 	}
-
-	// Split the eBKP-H code by dots
-	parts := strings.Split(ebkphCode, ".")
-
-	// Assign the parts to the components array
-	// If a part exists, assign it, otherwise leave it as an empty string
-	for i := 0; i < len(parts) && i < 3; i++ {
-		components[i] = strings.TrimSpace(parts[i])
-	}
-
-	return components
 }
 
 // ProcessLcaMessage processes an LCA message before it's written to the database
 // It handles any transformations or validations needed
-func (p *MessageProcessor) ProcessLcaMessage(message *LcaMessage) ([]EavMaterialDataItem, error) {
-	log.Printf("Processing LCA message for project: %s, filename: %s", message.Project, message.Filename)
+func (p *MessageProcessor) ProcessLcaMessage(message *LcaMessage) ([]EavMaterialRow, error) {
+	log := p.logger.WithFields(logger.Fields{
+		"operation": "process_lca_message",
+		"project":   message.Project,
+		"filename":  message.Filename,
+	})
+	log.Info("Processing LCA message")
 
 	// Clean the filename by removing .ifc extension if present
 	message.Filename = strings.TrimSuffix(message.Filename, ".ifc")
 
 	// Validate required fields
 	if message.Project == "" {
+		log.Error("Missing project field")
 		return nil, ErrMissingProject
 	}
 
 	if message.Filename == "" {
+		log.Error("Missing filename field")
 		return nil, ErrMissingFilename
 	}
 
 	if message.Timestamp == "" {
+		log.Error("Missing timestamp field")
 		return nil, ErrMissingTimestamp
 	}
 
 	if len(message.Data) == 0 {
+		log.Error("Empty data field")
 		return nil, ErrEmptyData
 	}
 
-	// Add fileid to the message for easier use by the writer
-	message.FileID = p.GenerateFileID(message.Project, message.Filename)
-
 	// Convert the LcaDataItem to EavMaterialDataItem
-	eavItems := make([]EavMaterialDataItem, 0)
+	eavItems := make([]EavMaterialRow, 0)
 	for _, item := range message.Data {
 		// Create base item with common properties
-		baseItem := EavMaterialDataItem{
+		baseItem := EavMaterialRow{
 			Project:   message.Project,
 			Filename:  message.Filename,
-			FileID:    message.FileID,
 			Timestamp: message.Timestamp,
 			Id:        item.Id,
 			Sequence:  item.Sequence,
@@ -110,45 +71,53 @@ func (p *MessageProcessor) ProcessLcaMessage(message *LcaMessage) ([]EavMaterial
 		eavItems = append(eavItems, p.structToEavItemsMaterial(baseItem, item)...)
 	}
 
+	log.Info("Successfully processed LCA items", logger.Fields{
+		"count": len(eavItems),
+	})
 	return eavItems, nil
 }
 
 // ProcessCostMessage processes a Cost message before it's written to the database
 // It handles any transformations or validations needed
-func (p *MessageProcessor) ProcessCostMessage(message *CostMessage) ([]EavElementDataItem, error) {
-	log.Printf("Processing Cost message for project: %s, filename: %s", message.Project, message.Filename)
+func (p *MessageProcessor) ProcessCostMessage(message *CostMessage) ([]EavElementRow, error) {
+	log := p.logger.WithFields(logger.Fields{
+		"operation": "process_cost_message",
+		"project":   message.Project,
+		"filename":  message.Filename,
+	})
+	log.Info("Processing Cost message")
 
 	// Clean the filename by removing .ifc extension if present
 	message.Filename = strings.TrimSuffix(message.Filename, ".ifc")
 
 	// Validate required fields
 	if message.Project == "" {
+		log.Error("Missing project field")
 		return nil, ErrMissingProject
 	}
 
 	if message.Filename == "" {
+		log.Error("Missing filename field")
 		return nil, ErrMissingFilename
 	}
 
 	if message.Timestamp == "" {
+		log.Error("Missing timestamp field")
 		return nil, ErrMissingTimestamp
 	}
 
 	if len(message.Data) == 0 {
+		log.Error("Empty data field")
 		return nil, ErrEmptyData
 	}
 
-	// Add fileid to the message for easier use by the writer
-	message.FileID = p.GenerateFileID(message.Project, message.Filename)
-
 	// Convert the CostDataItem to EavElementDataItem
-	eavItems := make([]EavElementDataItem, 0)
+	eavItems := make([]EavElementRow, 0)
 	for _, item := range message.Data {
 		// Create base item with common properties
-		baseItem := EavElementDataItem{
+		baseItem := EavElementRow{
 			Project:   message.Project,
 			Filename:  message.Filename,
-			FileID:    message.FileID,
 			Timestamp: message.Timestamp,
 			Id:        item.Id,
 		}
@@ -157,6 +126,9 @@ func (p *MessageProcessor) ProcessCostMessage(message *CostMessage) ([]EavElemen
 		eavItems = append(eavItems, p.structToEavItemsElement(baseItem, item)...)
 	}
 
+	log.Info("Successfully processed Cost items", logger.Fields{
+		"count": len(eavItems),
+	})
 	return eavItems, nil
 }
 
@@ -166,8 +138,8 @@ type EavDataItem interface {
 }
 
 // this is super dump but I just could not figure out how to do this with generics
-func (p *MessageProcessor) structToEavItemsElement(baseItem EavElementDataItem, data interface{}) []EavElementDataItem {
-	items := make([]EavElementDataItem, 0)
+func (p *MessageProcessor) structToEavItemsElement(baseItem EavElementRow, data interface{}) []EavElementRow {
+	items := make([]EavElementRow, 0)
 	v := reflect.ValueOf(data)
 	t := v.Type()
 
@@ -227,8 +199,8 @@ func (p *MessageProcessor) structToEavItemsElement(baseItem EavElementDataItem, 
 }
 
 // this is super dump but I just could not figure out how to do this with generics
-func (p *MessageProcessor) structToEavItemsMaterial(baseItem EavMaterialDataItem, data interface{}) []EavMaterialDataItem {
-	items := make([]EavMaterialDataItem, 0)
+func (p *MessageProcessor) structToEavItemsMaterial(baseItem EavMaterialRow, data interface{}) []EavMaterialRow {
+	items := make([]EavMaterialRow, 0)
 	v := reflect.ValueOf(data)
 	t := v.Type()
 

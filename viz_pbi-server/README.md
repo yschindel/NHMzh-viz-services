@@ -36,15 +36,14 @@ The service supports the standard proxy headers:
 
 The service is configured using the following environment variables:
 
-| Environment Variable         | Description                          | Default              |
-| ---------------------------- | ------------------------------------ | -------------------- |
-| `PBI_SERVER_PORT`            | The port on which the server listens | `3000`               |
-| `PBI_SRV_API_KEY`            | API key for authentication           | (none)               |
-| `MINIO_ENDPOINT`             | MinIO server endpoint                | (required)           |
-| `MINIO_ACCESS_KEY`           | MinIO access key                     | (required)           |
-| `MINIO_SECRET_KEY`           | MinIO secret key                     | (required)           |
-| `MINIO_FRAGMENTS_BUCKET`     | MinIO bucket for fragment files      | `ifc-fragment-files` |
-| `MINIO_LCA_COST_DATA_BUCKET` | MinIO bucket for LCA cost data       | `lca-cost-data`      |
+| Environment Variable       | Description                          | Default              |
+| -------------------------- | ------------------------------------ | -------------------- |
+| `PBI_SERVER_PORT`          | The port on which the server listens | `3000`               |
+| `PBI_SRV_API_KEY`          | API key for authentication           | (none)               |
+| `MINIO_ENDPOINT`           | MinIO server endpoint                | (required)           |
+| `MINIO_ACCESS_KEY`         | MinIO access key                     | (required)           |
+| `MINIO_SECRET_KEY`         | MinIO secret key                     | (required)           |
+| `VIZ_IFC_FRAGMENTS_BUCKET` | Bucket/Container for fragment files  | `ifc-fragment-files` |
 
 ## Routes
 

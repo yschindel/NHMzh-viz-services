@@ -46,7 +46,7 @@ services:
       MINIO_PORT: ${MINIO_PORT:-9000}
       MINIO_USE_SSL: ${MINIO_USE_SSL:-false}
       MINIO_ENDPOINT: minio
-      MINIO_FRAGMENTS_BUCKET: ${MINIO_FRAGMENTS_BUCKET:-ifc-fragment-files}
+      VIZ_IFC_FRAGMENTS_BUCKET: ${VIZ_IFC_FRAGMENTS_BUCKET:-ifc-fragment-files}
       MINIO_IFC_BUCKET: ${MINIO_IFC_BUCKET:-ifc-files}
       KAFKA_BROKER: kafka:9093
       KAFKA_IFC_TOPIC: ${KAFKA_IFC_TOPIC:-ifc-files}
@@ -78,7 +78,7 @@ services:
       MINIO_PORT: ${MINIO_PORT:-9000}
       MINIO_USE_SSL: ${MINIO_USE_SSL:-false}
       MINIO_ENDPOINT: minio
-      MINIO_FRAGMENTS_BUCKET: ${MINIO_FRAGMENTS_BUCKET:-ifc-fragment-files}
+      VIZ_IFC_FRAGMENTS_BUCKET: ${VIZ_IFC_FRAGMENTS_BUCKET:-ifc-fragment-files}
       MINIO_IFC_BUCKET: ${MINIO_IFC_BUCKET:-ifc-files}
       PBI_SERVER_PORT: ${PBI_SERVER_PORT:-3000}
       PBI_SRV_API_KEY: ${PBI_SRV_API_KEY:-thisIsNotMyApiKey}

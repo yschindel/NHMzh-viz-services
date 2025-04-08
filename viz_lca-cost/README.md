@@ -1,11 +1,14 @@
 # LCA and Cost Service
 
+This services exists because:
+
+The long-term data storage and reporting require a different data format than what is passed around in the Kafka network.
+
 Responsibilites:
 
 - Kafka consumer that listens to the LCA Kafka topic
-- Save the LCA data as to Azure SQL DB
 - Kafka consumer that listens to the Cost Kafka topic
-- Save the Cost data as Azure SQL DB
+- Forward the processed data to another service
 
 ## Kafka
 
@@ -13,15 +16,6 @@ The service has two Kafka consumers, one for the LCA data and one for the Cost d
 
 Each consumer subscribes to its own Kafka topic, which is specified in the `KAFKA_LCA_TOPIC` and `KAFKA_COST_TOPIC` environment variables.
 
-## Azure
+## Storage
 
-The service will create and ensure columns in an Azure SQL DB on startup. Database configuration is done in ./sql/
-The following environment variables need to be set:
-
-```
-AZURE_DB_SERVER
-AZURE_DB_PORT
-AZURE_DB_USER
-AZURE_DB_PASSWORD
-AZURE_DB_DATABASE
-```
+The service will process the kafka messages and forward them as a POST request to a given REST API. This ensures that the core elements of the NHM systems which are closely integrated with Kafka and with one another are independend of the long-term storage solution required by the client for their reporting.

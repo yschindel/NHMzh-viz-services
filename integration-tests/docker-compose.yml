@@ -4,9 +4,10 @@ services:
     ports:
       - "9000:9000"
       - "9001:9001"
-    env_file:
-      - ../.env
-      - ../.env.dev # since this is the local integration test, we need to use the dev env file to override the env variables
+    environment:
+      MINIO_ACCESS_KEY: ROOTUSER
+      MINIO_SECRET_KEY: CHANGEME123
+      MINIO_USE_SSL: false
     volumes:
       - minio_data:/data
     command: server /data --console-address ":9001"
@@ -85,7 +86,7 @@ services:
       - MINIO_IFC_BUCKET=ifc-files
       - KAFKA_BROKER=kafka:9093
       - KAFKA_IFC_TOPIC=ifc-files
-      - IFC_PROPERTIES_TO_INCLUDE=Reference,LoadBearing,FireRating,Name,category,level
+      - IFC_PROPERTIES_TO_INCLUDE=Reference,LoadBearing,FireRating,Name,category,level,Ebkph
     depends_on:
       - minio
       - kafka

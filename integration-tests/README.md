@@ -1,5 +1,12 @@
 # Integration Tests
 
+Testing the backend services.
+
+## Overview
+
+The integration tests are designed to simulate a full run from IFC upload all the way to Azure SQL and Blob Storage.
+They are executed by running a .go file that uploads a file to MinIO and then sends a message with the download link to that file through a Kafka topic. All services to their processing and after some time the final data should be availabe in the Azure SQL DB and Blob Storage. Depeding on the configuration of environment variables, this can be local emulators or a real Azure instance.
+
 ## Prerequisites
 
 - Docker
@@ -7,27 +14,25 @@
 - Go 1.20 or higher
 - You have followed the instructions to set up the `.env` and `.env.dev` files in the [main README](../README.md)
 
+## Test Setup
+
+Before we can start the services, we need to set all environment varialbes in the docker-compose.yml file.
+
+### Add an IFC File to the Test
+
+1. Create a new directory called `assets` in the `integration-tests` directory.
+2. Add an IFC file to the `assets` directory.
+3. Rename the file to `test.ifc`.
+
 ### Install Dependencies
 
-Open a terminal in the `integration-tests/lca_cost` directory.
+Open a terminal in the `integration-tests/test` directory.
 
 Install dependencies:
 
 ```bash
 go mod tidy
 ```
-
-## Add an IFC File to the Test
-
-1. Create a new directory called `assets` in the `integration-tests` directory.
-2. Add an IFC file to the `assets` directory.
-3. Rename the file to `test.ifc`.
-
-## Test Setup
-
-### Start the Azure SQL Server
-
-The integration tests use the SQL Server container defined in the docker-compose.yml file. There's no need to use the Azure SQL Server Emulator in VSCode for running the integration tests.
 
 ### Start the Services
 
@@ -40,96 +45,95 @@ docker compose up --build -d
 
 This will start all the necessary services:
 
-- MinIO (object storage)
-- Kafka and Zookeeper (message broker)
-- SQL Server (database)
+- MinIO
+  - Used to upload a test IFC file to
+- Kafka and Zookeeper
+  - Messageging system
+  - Topics used in test (not the actual topic names):
+    - New ifc file available
+    - Lca data
+    - Cost data
+- SQL Server
+  - Azure emulator
+  - For data Storage
 - SQL Server initialization (creates the required database)
+- Azurite
+  - Azure emulator
+  - Blob storage
+- mock_calc_lca-cost
+  - Mocks calculations performed by the actual services
+  - Lca data
+  - Cost data
 - viz_ifc (IFC processing service)
+  - Processing IFC files
+  - Converts IFC file to fragments for WebGL viewing
+  - Extracts general element data from IFC files
 - viz_lca-cost (cost and LCA data service)
-- viz_pbi-server (Power BI integration server)
+  - Reshaping data from 'row' or 'object' style to EAV
+  - Forwards to client specific storage service
+- viz_pbi-server
+  - Client specific storage service
+  - Backend for PowerBI 3D viewer fragments loading
+  - Single point of communication with Azure (Except Direct Query from PowerBI)
 
 You should now see all the containers running for the integration tests services.
 
 ## Running the IFC Integration Tests
 
-### Open the MinIO Console
+### Open the MinIO Console (Optional)
 
 In your browser, go to `localhost:9001` to see the MinIO console.
 
 - Login using the credentials you specified in the `.env` file (default: ROOTUSER/CHANGEME123)
-- Before running tests, you may want to delete any existing data:
+- Before running tests, you may want to delete any existing data (this is optional):
   - Delete all items in the `ifc-files` bucket and the bucket itself
-  - Delete all items in the `ifc-fragment-files` bucket and the bucket itself
-  - Delete all items in the `lca-cost-data` bucket and the bucket itself
 
-### Add Content to the IFC Kafka Topic
+### Trigger the Test
 
-Open a terminal in the `integration-tests/ifc` directory and run:
+Open a terminal in the `integration-tests/test` directory and run:
 
 ```bash
 go run main.go
 ```
 
-Watch the output of the terminal. It should tell you that the test was passed. This takes up to a minute.
+Watch the output of the terminal. It should tell you that the test was passed. This takes up to a minute or two.
 
-**Verify the content was added correctly:**
+Here's what you need to watch out for to verify the test passed:
 
-Verify that the bucket was created and that the content was added correctly:
+**Automatically checked:**
+
+The test will automatically check if the expected fragments file can be retrived from the pbi-server. It will log success or failure on that in the terminal.
+
+**Verify the ifc file was added correctly:**
+
+Verify that the ifc bucket was created and that the file was added correctly:
 
 1. Refresh the Object Browser in the MinIO console.
-2. You should see new buckets called `ifc-files` and `ifc-fragment-files`.
+2. You should see a new bucket called `ifc-files`.
 3. Open the buckets. If no folders show up, try refreshing the bucket.
 4. Open the folders and check that the files are present.
 
-### Verify the viz_pbi-server is Working
+**Verify the data was added to Azure:**
 
-Check the output of the test.ts in the terminal. It should say: "Pass: Fragments file is a Buffer".
+Depending on you environment varialbes, connect to the local emulators or the actual cloud instance.
+This can be done with the 'mssql' extension for vs code.
 
-## Running the LCA and Cost Integration Tests
+You should see 3 tables:
 
-### Add Content to the LCA and Cost Kafka Topic
-
-Open a terminal in the `integration-tests/lca_cost` directory and run:
-
-```bash
-go run main.go
-```
-
-**Verify the content was added correctly:**
-
-Connect to the SQL Server and check that the data has been added. You can use:
-
-1. The SQL Server tab in VSCode:
-
-   - Connect to `localhost,1433` with username `sa` and password `P@ssw0rd`
-   - Navigate to the `nhmzh-viz-services-localdev` database
-   - Check that the tables have been created and populated
-
-2. Or use a SQL client like SQL Server Management Studio or Azure Data Studio:
-   - Connect to `localhost,1433` with username `sa` and password `P@ssw0rd`
-   - Run a query to verify the data: `SELECT TOP 10 * FROM [nhmzh-viz-services-localdev].[dbo].[LcaData]`
-
-## Troubleshooting
-
-### SQL Server Connection Issues
-
-If you have issues connecting to SQL Server:
-
-- Ensure the SQL Server container is running (`docker ps`)
-- Check if the database was created successfully in the logs (`docker logs sqlserver-init`)
-- Verify you're using the correct connection string parameters
-
-### Kafka Issues
-
-If you have issues with Kafka:
-
-- Check if the Kafka container is running (`docker ps`)
-- Verify the topics are created (`docker exec -it viz-test-kafka-container kafka-topics.sh --list --bootstrap-server kafka:9093`)
-
-### MinIO Issues
-
-If you have issues with MinIO:
-
-- Check if the MinIO container is running (`docker ps`)
-- Verify you can access the MinIO console at http://localhost:9001
-- Check if buckets are created and accessible
+- element data
+  - EAV (element-attribute-value) style
+  - Contains element-level information
+  - Column 'param_name' should include what you have specified in the environment variable for the viz_ifc service (if it exists in the IFC model):
+    - Category
+    - Level
+    - LoadBearing
+    - ...
+- material data
+  - EAV style
+  - Contains material-level information
+    - Material 'layers' are grouped by 'sequence'
+      - Every 'sequence' should have the same set of 'param_name' (6 or so)
+    - Multiple materials per 'id' aka element
+- updates
+  - One row per new IFC upload
+  - Metadata about the data update

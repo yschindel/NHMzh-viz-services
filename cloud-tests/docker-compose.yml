@@ -1,0 +1,134 @@
+services:
+  minio:
+    image: minio/minio
+    ports:
+      - "${MINIO_PORT:-9000}:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-ROOTUSER}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-CHANGEME123}
+      MINIO_PORT: ${MINIO_PORT:-9000}
+      MINIO_USE_SSL: ${MINIO_USE_SSL:-false}
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+
+  zookeeper:
+    image: wurstmeister/zookeeper:latest
+    ports:
+      - "2181:2181"
+
+  kafka:
+    container_name: viz-test-kafka-container
+    image: wurstmeister/kafka:latest
+    ports:
+      - "9092:9092"
+    expose:
+      - "9093"
+    environment:
+      KAFKA_ADVERTISED_LISTENERS: INSIDE://kafka:9093,OUTSIDE://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INSIDE:PLAINTEXT,OUTSIDE:PLAINTEXT
+      KAFKA_LISTENERS: INSIDE://0.0.0.0:9093,OUTSIDE://0.0.0.0:9092
+      KAFKA_INTER_BROKER_LISTENER_NAME: INSIDE
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_CREATE_TOPICS: "${KAFKA_IFC_TOPIC:-ifc-files}:1:1, ${KAFKA_LCA_TOPIC:-lca-data}:1:1, ${KAFKA_COST_TOPIC:-cost-data}:1:1"
+      KAFKA_BROKER: kafka:9093
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      - zookeeper
+
+  nhmzh-viz-services_ifc:
+    image: yschindel/nhmzh-viz-services_ifc:latest
+    environment:
+      NODE_ENV: development 
+      STORAGE_SERVICE_API_KEY: ${VIZ_API_KEY:-123}
+      STORAGE_SERVICE_URL: http://nhmzh-viz-services_pbi-server:3000
+      STORAGE_ENDPOINT_FILE: /blob
+      STORAGE_ENDPOINT_DATA_ELEMENTS: /data/elements
+      MINIO_ENDPOINT: minio
+      MINIO_PORT: 9000
+      MINIO_ACCESS_KEY: ROOTUSER
+      MINIO_SECRET_KEY: CHANGEME123
+      MINIO_USE_SSL: false
+      MINIO_IFC_BUCKET: ifc-files
+      KAFKA_BROKER: kafka:9093
+      KAFKA_IFC_TOPIC: ifc-files
+      # Specify the properties to extract from the IFC file:
+      IFC_PROPERTIES_TO_INCLUDE: Reference,LoadBearing,FireRating,Name,category,level,eBKP
+    depends_on:
+      - minio
+      - kafka
+    restart: on-failure
+
+  nhmzh-viz-services_lca-cost:
+    image: yschindel/nhmzh-viz-services_lca-cost:latest
+    environment:
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      KAFKA_BROKER: kafka:9093
+      KAFKA_LCA_TOPIC: lca-data
+      KAFKA_COST_TOPIC: cost-data
+      STORAGE_SERVICE_API_KEY: ${VIZ_API_KEY:-123}
+      STORAGE_SERVICE_URL: http://nhmzh-viz-services_pbi-server:3000
+      STORAGE_ENDPOINT_DATA_MATERIALS: /data/materials
+      STORAGE_ENDPOINT_DATA_ELEMENTS: /data/elements
+    depends_on:
+      - kafka
+    restart: on-failure
+
+  nhmzh-viz-services_pbi-server:
+    image: yschindel/nhmzh-viz-services_pbi-server:latest
+    environment:
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      API_KEY: ${VIZ_API_KEY:-123}
+      STORAGE_ENDPOINT_FILE: /blob
+      STORAGE_ENDPOINT_DATA_MATERIALS: /data/materials
+      STORAGE_ENDPOINT_DATA_ELEMENTS: /data/elements
+      AZURE_STORAGE_ACCOUNT: ${AZURE_STORAGE_ACCOUNT:-devstoreaccount1}
+      AZURE_STORAGE_KEY: ${AZURE_STORAGE_KEY:-Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==}
+      AZURE_STORAGE_URL: ${AZURE_STORAGE_URL:-http://azurite:10000/devstoreaccount1}
+      AZURE_DB_PORT: ${AZURE_DB_PORT:-1433}
+      AZURE_DB_USER: ${AZURE_DB_USER:-sa}
+      AZURE_DB_PASSWORD: ${AZURE_DB_PASSWORD:-P@ssw0rd}
+      AZURE_DB_DATABASE: ${AZURE_DB_DATABASE:-nhmzh-viz-services-localdev}
+      AZURE_DB_SERVER: ${AZURE_DB_SERVER:-sqlserver} # Override to connect to the Docker service instead of host.docker.internal
+      VIZ_IFC_FRAGMENTS_BUCKET: ${VIZ_IFC_FRAGMENTS_BUCKET:-ifc-fragment-files}
+    # depends_on:
+      # Azure SQL Cloud Server & SQL Cloud DB
+      # Azure Cloud Blob Storage
+    ports:
+      - "3000:3000"
+    restart: on-failure
+
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite
+    ports:
+      - "10000:10000"
+    command: azurite-blob --blobHost 0.0.0.0
+    volumes:
+      - azurite_data:/data
+
+  mock_calc_lca-cost:
+    build:
+      context: ../mock_calc_lca-cost
+      dockerfile: Dockerfile
+    environment:
+      NODE_ENV: development
+      KAFKA_BROKER: kafka:9093
+      KAFKA_IFC_TOPIC: ifc-files
+      KAFKA_LCA_TOPIC: lca-data
+      KAFKA_COST_TOPIC: cost-data
+      MINIO_ENDPOINT: minio
+      MINIO_PORT: 9000
+      MINIO_ACCESS_KEY: ROOTUSER
+      MINIO_SECRET_KEY: CHANGEME123
+      MINIO_USE_SSL: false
+      MINIO_IFC_BUCKET: ifc-files
+    depends_on:
+      - kafka
+      - minio
+    restart: on-failure
+
+volumes:
+  minio_data:
+  azurite_data:

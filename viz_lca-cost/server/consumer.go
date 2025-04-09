@@ -20,15 +20,17 @@ func NewConsumer(envBroker, envTopic, costBroker, costTopic, groupID string) *Co
 	log := logger.New()
 
 	lcaReader := kafka.NewReader(kafka.ReaderConfig{
-		Brokers: []string{envBroker},
-		Topic:   envTopic,
-		GroupID: groupID + "-env",
+		Brokers:     []string{envBroker},
+		Topic:       envTopic,
+		GroupID:     groupID + "-env",
+		StartOffset: kafka.LastOffset,
 	})
 
 	costReader := kafka.NewReader(kafka.ReaderConfig{
-		Brokers: []string{costBroker},
-		Topic:   costTopic,
-		GroupID: groupID + "-cost",
+		Brokers:     []string{costBroker},
+		Topic:       costTopic,
+		GroupID:     groupID + "-cost",
+		StartOffset: kafka.LastOffset,
 	})
 
 	log.Info("Created consumers", logger.Fields{

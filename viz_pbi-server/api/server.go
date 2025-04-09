@@ -338,10 +338,7 @@ func (s *Server) handlePostMaterialData() http.HandlerFunc {
 
 		// if debug mode, save the data to a file
 		if environment == "development" {
-			prettyJSON, err := json.MarshalIndent(materialData, "", "  ")
-			if err == nil {
-				reqLogger.WithFields(logger.Fields{"materialData": string(prettyJSON)}).Debug("Materials data received")
-			}
+			reqLogger.WithFields(logger.Fields{"materialData": materialData}).Debug("Materials data received")
 		}
 
 		if err := s.sqlWriter.WriteMaterials(materialData); err != nil {
@@ -372,10 +369,7 @@ func (s *Server) handlePostElementsData() http.HandlerFunc {
 
 		// if debug mode, save the data to a file
 		if environment == "development" {
-			prettyJSON, err := json.MarshalIndent(elementsData, "", "  ")
-			if err == nil {
-				reqLogger.WithFields(logger.Fields{"elementsData": string(prettyJSON)}).Debug("Elements data received")
-			}
+			reqLogger.WithFields(logger.Fields{"elementsData": elementsData}).Debug("Elements data received")
 		}
 
 		if err := s.sqlWriter.WriteElements(elementsData); err != nil {

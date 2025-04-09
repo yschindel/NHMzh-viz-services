@@ -1,0 +1,75 @@
+services:
+  nhmzh-viz-services_ifc:
+    image: yschindel/nhmzh-viz-services_ifc:latest
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
+      MINIO_PORT: 9000
+      MINIO_USE_SSL: false
+      MINIO_ENDPOINT: minio
+      MINIO_IFC_BUCKET: ${MINIO_IFC_BUCKET}
+      KAFKA_BROKER: broker:9092
+      KAFKA_IFC_TOPIC: ${KAFKA_IFC_TOPIC}
+      IFC_PROPERTIES_TO_INCLUDE: Reference,LoadBearing,FireRating,Name,category,level,eBKP
+      STORAGE_SERVICE_API_KEY: ${VIZ_API_KEY}
+      STORAGE_SERVICE_URL: http://nhmzh-viz-services_pbi-server:3000
+      STORAGE_ENDPOINT_FILE: /blob
+      STORAGE_ENDPOINT_DATA_ELEMENTS: /data/elements
+    networks:
+      - ${NETWORK_NAME}
+      - ${NETWORK_TRAEFIK}
+
+  nhmzh-viz-services_lca-cost:
+    image: yschindel/nhmzh-viz-services_lca-cost:latest
+    environment:
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      KAFKA_BROKER: broker:9092
+      KAFKA_LCA_TOPIC: ${KAFKA_LCA_TOPIC}
+      KAFKA_COST_TOPIC: ${KAFKA_COST_TOPIC}
+      STORAGE_SERVICE_API_KEY: ${VIZ_API_KEY}
+      STORAGE_SERVICE_URL: http://nhmzh-viz-services_pbi-server:3000
+      STORAGE_ENDPOINT_DATA_MATERIALS: /data/materials
+      STORAGE_ENDPOINT_DATA_ELEMENTS: /data/elements
+    networks:
+      - ${NETWORK_NAME}
+      - ${NETWORK_TRAEFIK}
+
+  nhmzh-viz-services_pbi-server:
+    image: yschindel/nhmzh-viz-services_pbi-server:latest
+    environment:
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      API_KEY: ${VIZ_API_KEY}
+      STORAGE_ENDPOINT_FILE: /blob
+      STORAGE_ENDPOINT_DATA_MATERIALS: /data/materials
+      STORAGE_ENDPOINT_DATA_ELEMENTS: /data/elements
+      AZURE_STORAGE_ACCOUNT: ${AZURE_STORAGE_ACCOUNT}
+      AZURE_STORAGE_KEY: ${AZURE_STORAGE_KEY}
+      AZURE_STORAGE_URL: ${AZURE_STORAGE_URL}
+      AZURE_DB_PORT: ${AZURE_DB_PORT}
+      AZURE_DB_USER: ${AZURE_DB_USER}
+      AZURE_DB_PASSWORD: ${AZURE_DB_PASSWORD}
+      AZURE_DB_DATABASE: ${AZURE_DB_DATABASE}
+      AZURE_DB_SERVER: ${AZURE_DB_SERVER}
+      VIZ_IFC_FRAGMENTS_BUCKET: ${VIZ_IFC_FRAGMENTS_BUCKET:-ifc-fragment-files}
+    expose:
+      - 3000
+    networks:
+      - ${NETWORK_NAME}
+      - ${NETWORK_TRAEFIK}
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.docker.network=${NETWORK_TRAEFIK}'
+      - 'traefik.http.routers.${PBI_SERVER_HOSTNAME}.rule=Host(`${PBI_SERVER_HOSTURL}`)'
+      - 'traefik.http.routers.${PBI_SERVER_HOSTNAME}.entrypoints=https'
+      - 'traefik.http.routers.${PBI_SERVER_HOSTNAME}.tls.certresolver=letsencrypt'
+      - 'traefik.http.services.${PBI_SERVER_HOSTNAME}.loadbalancer.server.port=3000'
+      - 'traefik.http.routers.${PBI_SERVER_HOSTNAME}.tls=true'
+      - 'traefik.http.routers.${PBI_SERVER_HOSTNAME}.service=${PBI_SERVER_HOSTNAME}'
+
+networks:
+  zim-network:
+    name: ${NETWORK_NAME}
+    driver: bridge
+  traefik-proxy:
+    external: true

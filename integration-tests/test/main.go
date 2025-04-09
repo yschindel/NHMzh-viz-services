@@ -249,7 +249,7 @@ func main() {
 	}
 
 	log.Println("Waiting for IFC consumer to convert ifc to gz and write back to MinIO...")
-	time.Sleep(45 * time.Second)
+	time.Sleep(5 * time.Minute)
 
 	log.Println("Getting fragments files...")
 

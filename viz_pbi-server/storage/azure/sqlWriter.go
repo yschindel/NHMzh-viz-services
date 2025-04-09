@@ -116,7 +116,7 @@ func (w *SqlWriter) writeElementsWithRetry(items []models.EavElementDataItem) er
 		return fmt.Errorf("error committing transaction: %v", err)
 	}
 
-	log.Info("Successfully wrote %d elements to database", len(items))
+	log.Info("Successfully wrote elements to database")
 	return nil
 }
 

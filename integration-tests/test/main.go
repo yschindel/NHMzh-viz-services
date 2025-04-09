@@ -140,7 +140,7 @@ func addIfcFilesToMinioDirectly() error {
 	}
 
 	// Read the test file content
-	content, err := os.ReadFile(filepath.Join("..", "assets", "test2.ifc"))
+	content, err := os.ReadFile(filepath.Join("..", "assets", "test.ifc"))
 	if err != nil {
 		return fmt.Errorf("failed to read test.ifc file: %w", err)
 	}

@@ -3,6 +3,10 @@ import { log } from "../utils/logger";
 import fs from "fs";
 import { IFCData, FilePropertyData, ElementDataEAV } from "../types";
 import { toEavElementDataItems } from "../data";
+import { getEnv } from "../utils/env";
+
+const IFC_PROPERTIES_TO_INCLUDE = getEnv("IFC_PROPERTIES_TO_INCLUDE");
+const PROPS_TO_INCLUDE = IFC_PROPERTIES_TO_INCLUDE?.split(",") || [];
 
 /**
  * Processes an IFC file to extract all properties
@@ -50,9 +54,7 @@ export async function processIfcProperties(ifcData: IFCData, wasmPath: string): 
 			items: properties,
 		};
 
-		// use the regular env loading here because it can be empty and that's fine
-		const propsToInclude = process.env["IFC_PROPERTIES_TO_INCLUDE"]?.split(",") || [];
-		const eavData = toEavElementDataItems(filePropertyData, propsToInclude);
+		const eavData = toEavElementDataItems(filePropertyData, PROPS_TO_INCLUDE);
 
 		return eavData;
 	} catch (error: any) {

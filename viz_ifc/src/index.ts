@@ -56,9 +56,9 @@ async function main() {
 				};
 
 				const blobInfo = await processIfcToFragments(ifcData, wasmDir);
+				const eavData = await processIfcProperties(ifcData, wasmDir);
 				const resultBlob = await sendFileToStorage(blobInfo);
 				if (resultBlob.success) {
-					const eavData = await processIfcProperties(ifcData, wasmDir);
 					const resultData = await sendDataToStorage(eavData);
 					if (!resultData.success) {
 						log.error("Error sending data to storage:", { error: resultData.error });

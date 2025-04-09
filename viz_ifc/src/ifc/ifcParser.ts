@@ -8,7 +8,6 @@
 
 import * as OBC from "@thatopen/components";
 import pako from "pako";
-import { sendFileToStorage } from "../storage";
 import { log } from "../utils/logger";
 import { FileData } from "../types";
 import { IFCData } from "../types";
@@ -22,19 +21,19 @@ import { IFCData } from "../types";
 export async function processIfcToFragments(ifcData: IFCData, wasmPath: string): Promise<FileData> {
 	log.info(`Converting IFC file ${ifcData.filename} to fragments`);
 
+	const dataArray = new Uint8Array(ifcData.file);
+	const components = new OBC.Components();
+	const fragments = components.get(OBC.FragmentsManager);
+	const loader = components.get(OBC.IfcLoader);
+	let group: any;
 	try {
-		const dataArray = new Uint8Array(ifcData.file);
-		const components = new OBC.Components();
-		const fragments = components.get(OBC.FragmentsManager);
-		const loader = components.get(OBC.IfcLoader);
-
 		loader.settings.wasm = {
 			path: wasmPath,
 			absolute: true,
 		};
 
 		const startTime = Date.now();
-		const group = await loader.load(dataArray);
+		group = await loader.load(dataArray);
 		log.info(`IfcLoader loaded in: ${Date.now() - startTime}ms`);
 
 		const fragmentData = fragments.export(group);
@@ -60,5 +59,10 @@ export async function processIfcToFragments(ifcData: IFCData, wasmPath: string):
 			log.error(`Error stack: ${error.stack}`);
 		}
 		throw error;
+	} finally {
+		components.dispose();
+		loader.dispose();
+		fragments.dispose();
+		group.dispose();
 	}
 }

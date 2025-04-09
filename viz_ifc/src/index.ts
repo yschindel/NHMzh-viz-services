@@ -14,6 +14,7 @@ import { getFile, getFileMetadata, minioClient } from "./minio";
 import { log } from "./utils/logger";
 import { getEnv } from "./utils/env";
 import { IFCData } from "./types";
+import { sendFileToStorage, sendDataToStorage } from "./storage";
 
 const IFC_BUCKET_NAME = getEnv("MINIO_IFC_BUCKET");
 
@@ -54,8 +55,17 @@ async function main() {
 					fileId: fileID,
 				};
 
-				// Process fragments and properties in parallel
-				await Promise.all([processIfcToFragments(ifcData, wasmDir), processIfcProperties(ifcData, wasmDir)]);
+				const blobInfo = await processIfcToFragments(ifcData, wasmDir);
+				const resultBlob = await sendFileToStorage(blobInfo);
+				if (resultBlob.success) {
+					const eavData = await processIfcProperties(ifcData, wasmDir);
+					const resultData = await sendDataToStorage(eavData);
+					if (!resultData.success) {
+						log.error("Error sending data to storage:", { error: resultData.error });
+					}
+				} else {
+					log.error("Error sending file to storage:", { error: resultBlob.error });
+				}
 			} catch (error: any) {
 				log.error("Error processing Kafka message:", error);
 			}

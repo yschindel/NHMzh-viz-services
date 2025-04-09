@@ -19,7 +19,7 @@ import { IFCData } from "../types";
  * @param ifcData - The IFC file data and metadata
  * @throws If the processing fails
  */
-export async function processIfcToFragments(ifcData: IFCData, wasmPath: string): Promise<void> {
+export async function processIfcToFragments(ifcData: IFCData, wasmPath: string): Promise<FileData> {
 	log.info(`Converting IFC file ${ifcData.filename} to fragments`);
 
 	try {
@@ -39,6 +39,9 @@ export async function processIfcToFragments(ifcData: IFCData, wasmPath: string):
 
 		const fragmentData = fragments.export(group);
 		const compressedFrags = Buffer.from(pako.deflate(fragmentData));
+		if (compressedFrags.length === 0) {
+			throw new Error("No fragments found in IFC file");
+		}
 		// create new fileId, remove .ifc extension and add .gz extension
 		const newFileID = ifcData.fileId.replace(".ifc", ".gz");
 
@@ -50,8 +53,7 @@ export async function processIfcToFragments(ifcData: IFCData, wasmPath: string):
 			fileId: newFileID,
 		};
 
-		await sendFileToStorage(blobInfo);
-		log.info(`Successfully processed and stored fragments for ${blobInfo.filename}`);
+		return blobInfo;
 	} catch (error: any) {
 		log.error(`Error processing IFC file: ${error.message}`);
 		if (error.stack) {

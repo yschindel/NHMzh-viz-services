@@ -34,7 +34,7 @@ log.info(`Storage service endpoint full URL: ${dataEndpointUrl}`);
  * @param fileName - The original name of the file
  * @param projectName - The project identifier
  */
-export async function sendFileToStorage(blobInfo: FileData) {
+export async function sendFileToStorage(blobInfo: FileData): Promise<{ success: boolean; blobId?: string; error?: string }> {
 	// Create form data
 	const formData = new FormData();
 
@@ -64,20 +64,20 @@ export async function sendFileToStorage(blobInfo: FileData) {
 			status: response.status,
 			error: errorText,
 		});
-		throw new Error(`Failed to upload file: ${response.statusText}`);
+		return { success: false, error: errorText };
 	}
 
 	const result = await response.json();
 	log.debug(`File ${blobInfo.filename} uploaded to storage service`, { blobId: result.blobID });
 
-	return result;
+	return { success: true, blobId: result.blobID };
 }
 
 /**
  * Sends a POST request to the storage service to upload data
  * @param data - The data to upload
  */
-export async function sendDataToStorage(data: ElementDataEAV[]) {
+export async function sendDataToStorage(data: ElementDataEAV[]): Promise<{ success: boolean; error?: string }> {
 	// if debug mode, save the data to a file
 	if (process.env.NODE_ENV === "development") {
 		const prettyData = JSON.stringify(data, null, 2);
@@ -100,8 +100,11 @@ export async function sendDataToStorage(data: ElementDataEAV[]) {
 			status: response.status,
 			error: errorText,
 		});
+		return { success: false, error: errorText };
 	} else {
 		const result = await response.json();
 		log.debug(`Data uploaded to storage service`, { ...result });
 	}
+
+	return { success: true };
 }

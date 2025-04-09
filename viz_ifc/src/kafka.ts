@@ -38,13 +38,21 @@ export async function setupKafkaConsumer(): Promise<Consumer> {
 			},
 	});
 
-	const consumer = kafka.consumer({ groupId: "viz-ifc-consumer-group" });
+	const consumer = kafka.consumer({
+		groupId: "viz-ifc-consumer-group",
+		// Add session timeout for long-running processes
+		sessionTimeout: 120000, // 2 minutes
+	});
 
 	try {
 		log.debug("Connecting to Kafka");
 		await consumer.connect();
 		log.debug("Subscribing to Kafka topic");
-		await consumer.subscribe({ topic: getEnv("KAFKA_IFC_TOPIC"), fromBeginning: true });
+		// Change fromBeginning to false to only process new messages
+		await consumer.subscribe({
+			topic: getEnv("KAFKA_IFC_TOPIC"),
+			fromBeginning: false,
+		});
 		log.debug("Kafka consumer connected and subscribed to topic");
 		return consumer;
 	} catch (error: any) {
@@ -62,9 +70,26 @@ export async function setupKafkaConsumer(): Promise<Consumer> {
 export async function startKafkaConsumer(consumer: Consumer, messageHandler: (message: any) => Promise<void>): Promise<void> {
 	try {
 		await consumer.run({
-			eachMessage: async ({ topic, partition, message }) => {
-				log.debug(`Received message from topic ${topic}, partition ${partition}, offset ${message.offset}`);
-				await messageHandler(message);
+			autoCommit: false, // Disable auto-commit
+			eachMessage: async ({ topic, partition, message, heartbeat }) => {
+				try {
+					log.debug(`Processing message from topic ${topic}, partition ${partition}, offset ${message.offset}`);
+					await messageHandler(message);
+
+					// Only commit after successful processing
+					await consumer.commitOffsets([
+						{
+							topic,
+							partition,
+							offset: (Number(message.offset) + 1).toString(),
+						},
+					]);
+					log.debug(`Committed offset ${Number(message.offset) + 1} for topic ${topic}, partition ${partition}`);
+				} catch (error: any) {
+					log.error("Error processing message:", error);
+					// Don't commit the offset if processing failed
+					// The message will be reprocessed
+				}
 			},
 		});
 	} catch (error: any) {

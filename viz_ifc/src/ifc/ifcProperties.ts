@@ -1,8 +1,7 @@
 import * as WebIfc from "web-ifc";
 import { log } from "../utils/logger";
 import fs from "fs";
-import { sendDataToStorage } from "../storage";
-import { IFCData, FilePropertyData, PropertyData } from "../types";
+import { IFCData, FilePropertyData, ElementDataEAV } from "../types";
 import { toEavElementDataItems } from "../data";
 
 /**
@@ -11,7 +10,7 @@ import { toEavElementDataItems } from "../data";
  * @param wasmPath - Path to the web-ifc WASM file
  * @returns Promise with the extracted properties
  */
-export async function processIfcProperties(ifcData: IFCData, wasmPath: string): Promise<void> {
+export async function processIfcProperties(ifcData: IFCData, wasmPath: string): Promise<ElementDataEAV[]> {
 	log.info(`Extracting properties from IFC file ${ifcData.filename}`);
 
 	try {
@@ -55,10 +54,7 @@ export async function processIfcProperties(ifcData: IFCData, wasmPath: string): 
 		const propsToInclude = process.env["IFC_PROPERTIES_TO_INCLUDE"]?.split(",") || [];
 		const eavData = toEavElementDataItems(filePropertyData, propsToInclude);
 
-		// Send data to storage
-		await sendDataToStorage(eavData);
-
-		log.info(`Successfully extracted properties from ${ifcData.filename}`);
+		return eavData;
 	} catch (error: any) {
 		log.error(`Error extracting properties from IFC file: ${error.message}`);
 		if (error.stack) {

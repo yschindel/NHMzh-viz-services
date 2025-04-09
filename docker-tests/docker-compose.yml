@@ -55,7 +55,7 @@ services:
       KAFKA_BROKER: kafka:9093
       KAFKA_IFC_TOPIC: ifc-files
       # Specify the properties to extract from the IFC file:
-      IFC_PROPERTIES_TO_INCLUDE: Reference,LoadBearing,FireRating,Name,category,level,Ebkph
+      IFC_PROPERTIES_TO_INCLUDE: Reference,LoadBearing,FireRating,Name,category,level,eBKP
     depends_on:
       - minio
       - kafka

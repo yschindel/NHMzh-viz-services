@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"os"
 	"strings"
 
 	"github.com/gorilla/mux"
@@ -19,10 +18,12 @@ import (
 )
 
 var apiKey string
+var environment string
 var log = logger.WithFields(logger.Fields{"component": "api/server.go"})
 
 func init() {
 	apiKey = env.Get("API_KEY")
+	environment = env.Get("ENVIRONMENT")
 }
 
 type Server struct {
@@ -328,23 +329,30 @@ func (s *Server) handlePostMaterialData() http.HandlerFunc {
 			"endpoint": "materials",
 		})
 
-		var lcaData []models.EavMaterialDataItem
-		if err := json.NewDecoder(r.Body).Decode(&lcaData); err != nil {
+		var materialData []models.EavMaterialDataItem
+		if err := json.NewDecoder(r.Body).Decode(&materialData); err != nil {
 			reqLogger.WithFields(logger.Fields{"error": err}).Error("Failed to decode request body")
 			http.Error(w, fmt.Sprintf("Failed to decode request body: %v", err), http.StatusBadRequest)
 			return
 		}
 
-		if err := s.sqlWriter.WriteMaterials(lcaData); err != nil {
+		// if debug mode, save the data to a file
+		if environment == "development" {
+			prettyJSON, err := json.MarshalIndent(materialData, "", "  ")
+			if err == nil {
+				reqLogger.WithFields(logger.Fields{"materialData": prettyJSON}).Debug("Materials data received")
+			}
+		}
+
+		if err := s.sqlWriter.WriteMaterials(materialData); err != nil {
 			reqLogger.WithFields(logger.Fields{"error": err}).Error("Failed to write LCA data")
 			http.Error(w, fmt.Sprintf("Failed to write LCA data: %v", err), http.StatusInternalServerError)
 			return
 		}
 
-		reqLogger.Info("LCA data written successfully")
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(map[string]string{
-			"message": "LCA data written successfully",
+			"message": "Materials data written successfully",
 		})
 	}
 }
@@ -363,11 +371,10 @@ func (s *Server) handlePostElementsData() http.HandlerFunc {
 		}
 
 		// if debug mode, save the data to a file
-		if env.Get("ENVIRONMENT") == "development" {
+		if environment == "development" {
 			prettyJSON, err := json.MarshalIndent(elementsData, "", "  ")
 			if err == nil {
-				os.WriteFile("elements_data.json", prettyJSON, 0644)
-				reqLogger.Debug("Elements data saved to elements_data.json")
+				reqLogger.WithFields(logger.Fields{"elementsData": prettyJSON}).Debug("Elements data received")
 			}
 		}
 
@@ -377,7 +384,6 @@ func (s *Server) handlePostElementsData() http.HandlerFunc {
 			return
 		}
 
-		reqLogger.Info("Elements data written successfully")
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(map[string]string{
 			"message": "Elements data written successfully",

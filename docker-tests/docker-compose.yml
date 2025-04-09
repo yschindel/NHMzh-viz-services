@@ -68,7 +68,7 @@ services:
       KAFKA_BROKER: kafka:9093
       KAFKA_LCA_TOPIC: lca-data
       KAFKA_COST_TOPIC: cost-data
-      STORAGE_SERVICE_API_KEY: '123'
+      STORAGE_SERVICE_API_KEY: ${VIZ_API_KEY:-123}
       STORAGE_SERVICE_URL: http://nhmzh-viz-services_pbi-server:3000
       STORAGE_ENDPOINT_DATA_MATERIALS: /data/materials
       STORAGE_ENDPOINT_DATA_ELEMENTS: /data/elements

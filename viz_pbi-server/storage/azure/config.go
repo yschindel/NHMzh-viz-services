@@ -6,24 +6,18 @@ import (
 
 // Config holds Azure Blob Storage configuration
 type Config struct {
-	AccountName string
-	AccountKey  string
-	EndpointURL string
-	Container   string
+	ConnectionString string
+	Container        string
 }
 
 // NewConfig creates a new Azure Blob Storage configuration from environment variables
 func NewConfig() *Config {
 	// Load required environment variables
-	accountName := env.Get("AZURE_STORAGE_ACCOUNT")
-	accountKey := env.Get("AZURE_STORAGE_KEY")
-	endpointURL := env.Get("AZURE_STORAGE_URL")
+	connectionString := env.Get("AZURE_STORAGE_CONNECTION_STRING")
 	container := env.Get("VIZ_IFC_FRAGMENTS_BUCKET")
 
 	return &Config{
-		AccountName: accountName,
-		AccountKey:  accountKey,
-		EndpointURL: endpointURL,
-		Container:   container,
+		ConnectionString: connectionString,
+		Container:        container,
 	}
 }

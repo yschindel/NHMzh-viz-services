@@ -84,9 +84,7 @@ services:
       STORAGE_ENDPOINT_FILE: /blob
       STORAGE_ENDPOINT_DATA_MATERIALS: /data/materials
       STORAGE_ENDPOINT_DATA_ELEMENTS: /data/elements
-      AZURE_STORAGE_ACCOUNT: ${AZURE_STORAGE_ACCOUNT:-devstoreaccount1}
-      AZURE_STORAGE_KEY: ${AZURE_STORAGE_KEY:-Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==}
-      AZURE_STORAGE_URL: ${AZURE_STORAGE_URL:-http://azurite:10000/devstoreaccount1}
+      AZURE_STORAGE_CONNECTION_STRING: ${AZURE_STORAGE_CONNECTION_STRING:-DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1}
       AZURE_DB_PORT: ${AZURE_DB_PORT:-1433}
       AZURE_DB_USER: ${AZURE_DB_USER:-sa}
       AZURE_DB_PASSWORD: ${AZURE_DB_PASSWORD:-P@ssw0rd}

@@ -50,8 +50,7 @@ func (w *SqlWriter) retryOnDeadlock(operation string, fn func() error) error {
 
 		// Check for SQL Server deadlock error (1205)
 		if sqlErr, ok := err.(mssql.Error); ok && sqlErr.Number == 1205 {
-			w.logger.Warn("Deadlock detected during %s (attempt %d of %d), retrying...",
-				operation, attempt+1, maxRetries)
+			w.logger.WithFields(logger.Fields{"error": err, "operation": operation, "attempt": attempt + 1, "maxRetries": maxRetries}).Warn("Deadlock detected, retrying...")
 			time.Sleep(time.Millisecond * 100 * time.Duration(attempt+1))
 			continue
 		}
@@ -71,7 +70,7 @@ func (w *SqlWriter) writeElementsWithRetry(items []models.EavElementDataItem) er
 	// Begin transaction
 	tx, err := w.db.BeginTx(ctx, nil)
 	if err != nil {
-		log.Error("Error starting transaction: %v", err)
+		log.WithFields(logger.Fields{"error": err}).Error("Error starting transaction")
 		return fmt.Errorf("error starting transaction: %v", err)
 	}
 	defer tx.Rollback()
@@ -81,14 +80,14 @@ func (w *SqlWriter) writeElementsWithRetry(items []models.EavElementDataItem) er
 			INSERT INTO data_eav_elements (project, filename, timestamp, id, param_name, param_value_string, param_value_number, param_value_boolean, param_value_date, param_type)
 			VALUES (@p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9, @p10);`)
 	if err != nil {
-		log.Error("Error preparing data_eav statement: %v", err)
+		log.WithFields(logger.Fields{"error": err}).Error("Error preparing data_eav statement")
 		return fmt.Errorf("error preparing data_eav statement: %v", err)
 	}
 	defer eavStmt.Close()
 
 	for _, item := range items {
 		if item.ParamName == "" {
-			log.Warn("Skipping item with empty param_name: %v", item)
+			log.WithFields(logger.Fields{"item": item}).Warn("Skipping item with empty param_name")
 			continue
 		}
 		// Write to data_eav table
@@ -105,14 +104,14 @@ func (w *SqlWriter) writeElementsWithRetry(items []models.EavElementDataItem) er
 			item.ParamType,         // @p10
 		)
 		if err != nil {
-			log.Error("Error inserting data_eav_elements record: %v", err)
+			log.WithFields(logger.Fields{"error": err}).Error("Error inserting data_eav_elements record")
 			return fmt.Errorf("error inserting data_eav_elements record: %v", err)
 		}
 	}
 
 	err = tx.Commit()
 	if err != nil {
-		log.Error("Error committing transaction: %v", err)
+		log.WithFields(logger.Fields{"error": err}).Error("Error committing transaction")
 		return fmt.Errorf("error committing transaction: %v", err)
 	}
 
@@ -130,7 +129,7 @@ func (w *SqlWriter) writeMaterialsWithRetry(items []models.EavMaterialDataItem) 
 	// Begin transaction
 	tx, err := w.db.BeginTx(ctx, nil)
 	if err != nil {
-		log.Error("Error starting transaction: %v", err)
+		log.WithFields(logger.Fields{"error": err}).Error("Error starting transaction")
 		return fmt.Errorf("error starting transaction: %v", err)
 	}
 	defer tx.Rollback()
@@ -140,7 +139,7 @@ func (w *SqlWriter) writeMaterialsWithRetry(items []models.EavMaterialDataItem) 
 			INSERT INTO data_eav_materials (project, filename, timestamp, id, sequence, param_name, param_value_string, param_value_number, param_value_boolean, param_value_date, param_type)
 			VALUES (@p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9, @p10, @p11);`)
 	if err != nil {
-		log.Error("Error preparing data_eav statement: %v", err)
+		log.WithFields(logger.Fields{"error": err}).Error("Error preparing data_eav statement")
 		return fmt.Errorf("error preparing data_eav statement: %v", err)
 	}
 	defer eavStmt.Close()
@@ -161,18 +160,18 @@ func (w *SqlWriter) writeMaterialsWithRetry(items []models.EavMaterialDataItem) 
 			item.ParamType,         // @p11
 		)
 		if err != nil {
-			log.Error("Error inserting data_eav_materials record: %v", err)
+			log.WithFields(logger.Fields{"error": err}).Error("Error inserting data_eav_materials record")
 			return fmt.Errorf("error inserting data_eav_materials record: %v", err)
 		}
 	}
 
 	err = tx.Commit()
 	if err != nil {
-		log.Error("Error committing transaction: %v", err)
+		log.WithFields(logger.Fields{"error": err}).Error("Error committing transaction")
 		return fmt.Errorf("error committing transaction: %v", err)
 	}
 
-	log.Info("Successfully wrote %d materials to database", len(items))
+	log.Info("Successfully wrote materials to database")
 	return nil
 }
 
@@ -188,7 +187,7 @@ func (w *SqlWriter) WriteBlobData(item models.BlobData) error {
 	// Begin transaction
 	tx, err := w.db.BeginTx(ctx, nil)
 	if err != nil {
-		log.Error("Error starting transaction: %v", err)
+		log.WithFields(logger.Fields{"error": err}).Error("Error starting transaction")
 		return fmt.Errorf("error starting transaction: %v", err)
 	}
 	defer tx.Rollback()
@@ -198,7 +197,7 @@ func (w *SqlWriter) WriteBlobData(item models.BlobData) error {
 		INSERT INTO data_updates (project, filename, timestamp, model_blob_storage_url, model_blob_storage_container, model_blob_id)
 		VALUES (@p1, @p2, @p3, @p4, @p5, @p6);`)
 	if err != nil {
-		log.Error("Error preparing data_updates statement: %v", err)
+		log.WithFields(logger.Fields{"error": err}).Error("Error preparing data_updates statement")
 		return fmt.Errorf("error preparing data_updates statement: %v", err)
 	}
 	defer updateStmt.Close()
@@ -212,13 +211,13 @@ func (w *SqlWriter) WriteBlobData(item models.BlobData) error {
 		item.BlobID,            // @p6
 	)
 	if err != nil {
-		log.Error("Error inserting data_updates record: %v", err)
+		log.WithFields(logger.Fields{"error": err}).Error("Error inserting data_updates record")
 		return fmt.Errorf("error inserting data_updates record: %v", err)
 	}
 
 	err = tx.Commit()
 	if err != nil {
-		log.Error("Error committing transaction: %v", err)
+		log.WithFields(logger.Fields{"error": err}).Error("Error committing transaction")
 		return fmt.Errorf("error committing transaction: %v", err)
 	}
 

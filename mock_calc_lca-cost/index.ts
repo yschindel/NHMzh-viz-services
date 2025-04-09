@@ -13,6 +13,7 @@ import { getEnv } from "./src/utils/env";
 
 import { processIfc } from "./src/services/ifcProcessor";
 import type { IfcFileData } from "./src/types";
+import { chunkArray } from "./src/utils/chunk";
 
 const IFC_BUCKET_NAME = getEnv("MINIO_IFC_BUCKET");
 const LCA_TOPIC = getEnv("KAFKA_LCA_TOPIC");
@@ -58,18 +59,22 @@ async function main() {
 					timestamp: metadata.timestamp,
 				};
 
+				// chunk the lcaData and costData array into 1000 element chunks
+				const lcaDataChunks = chunkArray(lcaData, 1000);
+				const costDataChunks = chunkArray(costData, 1000);
+
 				log.debug("Sending LCA data to Kafka...");
 				if (lcaData.length > 0) {
-					for (const lca of lcaData) {
-						ifcFileData.data = [lca];
+					for (const chunk of lcaDataChunks) {
+						ifcFileData.data = chunk;
 						await sendMessage(producer, ifcFileData, LCA_TOPIC);
 					}
 				}
 
 				log.debug("Sending cost data to Kafka...");
 				if (costData.length > 0) {
-					for (const cost of costData) {
-						ifcFileData.data = [cost];
+					for (const chunk of costDataChunks) {
+						ifcFileData.data = chunk;
 						await sendMessage(producer, ifcFileData, COST_TOPIC);
 					}
 				}

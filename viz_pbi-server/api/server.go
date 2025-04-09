@@ -18,12 +18,10 @@ import (
 )
 
 var apiKey string
-var environment string
 var log = logger.WithFields(logger.Fields{"component": "api/server.go"})
 
 func init() {
 	apiKey = env.Get("API_KEY")
-	environment = env.Get("ENVIRONMENT")
 }
 
 type Server struct {
@@ -336,11 +334,6 @@ func (s *Server) handlePostMaterialData() http.HandlerFunc {
 			return
 		}
 
-		// if debug mode, save the data to a file
-		if environment == "development" {
-			reqLogger.WithFields(logger.Fields{"materialData": materialData}).Debug("Materials data received")
-		}
-
 		if err := s.sqlWriter.WriteMaterials(materialData); err != nil {
 			reqLogger.WithFields(logger.Fields{"error": err}).Error("Failed to write LCA data")
 			http.Error(w, fmt.Sprintf("Failed to write LCA data: %v", err), http.StatusInternalServerError)
@@ -365,11 +358,6 @@ func (s *Server) handlePostElementsData() http.HandlerFunc {
 			reqLogger.WithFields(logger.Fields{"error": err}).Error("Failed to decode request body")
 			http.Error(w, fmt.Sprintf("Failed to decode request body: %v", err), http.StatusBadRequest)
 			return
-		}
-
-		// if debug mode, save the data to a file
-		if environment == "development" {
-			reqLogger.WithFields(logger.Fields{"elementsData": elementsData}).Debug("Elements data received")
 		}
 
 		if err := s.sqlWriter.WriteElements(elementsData); err != nil {

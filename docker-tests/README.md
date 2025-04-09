@@ -21,3 +21,9 @@ AZURE_STORAGE_ACCOUNT=<your-storage-account>
 AZURE_STORAGE_KEY=<your-storage-account-key>
 AZURE_STORAGE_URL=<your-storagae-url>
 ```
+
+Spin up the container network with the .env file:
+
+```bash
+docker compose --env-file .env up -d
+```

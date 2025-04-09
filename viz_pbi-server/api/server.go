@@ -340,7 +340,7 @@ func (s *Server) handlePostMaterialData() http.HandlerFunc {
 		if environment == "development" {
 			prettyJSON, err := json.MarshalIndent(materialData, "", "  ")
 			if err == nil {
-				reqLogger.WithFields(logger.Fields{"materialData": prettyJSON}).Debug("Materials data received")
+				reqLogger.WithFields(logger.Fields{"materialData": string(prettyJSON)}).Debug("Materials data received")
 			}
 		}
 
@@ -374,7 +374,7 @@ func (s *Server) handlePostElementsData() http.HandlerFunc {
 		if environment == "development" {
 			prettyJSON, err := json.MarshalIndent(elementsData, "", "  ")
 			if err == nil {
-				reqLogger.WithFields(logger.Fields{"elementsData": prettyJSON}).Debug("Elements data received")
+				reqLogger.WithFields(logger.Fields{"elementsData": string(prettyJSON)}).Debug("Elements data received")
 			}
 		}
 

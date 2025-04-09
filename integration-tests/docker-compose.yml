@@ -73,20 +73,21 @@ services:
       context: ../viz_ifc
       dockerfile: Dockerfile
     environment:
-      - NODE_ENV=development 
-      - STORAGE_SERVICE_API_KEY=123
-      - STORAGE_SERVICE_URL=http://viz_pbi-server:3000
-      - STORAGE_ENDPOINT_FILE=/blob
-      - STORAGE_ENDPOINT_DATA_ELEMENTS=/data/elements
-      - MINIO_ENDPOINT=minio
-      - MINIO_PORT=9000
-      - MINIO_ACCESS_KEY=ROOTUSER
-      - MINIO_SECRET_KEY=CHANGEME123
-      - MINIO_USE_SSL=false
-      - MINIO_IFC_BUCKET=ifc-files
-      - KAFKA_BROKER=kafka:9093
-      - KAFKA_IFC_TOPIC=ifc-files
-      - IFC_PROPERTIES_TO_INCLUDE=Reference,LoadBearing,FireRating,Name,category,level,Ebkph
+      NODE_ENV: development 
+      STORAGE_SERVICE_API_KEY: '123'
+      STORAGE_SERVICE_URL: http://viz_pbi-server:3000
+      STORAGE_ENDPOINT_FILE: /blob
+      STORAGE_ENDPOINT_DATA_ELEMENTS: /data/elements
+      MINIO_ENDPOINT: minio
+      MINIO_PORT: 9000
+      MINIO_ACCESS_KEY: ROOTUSER
+      MINIO_SECRET_KEY: CHANGEME123
+      MINIO_USE_SSL: false
+      MINIO_IFC_BUCKET: ifc-files
+      KAFKA_BROKER: kafka:9093
+      KAFKA_IFC_TOPIC: ifc-files
+      # Specify the properties to extract from the IFC file:
+      IFC_PROPERTIES_TO_INCLUDE: Reference,LoadBearing,FireRating,Name,category,level,Ebkph
     depends_on:
       - minio
       - kafka
@@ -99,15 +100,14 @@ services:
     depends_on:
       - kafka
     environment:
-      - KAFKA_BROKER=kafka:9093
-      - KAFKA_LCA_TOPIC=lca-data
-      - KAFKA_COST_TOPIC=cost-data
-      - STORAGE_SERVICE_API_KEY=123
-      - STORAGE_SERVICE_URL=http://viz_pbi-server:3000
-      - STORAGE_ENDPOINT_DATA_MATERIALS=/data/materials
-      - STORAGE_ENDPOINT_DATA_ELEMENTS=/data/elements
-    volumes:
-      - ../viz_lca-cost/sql:/app/sql
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      KAFKA_BROKER: kafka:9093
+      KAFKA_LCA_TOPIC: lca-data
+      KAFKA_COST_TOPIC: cost-data
+      STORAGE_SERVICE_API_KEY: '123'
+      STORAGE_SERVICE_URL: http://viz_pbi-server:3000
+      STORAGE_ENDPOINT_DATA_MATERIALS: /data/materials
+      STORAGE_ENDPOINT_DATA_ELEMENTS: /data/elements
     restart: on-failure
 
   viz_pbi-server:
@@ -115,20 +115,20 @@ services:
       context: ../viz_pbi-server
       dockerfile: Dockerfile
     environment:
-      - ENVIRONMENT=development # set this to something else (not null) for production (will surpress debug logs)
-      - API_KEY=123
-      - STORAGE_ENDPOINT_FILE=/blob
-      - STORAGE_ENDPOINT_DATA_MATERIALS=/data/materials
-      - STORAGE_ENDPOINT_DATA_ELEMENTS=/data/elements
-      - AZURE_STORAGE_ACCOUNT=devstoreaccount1
-      - AZURE_STORAGE_KEY=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==
-      - AZURE_STORAGE_URL=http://azurite:10000/devstoreaccount1
-      - AZURE_DB_PORT=1433
-      - AZURE_DB_USER=sa
-      - AZURE_DB_PASSWORD=P@ssw0rd
-      - AZURE_DB_DATABASE=nhmzh-viz-services-localdev
-      - AZURE_DB_SERVER=sqlserver # Override to connect to the Docker service instead of host.docker.internal
-      - VIZ_IFC_FRAGMENTS_BUCKET=ifc-fragment-files
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      API_KEY: '123'
+      STORAGE_ENDPOINT_FILE: /blob
+      STORAGE_ENDPOINT_DATA_MATERIALS: /data/materials
+      STORAGE_ENDPOINT_DATA_ELEMENTS: /data/elements
+      AZURE_STORAGE_ACCOUNT: devstoreaccount1
+      AZURE_STORAGE_KEY: Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==
+      AZURE_STORAGE_URL: http://azurite:10000/devstoreaccount1
+      AZURE_DB_PORT: 1433
+      AZURE_DB_USER: sa
+      AZURE_DB_PASSWORD: P@ssw0rd
+      AZURE_DB_DATABASE: nhmzh-viz-services-localdev
+      AZURE_DB_SERVER: sqlserver # Override to connect to the Docker service instead of host.docker.internal
+      VIZ_IFC_FRAGMENTS_BUCKET: ifc-fragment-files
     depends_on:
       - azurite
       - sqlserver-init

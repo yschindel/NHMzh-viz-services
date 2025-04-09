@@ -41,51 +41,64 @@ services:
   nhmzh-viz-services_ifc:
     image: yschindel/nhmzh-viz-services_ifc:latest
     environment:
-      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-ROOTUSER}
-      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-CHANGEME123}
-      MINIO_PORT: ${MINIO_PORT:-9000}
-      MINIO_USE_SSL: ${MINIO_USE_SSL:-false}
+      NODE_ENV: development 
+      STORAGE_SERVICE_API_KEY: ${VIZ_API_KEY:-123}
+      STORAGE_SERVICE_URL: http://nhmzh-viz-services_pbi-server:3000
+      STORAGE_ENDPOINT_FILE: /blob
+      STORAGE_ENDPOINT_DATA_ELEMENTS: /data/elements
       MINIO_ENDPOINT: minio
-      VIZ_IFC_FRAGMENTS_BUCKET: ${VIZ_IFC_FRAGMENTS_BUCKET:-ifc-fragment-files}
-      MINIO_IFC_BUCKET: ${MINIO_IFC_BUCKET:-ifc-files}
+      MINIO_PORT: 9000
+      MINIO_ACCESS_KEY: ROOTUSER
+      MINIO_SECRET_KEY: CHANGEME123
+      MINIO_USE_SSL: false
+      MINIO_IFC_BUCKET: ifc-files
       KAFKA_BROKER: kafka:9093
-      KAFKA_IFC_TOPIC: ${KAFKA_IFC_TOPIC:-ifc-files}
+      KAFKA_IFC_TOPIC: ifc-files
+      # Specify the properties to extract from the IFC file:
+      IFC_PROPERTIES_TO_INCLUDE: Reference,LoadBearing,FireRating,Name,category,level,Ebkph
     depends_on:
       - minio
       - kafka
+    restart: on-failure
 
   nhmzh-viz-services_lca-cost:
     image: yschindel/nhmzh-viz-services_lca-cost:latest
     environment:
+      ENVIRONMENT: ${ENVIRONMENT:-development}
       KAFKA_BROKER: kafka:9093
       KAFKA_LCA_TOPIC: lca-data
       KAFKA_COST_TOPIC: cost-data
-      VIZ_KAFKA_DATA_GROUP_ID: viz-data
-      AZURE_DB_SERVER: ${AZURE_DB_SERVER:-example.database.windows.net}
-      AZURE_DB_PORT: ${AZURE_DB_PORT:-1433}
-      AZURE_DB_USER: ${AZURE_DB_USER:-userName}
-      AZURE_DB_PASSWORD: ${AZURE_DB_PASSWORD:-thisIsNotMyPassword}
-      AZURE_DB_DATABASE: ${AZURE_DB_DATABASE:-nhmzh-viz-services-localdev}
+      STORAGE_SERVICE_API_KEY: '123'
+      STORAGE_SERVICE_URL: http://nhmzh-viz-services_pbi-server:3000
+      STORAGE_ENDPOINT_DATA_MATERIALS: /data/materials
+      STORAGE_ENDPOINT_DATA_ELEMENTS: /data/elements
     depends_on:
-      - minio # This will be replaced with an API endpoint of another service in the future. It will depend on that services instead.
       - kafka
+    restart: on-failure
 
   nhmzh-viz-services_pbi-server:
     image: yschindel/nhmzh-viz-services_pbi-server:latest
     environment:
-      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-ROOTUSER}
-      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-CHANGEME123}
-      MINIO_PORT: ${MINIO_PORT:-9000}
-      MINIO_USE_SSL: ${MINIO_USE_SSL:-false}
-      MINIO_ENDPOINT: minio
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      API_KEY: ${VIZ_API_KEY:-123}
+      STORAGE_ENDPOINT_FILE: /blob
+      STORAGE_ENDPOINT_DATA_MATERIALS: /data/materials
+      STORAGE_ENDPOINT_DATA_ELEMENTS: /data/elements
+      AZURE_STORAGE_ACCOUNT: ${AZURE_STORAGE_ACCOUNT:-devstoreaccount1}
+      AZURE_STORAGE_KEY: ${AZURE_STORAGE_KEY:-Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==}
+      AZURE_STORAGE_URL: ${AZURE_STORAGE_URL:-http://azurite:10000/devstoreaccount1}
+      AZURE_DB_PORT: ${AZURE_DB_PORT:-1433}
+      AZURE_DB_USER: ${AZURE_DB_USER:-sa}
+      AZURE_DB_PASSWORD: ${AZURE_DB_PASSWORD:-P@ssw0rd}
+      AZURE_DB_DATABASE: ${AZURE_DB_DATABASE:-nhmzh-viz-services-localdev}
+      AZURE_DB_SERVER: ${AZURE_DB_SERVER:-sqlserver} # Override to connect to the Docker service instead of host.docker.internal
       VIZ_IFC_FRAGMENTS_BUCKET: ${VIZ_IFC_FRAGMENTS_BUCKET:-ifc-fragment-files}
-      MINIO_IFC_BUCKET: ${MINIO_IFC_BUCKET:-ifc-files}
-      PBI_SERVER_PORT: ${PBI_SERVER_PORT:-3000}
-      PBI_SRV_API_KEY: ${PBI_SRV_API_KEY:-thisIsNotMyApiKey}
-    depends_on:
-      - minio
+    # depends_on:
+      # Azure SQL Cloud Server & SQL Cloud DB
+      # Azure Cloud Blob Storage
     ports:
       - "3000:3000"
+    restart: on-failure
 
 volumes:
   minio_data:

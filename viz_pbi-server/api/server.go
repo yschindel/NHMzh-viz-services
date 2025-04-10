@@ -194,15 +194,15 @@ func (s *Server) handleGetBlob() http.HandlerFunc {
 		if container == "" {
 			container = s.storage.Container() // Use default container if not specified
 		}
-		blobID := r.URL.Query().Get("blobID")
+		blobID := r.URL.Query().Get("id")
 		if blobID == "" {
-			http.Error(w, "blobID parameter is required", http.StatusBadRequest)
+			http.Error(w, "id parameter is required", http.StatusBadRequest)
 			return
 		}
 
 		reqLogger := s.logger.WithFields(logger.Fields{
 			"container": container,
-			"blobID":    blobID,
+			"id":        blobID,
 		})
 		reqLogger.Debug("Handling file download request")
 

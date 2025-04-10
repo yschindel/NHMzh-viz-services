@@ -40,7 +40,8 @@ export async function ensureWasmFile(): Promise<void> {
  * @param outputPath The path to save the wasm file
  */
 async function downloadWasmFile(
-	url: string = "https://unpkg.com/web-ifc@0.0.59/web-ifc-node.wasm",
+	// newer version than 0.0.66 is not working
+	url: string = "https://unpkg.com/web-ifc@0.0.66/web-ifc-node.wasm",
 	outputPath: string = wasmPath
 ): Promise<void> {
 	const response = await fetch(url);

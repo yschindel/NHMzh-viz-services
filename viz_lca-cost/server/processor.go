@@ -32,7 +32,7 @@ func (p *MessageProcessor) ProcessLcaMessage(message *LcaMessage) ([]EavMaterial
 	log.Info("Processing LCA message")
 
 	// Clean the filename by removing .ifc extension if present
-	message.Filename = strings.TrimSuffix(message.Filename, ".ifc")
+	// message.Filename = strings.TrimSuffix(message.Filename, ".ifc")
 
 	// Validate required fields
 	if message.Project == "" {
@@ -88,7 +88,7 @@ func (p *MessageProcessor) ProcessCostMessage(message *CostMessage) ([]EavElemen
 	log.Info("Processing Cost message")
 
 	// Clean the filename by removing .ifc extension if present
-	message.Filename = strings.TrimSuffix(message.Filename, ".ifc")
+	// message.Filename = strings.TrimSuffix(message.Filename, ".ifc")
 
 	// Validate required fields
 	if message.Project == "" {

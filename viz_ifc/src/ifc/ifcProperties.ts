@@ -151,6 +151,10 @@ function getProperties(webIfcApi: WebIfc.IfcAPI, modelId: number): Map<number, a
 				const element = webIfcApi.GetLine(modelId, elementId);
 
 				if (!elementsMap.has(elementId)) {
+					const category = element.constructor.name;
+					if (!category) {
+						continue;
+					}
 					const level = getElementLevel(webIfcApi, modelId, elementId);
 					elementsMap.set(elementId, {
 						expressId: elementId,

@@ -7,6 +7,16 @@ import { getEnv } from "../utils/env";
 
 const IFC_PROPERTIES_TO_INCLUDE = getEnv("IFC_PROPERTIES_TO_INCLUDE");
 const PROPS_TO_INCLUDE = IFC_PROPERTIES_TO_INCLUDE?.split(",") || [];
+const EXCLUDED_CATEGORIES = new Set([
+	"IfcBuildingStorey",
+	"IfcBuilding",
+	"IfcSite",
+	"IfcProject",
+	"IfcSpatialZone",
+	"IfcSpatialZoneBoundary",
+	"IfcSpace",
+	"IfcElementAssembly",
+]);
 
 /**
  * Processes an IFC file to extract all properties
@@ -155,12 +165,16 @@ function getProperties(webIfcApi: WebIfc.IfcAPI, modelId: number): Map<number, a
 					if (!category) {
 						continue;
 					}
+					if (EXCLUDED_CATEGORIES.has(category)) {
+						continue;
+					}
+
 					const level = getElementLevel(webIfcApi, modelId, elementId);
 					elementsMap.set(elementId, {
 						expressId: elementId,
 						globalId: element.GlobalId?.value,
 						properties: {
-							category: element.constructor.name,
+							category: category,
 							level: level,
 						} as Record<string, string | number | boolean>,
 					});
@@ -214,8 +228,26 @@ function getProperties(webIfcApi: WebIfc.IfcAPI, modelId: number): Map<number, a
 			for (const relatedObj of rel.RelatedObjects) {
 				const elementId = "value" in relatedObj ? relatedObj.value : relatedObj.expressID;
 
-				// Skip if element doesn't exist in map (shouldn't happen, but just in case)
-				if (!elementsMap.has(elementId)) continue;
+				if (!elementsMap.has(elementId)) {
+					const element = webIfcApi.GetLine(modelId, elementId);
+					const category = element.constructor.name;
+					if (!category) {
+						continue;
+					}
+					if (EXCLUDED_CATEGORIES.has(category)) {
+						continue;
+					}
+
+					const level = getElementLevel(webIfcApi, modelId, elementId);
+					elementsMap.set(elementId, {
+						expressId: elementId,
+						globalId: element.GlobalId?.value,
+						properties: {
+							category: category,
+							level: level,
+						} as Record<string, string | number | boolean>,
+					});
+				}
 
 				for (const prop of propertySet.HasProperties) {
 					try {

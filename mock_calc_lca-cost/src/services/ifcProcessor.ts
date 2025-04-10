@@ -4,6 +4,17 @@ import { type LcaData, type CostData } from "../types";
 import path from "path";
 import fs from "fs";
 
+const EXCLUDED_CATEGORIES = new Set([
+	"IfcBuildingStorey",
+	"IfcBuilding",
+	"IfcSite",
+	"IfcProject",
+	"IfcSpatialZone",
+	"IfcSpatialZoneBoundary",
+	"IfcSpace",
+	"IfcElementAssembly",
+]);
+
 // Add more debug logging
 log.debug(`Current directory: ${process.cwd()}`);
 log.debug(`__dirname: ${__dirname}`);
@@ -84,6 +95,9 @@ function getIds(webIfcApi: WebIfc.IfcAPI, modelId: number): string[] {
 
 				const category = element.constructor.name;
 				if (!category) {
+					continue;
+				}
+				if (EXCLUDED_CATEGORIES.has(category)) {
 					continue;
 				}
 

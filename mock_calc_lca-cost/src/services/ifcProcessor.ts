@@ -82,10 +82,16 @@ function getIds(webIfcApi: WebIfc.IfcAPI, modelId: number): string[] {
 				const elementId = "value" in relatedObj ? relatedObj.value : relatedObj.expressID;
 				const element = webIfcApi.GetLine(modelId, elementId);
 
+				const category = element.constructor.name;
+				if (!category) {
+					continue;
+				}
+
 				const globalId = element.GlobalId?.value;
 				if (!globalId) {
 					continue;
 				}
+
 				ids.add(globalId);
 			} catch (error) {
 				log.error(`Error getting element ID: ${error}`);

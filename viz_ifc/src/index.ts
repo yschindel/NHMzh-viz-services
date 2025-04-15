@@ -38,6 +38,7 @@ async function main() {
 		if (message.value) {
 			try {
 				log.info("Processing Kafka message:", message.value);
+				await new Promise((resolve) => setTimeout(resolve, 2000));
 				const downloadLink = message.value.toString();
 				const fileID = downloadLink.split("/").pop();
 				const file = await getFile(fileID, IFC_BUCKET_NAME, minioClient);

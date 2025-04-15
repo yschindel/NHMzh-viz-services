@@ -48,6 +48,8 @@ async function main() {
 				}
 
 				const metadata = await getFileMetadata(fileID, IFC_BUCKET_NAME, minioClient);
+				log.debug("File metadata:", metadata);
+
 				const ifcData: IFCData = {
 					project: metadata.project,
 					filename: metadata.filename,

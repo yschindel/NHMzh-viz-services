@@ -291,6 +291,7 @@ func (s *Server) handleUploadBlob() http.HandlerFunc {
 			"container":   blobData.Container,
 			"fileName":    blobData.Filename,
 			"projectName": blobData.Project,
+			"timestamp":   blobData.Timestamp,
 		})
 
 		uploadLogger.Debug("Starting file upload")

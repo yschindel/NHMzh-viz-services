@@ -73,9 +73,6 @@ export async function startKafkaConsumer(consumer: Consumer, messageHandler: (me
 			autoCommit: false, // Disable auto-commit
 			eachMessage: async ({ topic, partition, message, heartbeat }) => {
 				try {
-					log.debug(`Processing message from topic ${topic}, partition ${partition}, offset ${message.offset}`);
-					await messageHandler(message);
-
 					// Only commit after successful processing
 					await consumer.commitOffsets([
 						{
@@ -85,6 +82,9 @@ export async function startKafkaConsumer(consumer: Consumer, messageHandler: (me
 						},
 					]);
 					log.debug(`Committed offset ${Number(message.offset) + 1} for topic ${topic}, partition ${partition}`);
+
+					log.debug(`Processing message from topic ${topic}, partition ${partition}, offset ${message.offset}...`);
+					await messageHandler(message);
 				} catch (error: any) {
 					log.error("Error processing message:", error);
 					// Don't commit the offset if processing failed

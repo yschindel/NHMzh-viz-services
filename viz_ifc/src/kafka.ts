@@ -16,7 +16,7 @@ import { log } from "./utils/logger";
  */
 export async function setupKafkaConsumer(): Promise<Consumer> {
 	const kafka = new Kafka({
-		clientId: "viz-ifc-consumer",
+		clientId: "viz-ifc-consumer-2",
 		brokers: [getEnv("KAFKA_BROKER")],
 
 		// Custom log creator to log Kafka messages to align with the logger in this service
@@ -39,7 +39,7 @@ export async function setupKafkaConsumer(): Promise<Consumer> {
 	});
 
 	const consumer = kafka.consumer({
-		groupId: "viz-ifc-consumer-group",
+		groupId: "viz-ifc-consumer-group-2",
 		// Add session timeout for long-running processes
 		sessionTimeout: 120000, // 2 minutes
 	});

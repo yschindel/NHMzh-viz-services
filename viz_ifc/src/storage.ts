@@ -46,7 +46,7 @@ export async function sendFileToStorage(blobInfo: FileData): Promise<{ success: 
 	// This needs to match up with the api definition in the storage service
 	formData.append("fileName", blobInfo.filename);
 	formData.append("projectName", blobInfo.project);
-	formData.append("timestamp", new Date().toISOString());
+	formData.append("timestamp", blobInfo.timestamp);
 
 	log.debug(`Sending file ${blobInfo.filename} to storage service at ${fileEndpointUrl}`);
 

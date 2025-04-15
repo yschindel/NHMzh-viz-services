@@ -60,6 +60,7 @@ func (b *BlobStorage) UploadBlob(ctx context.Context, blobData models.BlobData) 
 		"container":   blobData.Container,
 		"filename":    blobData.Filename,
 		"projectName": blobData.Project,
+		"timestamp":   blobData.Timestamp,
 	}).Debug("Starting file upload")
 
 	if err := b.CreateContainerIfNotExists(ctx, blobData.Container); err != nil {
@@ -70,10 +71,18 @@ func (b *BlobStorage) UploadBlob(ctx context.Context, blobData models.BlobData) 
 		blobData.BlobID = uuid.New().String()
 	}
 
+	// metadata for the blob
 	metadata := map[string]*string{
 		"projectName": &blobData.Project,
 		"fileName":    &blobData.Filename,
 		"timestamp":   &blobData.Timestamp,
+	}
+
+	// readable metadata for logging
+	readableMetadata := map[string]string{
+		"projectName": blobData.Project,
+		"fileName":    blobData.Filename,
+		"timestamp":   blobData.Timestamp,
 	}
 
 	_, err := b.client.UploadStream(ctx, blobData.Container, blobData.BlobID, blobData.Blob, &azblob.UploadStreamOptions{
@@ -83,7 +92,7 @@ func (b *BlobStorage) UploadBlob(ctx context.Context, blobData models.BlobData) 
 		b.logger.WithFields(logger.Fields{
 			"container": blobData.Container,
 			"blobID":    blobData.BlobID,
-			"metadata":  metadata,
+			"metadata":  readableMetadata,
 			"error":     err,
 		}).Error("Failed to upload file")
 		return blobData, fmt.Errorf("failed to upload file: %v", err)
@@ -92,7 +101,7 @@ func (b *BlobStorage) UploadBlob(ctx context.Context, blobData models.BlobData) 
 	b.logger.WithFields(logger.Fields{
 		"container": blobData.Container,
 		"blobID":    blobData.BlobID,
-		"metadata":  metadata,
+		"metadata":  readableMetadata,
 	}).Info("File uploaded successfully")
 
 	return blobData, nil

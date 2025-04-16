@@ -178,7 +178,13 @@ func NewServer() (*Server, error) {
 		AllowedMethods:   []string{"GET", "POST", "OPTIONS"},
 		AllowedHeaders:   []string{"*"},
 		AllowCredentials: true,
-		ExposedHeaders:   []string{"X-Metadata-*"},
+		ExposedHeaders: []string{
+			"X-Metadata-Filename",
+			"X-Metadata-Projectname",
+			"X-Metadata-Timestamp",
+			"Content-Type",
+			"Content-Length",
+		},
 	})
 
 	handler = c.Handler(handler)

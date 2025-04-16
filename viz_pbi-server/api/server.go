@@ -222,6 +222,9 @@ func (s *Server) handleGetBlob() http.HandlerFunc {
 			return
 		}
 
+		// log the metadata
+		reqLogger.WithFields(logger.Fields{"metadata": metadata}).Debug("File metadata")
+
 		w.Header().Set("Content-Type", "application/octet-stream")
 
 		// set the metadata as headers

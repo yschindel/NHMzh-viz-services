@@ -141,6 +141,17 @@ func (b *BlobStorage) GetBlob(ctx context.Context, containerName string, fileNam
 	return data, nil
 }
 
+// GetBlobMetadata gets the metadata from a file in Azure Blob Storage
+func (b *BlobStorage) GetBlobMetadata(ctx context.Context, containerName string, fileName string) (map[string]*string, error) {
+	blobClient := b.client.ServiceClient().NewContainerClient(containerName).NewBlobClient(fileName)
+	response, err := blobClient.GetProperties(ctx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get blob metadata: %v", err)
+	}
+
+	return response.Metadata, nil
+}
+
 // Container returns the default container name
 func (s *BlobStorage) Container() string {
 	return s.config.Container

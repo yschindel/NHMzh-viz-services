@@ -213,7 +213,21 @@ func (s *Server) handleGetBlob() http.HandlerFunc {
 			return
 		}
 
+		// get the metadata from the blob
+		metadata, err := s.storage.GetBlobMetadata(r.Context(), container, blobID)
+		if err != nil {
+			reqLogger.WithFields(logger.Fields{"error": err}).Error("Failed to fetch file metadata")
+			http.Error(w, fmt.Sprintf("Failed to fetch file metadata: %v", err), http.StatusInternalServerError)
+			return
+		}
+
 		w.Header().Set("Content-Type", "application/octet-stream")
+
+		// set the metadata as headers
+		for key, value := range metadata {
+			w.Header().Set(fmt.Sprintf("X-Metadata-%s", key), *value)
+		}
+
 		w.Write(fileData)
 
 		reqLogger.Info("File downloaded successfully")

@@ -15,4 +15,7 @@ type StorageProvider interface {
 
 	// GetFile retrieves a file from the specified container
 	GetBlob(ctx context.Context, containerName string, fileName string) ([]byte, error)
+
+	// GetBlobMetadata gets the metadata from a file in the specified container
+	GetBlobMetadata(ctx context.Context, containerName string, fileName string) (map[string]*string, error)
 }

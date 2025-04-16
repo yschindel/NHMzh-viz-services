@@ -175,9 +175,10 @@ func NewServer() (*Server, error) {
 	// This is required by PowerBI
 	c := cors.New(cors.Options{
 		AllowedOrigins:   []string{"*"},
-		AllowedMethods:   []string{"GET", "POST"},
+		AllowedMethods:   []string{"GET", "POST", "OPTIONS"},
 		AllowedHeaders:   []string{"*"},
 		AllowCredentials: true,
+		ExposedHeaders:   []string{"X-Metadata-*"},
 	})
 
 	handler = c.Handler(handler)

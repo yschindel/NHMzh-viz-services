@@ -229,7 +229,14 @@ func (s *Server) handleGetBlob() http.HandlerFunc {
 
 		// set the metadata as headers
 		for key, value := range metadata {
-			w.Header().Set(fmt.Sprintf("X-Metadata-%s", key), *value)
+			if value != nil { // Check if pointer is not nil
+				headerKey := fmt.Sprintf("X-Metadata-%s", key)
+				w.Header().Set(headerKey, *value) // Dereference the pointer
+				reqLogger.WithFields(logger.Fields{
+					"header_key":   headerKey,
+					"header_value": *value,
+				}).Debug("Setting metadata header")
+			}
 		}
 
 		w.Write(fileData)

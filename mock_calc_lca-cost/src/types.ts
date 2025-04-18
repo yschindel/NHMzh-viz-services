@@ -13,8 +13,8 @@ export interface LcaData {
 	gwp_absolute: number;
 	penr_relative: number;
 	penr_absolute: number;
-	upb_relative: number;
-	upb_absolute: number;
+	ubp_relative: number;
+	ubp_absolute: number;
 }
 
 export interface CostData {

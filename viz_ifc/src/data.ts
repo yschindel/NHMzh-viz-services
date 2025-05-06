@@ -1,5 +1,4 @@
 import { FilePropertyData, ElementDataEAV } from "./types";
-import { log } from "./utils/logger";
 /**
  * Converts a FilePropertyData object to an array of ElementDataEAV objects
  * @param data - The FilePropertyData object to convert

@@ -135,8 +135,8 @@ function createMockLcaData(ids: string[]): LcaData[] {
 				gwp_absolute: n(),
 				penr_relative: n(),
 				penr_absolute: n(),
-				upb_relative: n(),
-				upb_absolute: n(),
+				ubp_relative: n(),
+				ubp_absolute: n(),
 			});
 		}
 	});

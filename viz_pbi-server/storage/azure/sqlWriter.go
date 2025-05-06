@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 	"viz_pbi-server/logger"
 	"viz_pbi-server/models"
@@ -63,115 +64,152 @@ func (w *SqlWriter) retryOnDeadlock(operation string, fn func() error) error {
 func (w *SqlWriter) writeElementsWithRetry(items []models.EavElementDataItem) error {
 	ctx := context.Background()
 	log := w.logger.WithFields(logger.Fields{
-		"operation": "write_elements",
+		"operation": "write_elements_bulk",
 		"count":     len(items),
 	})
 
-	// Begin transaction
-	tx, err := w.db.BeginTx(ctx, nil)
-	if err != nil {
-		log.WithFields(logger.Fields{"error": err}).Error("Error starting transaction")
-		return fmt.Errorf("error starting transaction: %v", err)
-	}
-	defer tx.Rollback()
+	const (
+		numColumns   = 10
+		maxParams    = 2000 // SQL Server limit
+		maxBatchSize = maxParams / numColumns
+	)
 
-	// Prepare the INSERT statement for data_eav table
-	eavStmt, err := tx.PrepareContext(ctx, `
-			INSERT INTO data_eav_elements (project, filename, timestamp, id, param_name, param_value_string, param_value_number, param_value_boolean, param_value_date, param_type)
-			VALUES (@p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9, @p10);`)
-	if err != nil {
-		log.WithFields(logger.Fields{"error": err}).Error("Error preparing data_eav statement")
-		return fmt.Errorf("error preparing data_eav statement: %v", err)
-	}
-	defer eavStmt.Close()
+	for start := 0; start < len(items); start += maxBatchSize {
+		end := start + maxBatchSize
+		if end > len(items) {
+			end = len(items)
+		}
+		batch := items[start:end]
 
-	for _, item := range items {
-		if item.ParamName == "" {
-			log.WithFields(logger.Fields{"item": item}).Warn("Skipping item with empty param_name")
+		tx, err := w.db.BeginTx(ctx, nil)
+		if err != nil {
+			log.WithFields(logger.Fields{"error": err}).Error("Error starting transaction")
+			return fmt.Errorf("error starting transaction: %v", err)
+		}
+
+		var (
+			valueStrings []string
+			valueArgs    = make(map[string]interface{})
+			paramIdx     = 1
+		)
+		for _, item := range batch {
+			params := []string{}
+			for _, val := range []interface{}{
+				item.Project, item.Filename, item.Timestamp, item.Id, item.ParamName,
+				item.ParamValueString, item.ParamValueNumber, item.ParamValueBoolean, item.ParamValueDate, item.ParamType,
+			} {
+				paramName := fmt.Sprintf("@p%d", paramIdx)
+				params = append(params, paramName)
+				valueArgs[paramName] = val
+				paramIdx++
+			}
+			valueStrings = append(valueStrings, fmt.Sprintf("(%s)", strings.Join(params, ", ")))
+		}
+
+		if len(valueStrings) == 0 {
+			tx.Rollback()
 			continue
 		}
-		// Write to data_eav table
-		_, err = eavStmt.ExecContext(ctx,
-			item.Project,           // @p1
-			item.Filename,          // @p2
-			item.Timestamp,         // @p3
-			item.Id,                // @p4
-			item.ParamName,         // @p5
-			item.ParamValueString,  // @p6
-			item.ParamValueNumber,  // @p7
-			item.ParamValueBoolean, // @p8
-			item.ParamValueDate,    // @p9
-			item.ParamType,         // @p10
-		)
+
+		stmt := fmt.Sprintf(`
+			INSERT INTO data_eav_elements
+				(project, filename, timestamp, id, param_name, param_value_string, param_value_number, param_value_boolean, param_value_date, param_type)
+			VALUES %s;`, strings.Join(valueStrings, ", "))
+
+		args := make([]interface{}, len(valueArgs))
+		for i := 1; i <= len(valueArgs); i++ {
+			args[i-1] = valueArgs[fmt.Sprintf("@p%d", i)]
+		}
+		_, err = tx.ExecContext(ctx, stmt, args...)
 		if err != nil {
-			log.WithFields(logger.Fields{"error": err}).Error("Error inserting data_eav_elements record")
-			return fmt.Errorf("error inserting data_eav_elements record: %v", err)
+			tx.Rollback()
+			log.WithFields(logger.Fields{"error": err}).Error("Error inserting data_eav_elements records (bulk)")
+			return fmt.Errorf("error inserting data_eav_elements records (bulk): %v", err)
+		}
+
+		if err := tx.Commit(); err != nil {
+			log.WithFields(logger.Fields{"error": err}).Error("Error committing transaction")
+			return fmt.Errorf("error committing transaction: %v", err)
 		}
 	}
 
-	err = tx.Commit()
-	if err != nil {
-		log.WithFields(logger.Fields{"error": err}).Error("Error committing transaction")
-		return fmt.Errorf("error committing transaction: %v", err)
-	}
-
-	log.Info("Successfully wrote elements to database")
+	log.Info("Successfully wrote elements to database (bulk)")
 	return nil
 }
 
 func (w *SqlWriter) writeMaterialsWithRetry(items []models.EavMaterialDataItem) error {
 	ctx := context.Background()
 	log := w.logger.WithFields(logger.Fields{
-		"operation": "write_materials",
+		"operation": "write_materials_bulk",
 		"count":     len(items),
 	})
 
-	// Begin transaction
-	tx, err := w.db.BeginTx(ctx, nil)
-	if err != nil {
-		log.WithFields(logger.Fields{"error": err}).Error("Error starting transaction")
-		return fmt.Errorf("error starting transaction: %v", err)
-	}
-	defer tx.Rollback()
+	const (
+		numColumns   = 11
+		maxParams    = 2000 // SQL Server limit
+		maxBatchSize = maxParams / numColumns
+	)
 
-	// Prepare the INSERT statement for data_eav table
-	eavStmt, err := tx.PrepareContext(ctx, `
-			INSERT INTO data_eav_materials (project, filename, timestamp, id, sequence, param_name, param_value_string, param_value_number, param_value_boolean, param_value_date, param_type)
-			VALUES (@p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9, @p10, @p11);`)
-	if err != nil {
-		log.WithFields(logger.Fields{"error": err}).Error("Error preparing data_eav statement")
-		return fmt.Errorf("error preparing data_eav statement: %v", err)
-	}
-	defer eavStmt.Close()
+	for start := 0; start < len(items); start += maxBatchSize {
+		end := start + maxBatchSize
+		if end > len(items) {
+			end = len(items)
+		}
+		batch := items[start:end]
 
-	for _, item := range items {
-		// Write to data_eav table
-		_, err = eavStmt.ExecContext(ctx,
-			item.Project,           // @p1
-			item.Filename,          // @p2
-			item.Timestamp,         // @p3
-			item.Id,                // @p4
-			item.Sequence,          // @p5
-			item.ParamName,         // @p6
-			item.ParamValueString,  // @p7
-			item.ParamValueNumber,  // @p8
-			item.ParamValueBoolean, // @p9
-			item.ParamValueDate,    // @p10
-			item.ParamType,         // @p11
-		)
+		tx, err := w.db.BeginTx(ctx, nil)
 		if err != nil {
-			log.WithFields(logger.Fields{"error": err}).Error("Error inserting data_eav_materials record")
-			return fmt.Errorf("error inserting data_eav_materials record: %v", err)
+			log.WithFields(logger.Fields{"error": err}).Error("Error starting transaction")
+			return fmt.Errorf("error starting transaction: %v", err)
+		}
+
+		var (
+			valueStrings []string
+			valueArgs    = make(map[string]interface{})
+			paramIdx     = 1
+		)
+		for _, item := range batch {
+			params := []string{}
+			for _, val := range []interface{}{
+				item.Project, item.Filename, item.Timestamp, item.Id, item.Sequence, item.ParamName,
+				item.ParamValueString, item.ParamValueNumber, item.ParamValueBoolean, item.ParamValueDate, item.ParamType,
+			} {
+				paramName := fmt.Sprintf("@p%d", paramIdx)
+				params = append(params, paramName)
+				valueArgs[paramName] = val
+				paramIdx++
+			}
+			valueStrings = append(valueStrings, fmt.Sprintf("(%s)", strings.Join(params, ", ")))
+		}
+
+		if len(valueStrings) == 0 {
+			tx.Rollback()
+			continue
+		}
+
+		stmt := fmt.Sprintf(`
+			INSERT INTO data_eav_materials
+				(project, filename, timestamp, id, sequence, param_name, param_value_string, param_value_number, param_value_boolean, param_value_date, param_type)
+			VALUES %s;`, strings.Join(valueStrings, ", "))
+
+		args := make([]interface{}, len(valueArgs))
+		for i := 1; i <= len(valueArgs); i++ {
+			args[i-1] = valueArgs[fmt.Sprintf("@p%d", i)]
+		}
+		_, err = tx.ExecContext(ctx, stmt, args...)
+		if err != nil {
+			tx.Rollback()
+			log.WithFields(logger.Fields{"error": err}).Error("Error inserting data_eav_materials records (bulk)")
+			return fmt.Errorf("error inserting data_eav_materials records (bulk): %v", err)
+		}
+
+		if err := tx.Commit(); err != nil {
+			log.WithFields(logger.Fields{"error": err}).Error("Error committing transaction")
+			return fmt.Errorf("error committing transaction: %v", err)
 		}
 	}
 
-	err = tx.Commit()
-	if err != nil {
-		log.WithFields(logger.Fields{"error": err}).Error("Error committing transaction")
-		return fmt.Errorf("error committing transaction: %v", err)
-	}
-
-	log.Info("Successfully wrote materials to database")
+	log.Info("Successfully wrote materials to database (bulk)")
 	return nil
 }
 

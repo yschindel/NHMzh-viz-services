@@ -41,7 +41,7 @@ BEGIN
     [sequence] INT NOT NULL,
     [param_name] VARCHAR(255) NOT NULL,
     [param_value_string] NVARCHAR(MAX),
-    [param_value_number] DECIMAL(18,2),
+    [param_value_number] DECIMAL(18,6),
     [param_value_boolean] BIT,
     [param_value_date] DATETIME2,
     [param_type] VARCHAR(50) NOT NULL,

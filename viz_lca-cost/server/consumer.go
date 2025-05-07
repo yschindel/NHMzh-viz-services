@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"time"
 	"viz_lca-cost/logger"
 
 	"github.com/segmentio/kafka-go"
@@ -83,7 +84,7 @@ func (c *Consumer) consumeLca(ctx context.Context, errChan chan<- error) {
 	log.Info("Starting consumer")
 
 	// Try to fetch initial message with retries
-	maxRetries := 3
+	maxRetries := 5
 	for i := 0; i < maxRetries; i++ {
 		_, err := c.lcaReader.FetchMessage(ctx)
 		if err == nil {
@@ -104,6 +105,8 @@ func (c *Consumer) consumeLca(ctx context.Context, errChan chan<- error) {
 			"retry": i + 1,
 			"error": err,
 		})
+
+		time.Sleep(3 * time.Second)
 	}
 
 	for {
@@ -132,7 +135,7 @@ func (c *Consumer) consumeCost(ctx context.Context, errChan chan<- error) {
 	log.Info("Starting consumer")
 
 	// Try to fetch initial message with retries
-	maxRetries := 3
+	maxRetries := 5
 	for i := 0; i < maxRetries; i++ {
 		_, err := c.costReader.FetchMessage(ctx)
 		if err == nil {
@@ -153,6 +156,8 @@ func (c *Consumer) consumeCost(ctx context.Context, errChan chan<- error) {
 			"retry": i + 1,
 			"error": err,
 		})
+
+		time.Sleep(3 * time.Second)
 	}
 
 	for {

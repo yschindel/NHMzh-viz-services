@@ -174,10 +174,10 @@ func NewServer() (*Server, error) {
 	// Enable CORS
 	// This is required by PowerBI
 	c := cors.New(cors.Options{
-		AllowedOrigins:   []string{"*"},
-		AllowedMethods:   []string{"GET", "POST", "OPTIONS"},
-		AllowedHeaders:   []string{"*"},
-		AllowCredentials: true,
+		AllowedOrigins: []string{"*"},
+		AllowedMethods: []string{"GET", "POST", "OPTIONS"},
+		AllowedHeaders: []string{"*"},
+		// AllowCredentials: true,
 		ExposedHeaders: []string{
 			"X-Metadata-Filename",
 			"X-Metadata-Projectname",

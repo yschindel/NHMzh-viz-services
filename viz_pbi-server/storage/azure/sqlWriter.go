@@ -206,8 +206,8 @@ func (w *SqlWriter) writeMaterialsWithRetry(items []models.EavMaterialDataItem) 
 			USING (VALUES %s) AS source (project, filename, timestamp, id, sequence, param_name, param_value_string, param_value_number, param_value_boolean, param_value_date, param_type)
 			ON target.project = source.project 
 				AND target.filename = source.filename 
-				AND target.id = source.id 
 				AND target.timestamp = source.timestamp
+				AND target.id = source.id 
 				AND target.sequence = source.sequence
 				AND target.param_name = source.param_name
 			WHEN MATCHED THEN

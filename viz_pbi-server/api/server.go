@@ -161,6 +161,17 @@ func NewServer() (*Server, error) {
 	router.HandleFunc(blobEndpoint, server.handleUploadBlob()).Methods("POST")
 	router.HandleFunc(materialsEndpoint, server.handlePostMaterialData()).Methods("POST")
 	router.HandleFunc(elementsEndpoint, server.handlePostElementsData()).Methods("POST")
+	router.HandleFunc("/{path:.*}", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "OPTIONS" {
+			log.WithFields(logger.Fields{
+				"method": r.Method,
+				"path":   r.URL.Path,
+				"origin": r.Header.Get("Origin"),
+			}).Debug("Received OPTIONS request")
+			w.WriteHeader(http.StatusOK) // Just respond with 200 OK
+			return
+		}
+	}).Methods("OPTIONS")
 
 	// Add middleware
 	var handler http.Handler = router

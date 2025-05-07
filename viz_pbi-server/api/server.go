@@ -186,6 +186,7 @@ func NewServer() (*Server, error) {
 			"Content-Length",
 		},
 		MaxAge: 86400,
+		Debug:  true,
 	})
 
 	handler = c.Handler(handler)

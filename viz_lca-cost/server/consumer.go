@@ -132,8 +132,6 @@ func (c *Consumer) handleEnvironmentalMessage(m kafka.Message) {
 	}
 
 	// Step 3: Write to database
-	// This could be separated into another service
-	// In that case we would POST to an API endpoint here.
 	err = c.writer.WriteLcaMessage(eavItems)
 	if err != nil {
 		log.Error("Could not write message", logger.Fields{

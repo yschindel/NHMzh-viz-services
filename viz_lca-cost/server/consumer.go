@@ -72,8 +72,10 @@ func (c *Consumer) consumeLca(ctx context.Context) {
 			continue
 		}
 		log.Info("Received message", logger.Fields{
-			"key":    string(m.Key),
-			"length": len(m.Value),
+			"key":       string(m.Key),
+			"length":    len(m.Value),
+			"offset":    m.Offset,
+			"partition": m.Partition,
 		})
 		c.handleEnvironmentalMessage(m)
 	}
@@ -95,8 +97,10 @@ func (c *Consumer) consumeCost(ctx context.Context) {
 			continue
 		}
 		log.Info("Received message", logger.Fields{
-			"key":    string(m.Key),
-			"length": len(m.Value),
+			"key":       string(m.Key),
+			"length":    len(m.Value),
+			"offset":    m.Offset,
+			"partition": m.Partition,
 		})
 		c.handleCostMessage(m)
 	}

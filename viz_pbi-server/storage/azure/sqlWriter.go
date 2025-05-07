@@ -112,7 +112,7 @@ func (w *SqlWriter) writeElementsWithRetry(items []models.EavElementDataItem) er
 		}
 
 		stmt := fmt.Sprintf(`
-			MERGE INTO data_eav_elements AS target
+			MERGE INTO data_eav_elements WITH (HOLDLOCK) AS target
 			USING (VALUES %s) AS source (project, filename, timestamp, id, param_name, param_value_string, param_value_number, param_value_boolean, param_value_date, param_type)
 			ON target.project = source.project 
 				AND target.filename = source.filename 
@@ -126,7 +126,7 @@ func (w *SqlWriter) writeElementsWithRetry(items []models.EavElementDataItem) er
 					target.param_value_boolean = source.param_value_boolean,
 					target.param_value_date = source.param_value_date,
 					target.param_type = source.param_type
-			WHEN NOT MATCHED BY target THEN
+			WHEN NOT MATCHED THEN
 				INSERT (project, filename, timestamp, id, param_name, param_value_string, param_value_number, param_value_boolean, param_value_date, param_type)
 				VALUES (source.project, source.filename, source.timestamp, source.id, source.param_name, source.param_value_string, source.param_value_number, source.param_value_boolean, source.param_value_date, source.param_type);`, strings.Join(valueStrings, ", "))
 
@@ -202,7 +202,7 @@ func (w *SqlWriter) writeMaterialsWithRetry(items []models.EavMaterialDataItem) 
 		}
 
 		stmt := fmt.Sprintf(`
-			MERGE INTO data_eav_materials AS target
+			MERGE INTO data_eav_materials WITH (HOLDLOCK) AS target
 			USING (VALUES %s) AS source (project, filename, timestamp, id, sequence, param_name, param_value_string, param_value_number, param_value_boolean, param_value_date, param_type)
 			ON target.project = source.project 
 				AND target.filename = source.filename 
@@ -217,7 +217,7 @@ func (w *SqlWriter) writeMaterialsWithRetry(items []models.EavMaterialDataItem) 
 					target.param_value_boolean = source.param_value_boolean,
 					target.param_value_date = source.param_value_date,
 					target.param_type = source.param_type
-			WHEN NOT MATCHED BY target THEN
+			WHEN NOT MATCHED THEN
 				INSERT (project, filename, timestamp, id, sequence, param_name, param_value_string, param_value_number, param_value_boolean, param_value_date, param_type)
 				VALUES (source.project, source.filename, source.timestamp, source.id, source.sequence, source.param_name, source.param_value_string, source.param_value_number, source.param_value_boolean, source.param_value_date, source.param_type);`, strings.Join(valueStrings, ", "))
 

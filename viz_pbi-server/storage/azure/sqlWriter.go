@@ -117,7 +117,7 @@ func (w *SqlWriter) writeElementsWithRetry(items []models.EavElementDataItem) er
 			ON target.project = source.project 
 				AND target.filename = source.filename 
 				AND target.timestamp = source.timestamp
-				AND target.id = source.id 
+				AND target.id COLLATE Latin1_General_CS_AS = source.id COLLATE Latin1_General_CS_AS
 				AND target.param_name = source.param_name
 			WHEN MATCHED THEN
 				UPDATE SET 
@@ -207,7 +207,7 @@ func (w *SqlWriter) writeMaterialsWithRetry(items []models.EavMaterialDataItem) 
 			ON target.project = source.project 
 				AND target.filename = source.filename 
 				AND target.timestamp = source.timestamp
-				AND target.id = source.id 
+				AND target.id COLLATE Latin1_General_CS_AS = source.id COLLATE Latin1_General_CS_AS
 				AND target.sequence = source.sequence
 				AND target.param_name = source.param_name
 			WHEN MATCHED THEN

@@ -116,11 +116,11 @@ func (w *SqlWriter) writeElementsWithRetry(items []models.EavElementDataItem) er
 			USING (VALUES %s) AS source (project, filename, timestamp, id, param_name, param_value_string, param_value_number, param_value_boolean, param_value_date, param_type)
 			ON target.project = source.project 
 				AND target.filename = source.filename 
+				AND target.timestamp = source.timestamp
 				AND target.id = source.id 
 				AND target.param_name = source.param_name
 			WHEN MATCHED THEN
 				UPDATE SET 
-					target.timestamp = source.timestamp,
 					target.param_value_string = source.param_value_string,
 					target.param_value_number = source.param_value_number,
 					target.param_value_boolean = source.param_value_boolean,
@@ -207,11 +207,11 @@ func (w *SqlWriter) writeMaterialsWithRetry(items []models.EavMaterialDataItem) 
 			ON target.project = source.project 
 				AND target.filename = source.filename 
 				AND target.id = source.id 
+				AND target.timestamp = source.timestamp
 				AND target.sequence = source.sequence
 				AND target.param_name = source.param_name
 			WHEN MATCHED THEN
 				UPDATE SET 
-					target.timestamp = source.timestamp,
 					target.param_value_string = source.param_value_string,
 					target.param_value_number = source.param_value_number,
 					target.param_value_boolean = source.param_value_boolean,

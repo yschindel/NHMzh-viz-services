@@ -48,20 +48,63 @@ func NewConsumer(envBroker, envTopic, costBroker, costTopic, groupID string) *Co
 }
 
 func (c *Consumer) StartConsuming(ctx context.Context) {
-	// Start both consumers in separate goroutines
-	go c.consumeLca(ctx)
-	go c.consumeCost(ctx)
+	// Create error channels for both consumers
+	lcaErrChan := make(chan error, 1)
+	costErrChan := make(chan error, 1)
 
-	// Keep the main goroutine alive
-	<-ctx.Done()
+	// Start both consumers in separate goroutines
+	go c.consumeLca(ctx, lcaErrChan)
+	go c.consumeCost(ctx, costErrChan)
+
+	// Wait for either context cancellation or consumer errors
+	select {
+	case <-ctx.Done():
+		c.logger.Warn("Context cancelled, shutting down consumers")
+	case err := <-lcaErrChan:
+		c.logger.Error("LCA consumer failed", logger.Fields{"error": err})
+	case err := <-costErrChan:
+		c.logger.Error("Cost consumer failed", logger.Fields{"error": err})
+	}
+
+	// Close readers
+	if err := c.lcaReader.Close(); err != nil {
+		c.logger.Error("Error closing LCA reader", logger.Fields{"error": err})
+	}
+	if err := c.costReader.Close(); err != nil {
+		c.logger.Error("Error closing Cost reader", logger.Fields{"error": err})
+	}
 }
 
-func (c *Consumer) consumeLca(ctx context.Context) {
+func (c *Consumer) consumeLca(ctx context.Context, errChan chan<- error) {
 	log := c.logger.WithFields(logger.Fields{
 		"consumer": "lca",
 		"topic":    c.lcaReader.Config().Topic,
 	})
 	log.Info("Starting consumer")
+
+	// Try to fetch initial message with retries
+	maxRetries := 3
+	for i := 0; i < maxRetries; i++ {
+		_, err := c.lcaReader.FetchMessage(ctx)
+		if err == nil {
+			log.Info("Fetched initial message successfully")
+			break
+		}
+
+		if i == maxRetries-1 {
+			log.Error("Could not fetch initial message after retries", logger.Fields{
+				"error":   err,
+				"retries": i + 1,
+			})
+			errChan <- err
+			return
+		}
+
+		log.Warn("Retrying initial message fetch", logger.Fields{
+			"retry": i + 1,
+			"error": err,
+		})
+	}
 
 	for {
 		m, err := c.lcaReader.ReadMessage(ctx)
@@ -81,12 +124,36 @@ func (c *Consumer) consumeLca(ctx context.Context) {
 	}
 }
 
-func (c *Consumer) consumeCost(ctx context.Context) {
+func (c *Consumer) consumeCost(ctx context.Context, errChan chan<- error) {
 	log := c.logger.WithFields(logger.Fields{
 		"consumer": "cost",
 		"topic":    c.costReader.Config().Topic,
 	})
 	log.Info("Starting consumer")
+
+	// Try to fetch initial message with retries
+	maxRetries := 3
+	for i := 0; i < maxRetries; i++ {
+		_, err := c.costReader.FetchMessage(ctx)
+		if err == nil {
+			log.Info("Fetched initial message successfully")
+			break
+		}
+
+		if i == maxRetries-1 {
+			log.Error("Could not fetch initial message after retries", logger.Fields{
+				"error":   err,
+				"retries": i + 1,
+			})
+			errChan <- err
+			return
+		}
+
+		log.Warn("Retrying initial message fetch", logger.Fields{
+			"retry": i + 1,
+			"error": err,
+		})
+	}
 
 	for {
 		m, err := c.costReader.ReadMessage(ctx)

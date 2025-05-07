@@ -95,7 +95,7 @@ func (w *SqlWriter) writeElementsWithRetry(items []models.EavElementDataItem) er
 		for _, item := range batch {
 			params := []string{}
 			// Parse and truncate timestamp to 1 decimal place to match DATETIME2(1)
-			timestamp, err := time.Parse("2006-01-02 15:04:05.9", item.Timestamp)
+			timestamp, err := time.Parse(time.RFC3339, item.Timestamp)
 			if err != nil {
 				log.WithFields(logger.Fields{"error": err, "timestamp": item.Timestamp}).Error("Error parsing timestamp")
 				return fmt.Errorf("error parsing timestamp: %v", err)
@@ -192,7 +192,7 @@ func (w *SqlWriter) writeMaterialsWithRetry(items []models.EavMaterialDataItem) 
 		for _, item := range batch {
 			params := []string{}
 			// Parse and truncate timestamp to 1 decimal place to match DATETIME2(1)
-			timestamp, err := time.Parse("2006-01-02 15:04:05.9", item.Timestamp)
+			timestamp, err := time.Parse(time.RFC3339, item.Timestamp)
 			if err != nil {
 				log.WithFields(logger.Fields{"error": err, "timestamp": item.Timestamp}).Error("Error parsing timestamp")
 				return fmt.Errorf("error parsing timestamp: %v", err)

@@ -164,12 +164,12 @@ func NewServer() (*Server, error) {
 
 	// Add middleware
 	var handler http.Handler = router
-	handler = server.requestLoggingMiddleware(handler) // Use server's logger
-	handler = proxyHeadersMiddleware(handler)
 	if apiKey != "" {
 		handler = apiKeyMiddleware(handler)
 		log.Info("API key authentication enabled")
 	}
+	handler = proxyHeadersMiddleware(handler)
+	handler = server.requestLoggingMiddleware(handler) // Use server's logger
 
 	// Enable CORS
 	// This is required by PowerBI
@@ -197,6 +197,12 @@ func NewServer() (*Server, error) {
 func (s *Server) handleGetBlob() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Get container and file from query parameters
+		reqLogger := s.logger.WithFields(logger.Fields{
+			"endpoint": "getBlob",
+		})
+
+		reqLogger.Debug("Handling file download request")
+
 		container := r.URL.Query().Get("container")
 		if container == "" {
 			container = s.storage.Container() // Use default container if not specified
@@ -207,11 +213,10 @@ func (s *Server) handleGetBlob() http.HandlerFunc {
 			return
 		}
 
-		reqLogger := s.logger.WithFields(logger.Fields{
+		reqLogger.WithFields(logger.Fields{
 			"container": container,
 			"id":        blobID,
-		})
-		reqLogger.Debug("Handling file download request")
+		}).Debug("Url Parameters")
 
 		fileData, err := s.storage.GetBlob(r.Context(), container, blobID)
 		if err != nil {
@@ -219,6 +224,8 @@ func (s *Server) handleGetBlob() http.HandlerFunc {
 			http.Error(w, fmt.Sprintf("Failed to fetch file: %v", err), http.StatusInternalServerError)
 			return
 		}
+
+		reqLogger.Debug("File fetched successfully")
 
 		// get the metadata from the blob
 		metadata, err := s.storage.GetBlobMetadata(r.Context(), container, blobID)
@@ -229,7 +236,7 @@ func (s *Server) handleGetBlob() http.HandlerFunc {
 		}
 
 		// log the metadata
-		reqLogger.WithFields(logger.Fields{"metadata": metadata}).Debug("File metadata")
+		reqLogger.WithFields(logger.Fields{"metadata": metadata}).Debug("Fetched File Metadata:")
 
 		w.Header().Set("Content-Type", "application/octet-stream")
 

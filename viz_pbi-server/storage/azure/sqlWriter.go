@@ -94,8 +94,15 @@ func (w *SqlWriter) writeElementsWithRetry(items []models.EavElementDataItem) er
 		)
 		for _, item := range batch {
 			params := []string{}
+			// Parse and truncate timestamp to 1 decimal place to match DATETIME2(1)
+			timestamp, err := time.Parse("2006-01-02 15:04:05.9", item.Timestamp)
+			if err != nil {
+				log.WithFields(logger.Fields{"error": err, "timestamp": item.Timestamp}).Error("Error parsing timestamp")
+				return fmt.Errorf("error parsing timestamp: %v", err)
+			}
+			truncatedTimestamp := timestamp.Truncate(time.Millisecond * 100)
 			for _, val := range []interface{}{
-				item.Project, item.Filename, item.Timestamp, item.Id, item.ParamName,
+				item.Project, item.Filename, truncatedTimestamp, item.Id, item.ParamName,
 				item.ParamValueString, item.ParamValueNumber, item.ParamValueBoolean, item.ParamValueDate, item.ParamType,
 			} {
 				paramName := fmt.Sprintf("@p%d", paramIdx)
@@ -184,8 +191,15 @@ func (w *SqlWriter) writeMaterialsWithRetry(items []models.EavMaterialDataItem) 
 		)
 		for _, item := range batch {
 			params := []string{}
+			// Parse and truncate timestamp to 1 decimal place to match DATETIME2(1)
+			timestamp, err := time.Parse("2006-01-02 15:04:05.9", item.Timestamp)
+			if err != nil {
+				log.WithFields(logger.Fields{"error": err, "timestamp": item.Timestamp}).Error("Error parsing timestamp")
+				return fmt.Errorf("error parsing timestamp: %v", err)
+			}
+			truncatedTimestamp := timestamp.Truncate(time.Millisecond * 100)
 			for _, val := range []interface{}{
-				item.Project, item.Filename, item.Timestamp, item.Id, item.Sequence, item.ParamName,
+				item.Project, item.Filename, truncatedTimestamp, item.Id, item.Sequence, item.ParamName,
 				item.ParamValueString, item.ParamValueNumber, item.ParamValueBoolean, item.ParamValueDate, item.ParamType,
 			} {
 				paramName := fmt.Sprintf("@p%d", paramIdx)

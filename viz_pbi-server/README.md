@@ -7,6 +7,8 @@ Scripts for loading data in PowerBI: [https://github.com/yschindel/NHMzh-pbi-que
 This is a server for providing data for a PowerBi dashboard. All data is stored in MinIO as .parquet files.
 The file paths are project/file. The directory structure is an important part of the information in the system as it is used to inform the PowerBi dashboard of the data that is available.
 
+All timestamps written to the backing SQL database are rounded to **0.1‑second** precision before being persisted.
+
 ## Security Features
 
 ### API Key Authentication

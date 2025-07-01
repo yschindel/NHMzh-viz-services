@@ -94,7 +94,8 @@ type TestFileData struct {
 }
 
 func newTestFileData(project, filename string) TestFileData {
-	timestamp := time.Now().UTC().Format(time.RFC3339Nano)
+	// timestamp := time.Now().UTC().Format(time.RFC3339Nano)
+	timestamp := "2025-05-07T16:46:06.999Z"
 	log.Println(timestamp)
 	fileUUID := uuid.New().String()
 	return TestFileData{
@@ -140,9 +141,9 @@ func addIfcFilesToMinioDirectly() error {
 	}
 
 	// Read the test file content
-	content, err := os.ReadFile(filepath.Join("..", "assets", "test.ifc"))
+	content, err := os.ReadFile(filepath.Join("..", "assets", "test4.ifc"))
 	if err != nil {
-		return fmt.Errorf("failed to read test.ifc file: %w", err)
+		return fmt.Errorf("failed to read test4.ifc file: %w", err)
 	}
 
 	// Initialize Kafka writer

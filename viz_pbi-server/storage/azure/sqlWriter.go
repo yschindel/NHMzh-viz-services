@@ -74,6 +74,9 @@ func (w *SqlWriter) writeElementsWithRetry(items []models.EavElementDataItem) er
 		maxBatchSize = maxParams / numColumns
 	)
 
+	var firstItemTimestamp = items[0].Timestamp
+	var lastConvertedTimestamp time.Time
+
 	for start := 0; start < len(items); start += maxBatchSize {
 		end := start + maxBatchSize
 		if end > len(items) {
@@ -94,8 +97,9 @@ func (w *SqlWriter) writeElementsWithRetry(items []models.EavElementDataItem) er
 		)
 		for _, item := range batch {
 			params := []string{}
-			// Parse and truncate timestamp to 1 decimal place to match DATETIME2(1)
+
 			timestamp, err := time.Parse(time.RFC3339, item.Timestamp)
+			lastConvertedTimestamp = timestamp
 			if err != nil {
 				log.WithFields(logger.Fields{"error": err, "timestamp": item.Timestamp}).Error("Error parsing timestamp")
 				return fmt.Errorf("error parsing timestamp: %v", err)
@@ -154,7 +158,7 @@ func (w *SqlWriter) writeElementsWithRetry(items []models.EavElementDataItem) er
 		}
 	}
 
-	log.Info("Successfully wrote elements to database (bulk)")
+	log.WithFields(logger.Fields{"firstItemTimestamp": firstItemTimestamp, "lastConvertedTimestamp": lastConvertedTimestamp}).Info("Successfully wrote elements to database (bulk)")
 	return nil
 }
 
@@ -170,6 +174,9 @@ func (w *SqlWriter) writeMaterialsWithRetry(items []models.EavMaterialDataItem) 
 		maxParams    = 2000 // SQL Server limit
 		maxBatchSize = maxParams / numColumns
 	)
+
+	var firstItemTimestamp = items[0].Timestamp
+	var lastConvertedTimestamp time.Time
 
 	for start := 0; start < len(items); start += maxBatchSize {
 		end := start + maxBatchSize
@@ -194,6 +201,7 @@ func (w *SqlWriter) writeMaterialsWithRetry(items []models.EavMaterialDataItem) 
 			params := []string{}
 			// Parse and truncate timestamp to 1 decimal place to match DATETIME2(1)
 			timestamp, err := time.Parse(time.RFC3339, item.Timestamp)
+			lastConvertedTimestamp = timestamp
 			if err != nil {
 				log.WithFields(logger.Fields{"error": err, "timestamp": item.Timestamp}).Error("Error parsing timestamp")
 				return fmt.Errorf("error parsing timestamp: %v", err)
@@ -253,7 +261,7 @@ func (w *SqlWriter) writeMaterialsWithRetry(items []models.EavMaterialDataItem) 
 		}
 	}
 
-	log.Info("Successfully wrote materials to database (bulk)")
+	log.WithFields(logger.Fields{"firstItemTimestamp": firstItemTimestamp, "lastConvertedTimestamp": lastConvertedTimestamp}).Info("Successfully wrote materials to database (bulk)")
 	return nil
 }
 

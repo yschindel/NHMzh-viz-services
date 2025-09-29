@@ -32,7 +32,12 @@ This consumer listens to the cost and LCA Kafka topics and writes data to Azure 
 
 Serves the Power BI integration:
 
-- Provides an API for accessing fragment files stored in Minio
+- **`/blob` (GET)**: Serves compressed fragment files for 3D visualization
+- **`/blob` (POST)**: Uploads fragment files to storage
+- **`/data/elements` (POST)**: Receives processed element data from viz_lca-cost
+- **`/data/materials` (POST)**: Receives processed material data from viz_lca-cost
+- **API Key Authentication**: All endpoints require `X-API-Key` header
+- **CORS Support**: Enables cross-origin requests from PowerBI
 
 ## Additional Services Needed:
 

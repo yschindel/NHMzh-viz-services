@@ -45,69 +45,80 @@ The service is configured using the following environment variables:
 | `MINIO_SECRET_KEY`         | MinIO secret key                     | (required)           |
 | `VIZ_IFC_FRAGMENTS_BUCKET` | Bucket/Container for fragment files  | `ifc-fragment-files` |
 
-## Routes
+## API Endpoints
 
-### Get A Fragment File
+### Get Fragment File
 
-route: **/fragments**
+**Route:** `GET /blob`
 
-Description:
+**Description:**
+Returns a compressed fragment file (.gz) for 3D visualization in PowerBI.
 
-Returns the latest version of a fragments file compressed as .gz
+**Parameters:**
 
-Arguments:
+- `id` (query): File ID in format `project/filename_timestamp.gz`
+- `container` (query, optional): Storage container name (defaults to configured bucket)
 
-- **id**: The id of the file in the following format: `project2/file2`
-
-Authentication:
-
-- Required `X-API-Key` header with valid API key
-
-### List All Fragment Files
-
-route: **/fragments/list**
-
-Description:
-
-Returns a list of all fragment files in the `ifc-fragment-files` bucket.
-
-Arguments:
-
-- None
-
-Authentication:
+**Authentication:**
 
 - Required `X-API-Key` header with valid API key
 
-### Get A Data File
+**Usage:**
 
-route: **/data**
+```bash
+curl -H "X-API-Key: your-api-key" \
+     "http://localhost:3000/blob?id=project1/building1_20240115.gz"
+```
 
-Description:
+### Upload Fragment File
 
-Returns a dataset (as a .parquet file) for given project and file. Includes all history of that file.
+**Route:** `POST /blob`
 
-Arguments:
+**Description:**
+Uploads a compressed fragment file to storage.
 
-- **project**: The project name
-- **file**: The file name
+**Parameters:**
 
-Authentication:
+- `container` (query, optional): Storage container name
+- File data in multipart form
+
+**Authentication:**
+
+- Required `X-API-Key` header with valid API key
+
+### Store Element Data
+
+**Route:** `POST /data/elements`
+
+**Description:**
+Receives and stores processed element data from viz_lca-cost service.
+
+**Content-Type:** `application/json`
+
+**Authentication:**
 
 - Required `X-API-Key` header with valid API key
 
-### List All Data Files
+### Store Material Data
 
-route: **/data/list**
+**Route:** `POST /data/materials`
 
-Description:
+**Description:**
+Receives and stores processed material data from viz_lca-cost service.
 
-Returns a list of all data files in the `lca-cost-data` bucket.
+**Content-Type:** `application/json`
 
-Arguments:
-
-- None
-
-Authentication:
+**Authentication:**
 
 - Required `X-API-Key` header with valid API key
+
+### CORS Preflight
+
+**Route:** `OPTIONS /{path:.*}`
+
+**Description:**
+Handles CORS preflight requests for PowerBI integration.
+
+**Authentication:**
+
+- None required for OPTIONS requests
